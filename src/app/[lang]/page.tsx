@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale } from "@/i18n/config";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -17,10 +16,6 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <ThemeToggle
-          lightLabel={dictionary.home.toggleToLight}
-          darkLabel={dictionary.home.toggleToDark}
-        />
         <Image
           className="dark:invert"
           src="/next.svg"

@@ -16,6 +16,14 @@ const de = {
     toggleToLight: "Heller Modus",
     toggleToDark: "Dunkler Modus",
   },
+  topbar: {
+    brand: "Guild Engine",
+    languageButton: "Sprache wechseln",
+    english: "English",
+    german: "Deutsch",
+    toggleToLight: "Zum hellen Modus wechseln",
+    toggleToDark: "Zum dunklen Modus wechseln",
+  },
 } as const;
 
 export default de;

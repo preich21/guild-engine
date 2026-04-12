@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 type ThemeToggleProps = {
   lightLabel: string;
   darkLabel: string;
+  showLabel?: boolean;
 };
 
-export function ThemeToggle({ lightLabel, darkLabel }: ThemeToggleProps) {
+export function ThemeToggle({
+  lightLabel,
+  darkLabel,
+  showLabel = true,
+}: ThemeToggleProps) {
   const { resolvedTheme, setTheme } = useTheme();
 
   const isDark = resolvedTheme === "dark";
@@ -19,14 +24,13 @@ export function ThemeToggle({ lightLabel, darkLabel }: ThemeToggleProps) {
     <Button
       type="button"
       variant="outline"
-      size="sm"
+      size={showLabel ? "sm" : "icon-sm"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? lightLabel : darkLabel}
       title={isDark ? lightLabel : darkLabel}
-      className="self-end"
     >
       {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-      <span>{isDark ? lightLabel : darkLabel}</span>
+      {showLabel ? <span>{isDark ? lightLabel : darkLabel}</span> : null}
     </Button>
   );
 }
