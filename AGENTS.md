@@ -3,6 +3,12 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
+## Component library
+
+This project uses shadcn/ui as a component library.
+All UI components must be built using this library, and no custom CSS or HTML should be used for UI elements.
+Use the shadcn MCP server to find the right components and their usage.
+
 ## i18n
 
 This repository uses internationalization or i18n via Next.js.

@@ -34,6 +34,29 @@ const en = {
     submitButton: "Sign in",
     invalidCredentials: "Invalid username or password.",
   },
+  getPoints: {
+    heading: "Get points",
+    attendanceLabel:
+      "Did you attend the last guild meeting (only counts if you arrived before the protocol raffle)?",
+    attendanceNo: "No",
+    attendanceVirtually: "Yes, virtually",
+    attendanceOnSite: "Yes, on site",
+    protocolLabel: "Did you write the protocol for the last guild meeting?",
+    protocolNo: "No",
+    protocolForced: "Yes, forced",
+    protocolVoluntary: "Yes, voluntarily",
+    moderationLabel: "Did you moderate the last guild meeting?",
+    yes: "Yes",
+    no: "No",
+    participationLabel:
+      "Did you actively participate in at least one working group between the last two guild meetings?",
+    twlPostsLabel:
+      "Did you write any TWL (Today We Learned) or Security News posts between the last two guild meetings?",
+    presentationsLabel:
+      "Did you present any project or concept during the last guild meeting?",
+    saveButton: "Save",
+    savedAlert: "Saved!",
+  },
 } as const;
 
 export default en;

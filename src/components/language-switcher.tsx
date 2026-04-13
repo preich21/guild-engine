@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Languages } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/i18n/config";
+import { hasLocale, type Locale } from "@/i18n/config";
 
 type LanguageSwitcherProps = {
   lang: Locale;
@@ -27,6 +28,7 @@ export function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -45,6 +47,18 @@ export function LanguageSwitcher({
     en: englishLabel,
     de: germanLabel,
   } as const;
+
+  const getLanguageHref = (targetLocale: Locale) => {
+    const segments = pathname.split("/");
+
+    if (segments[1] && hasLocale(segments[1])) {
+      segments[1] = targetLocale;
+    } else {
+      segments.splice(1, 0, targetLocale);
+    }
+
+    return segments.join("/");
+  };
 
   return (
     <div className="relative" ref={containerRef}>
@@ -71,7 +85,7 @@ export function LanguageSwitcher({
             return (
               <Link
                 key={option.locale}
-                href={`/${option.locale}`}
+                href={getLanguageHref(option.locale)}
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted"
                 aria-current={isActive ? "page" : undefined}
                 role="menuitem"

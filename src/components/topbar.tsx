@@ -5,7 +5,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
-import {LogOut} from "lucide-react";
+import { LogOut } from "lucide-react";
 
 type TopbarProps = {
   lang: Locale;
@@ -27,7 +27,7 @@ export function Topbar({ lang, dictionary }: TopbarProps) {
   };
 
   return (
-    <header className="w-full border-b border-border bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link href={`/${lang}`} className="text-lg font-semibold tracking-tight">
           {dictionary.brand}
@@ -45,10 +45,14 @@ export function Topbar({ lang, dictionary }: TopbarProps) {
             showLabel={false}
           />
           <form action={logout}>
-            <Button type="submit" variant="outline" size="sm"
-                    aria-label={dictionary.logoutButton}
-                    title={dictionary.logoutButton}>
-              <LogOut/>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              aria-label={dictionary.logoutButton}
+              title={dictionary.logoutButton}
+            >
+              <LogOut />
             </Button>
           </form>
         </div>
