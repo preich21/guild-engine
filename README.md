@@ -33,16 +33,11 @@ pnpm db:up
 pnpm db:check
 ```
 
-Notes:
-
-- The connection lives in `src/lib/db.ts` and uses `DATABASE_URL`.
-- Drizzle is configured in `drizzle.config.ts`.
-- No tables or migrations are created yet.
-- Stop containers with `pnpm db:down`.
+If necessary, you can stop the container with `pnpm db:down`.
 
 ### Getting Started
 
-First, run the development server:
+Now you can run the development server:
 
 ```bash
 pnpm dev

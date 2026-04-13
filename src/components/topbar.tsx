@@ -1,8 +1,11 @@
 import Link from "next/link";
 
+import { signOut } from "@/auth";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
+import {LogOut} from "lucide-react";
 
 type TopbarProps = {
   lang: Locale;
@@ -13,10 +16,16 @@ type TopbarProps = {
     german: string;
     toggleToLight: string;
     toggleToDark: string;
+    logoutButton: string;
   };
 };
 
 export function Topbar({ lang, dictionary }: TopbarProps) {
+  const logout = async () => {
+    "use server";
+    await signOut({ redirectTo: `/${lang}/login` });
+  };
+
   return (
     <header className="w-full border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
@@ -35,6 +44,13 @@ export function Topbar({ lang, dictionary }: TopbarProps) {
             darkLabel={dictionary.toggleToDark}
             showLabel={false}
           />
+          <form action={logout}>
+            <Button type="submit" variant="outline" size="sm"
+                    aria-label={dictionary.logoutButton}
+                    title={dictionary.logoutButton}>
+              <LogOut/>
+            </Button>
+          </form>
         </div>
       </div>
     </header>

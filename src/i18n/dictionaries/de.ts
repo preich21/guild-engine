@@ -23,6 +23,16 @@ const de = {
     german: "Deutsch",
     toggleToLight: "Zum hellen Modus wechseln",
     toggleToDark: "Zum dunklen Modus wechseln",
+    logoutButton: "Abmelden",
+  },
+  login: {
+    heading: "Anmelden",
+    usernameLabel: "Benutzername",
+    usernamePlaceholder: "Benutzernamen eingeben",
+    passwordLabel: "Passwort",
+    passwordPlaceholder: "Passwort eingeben",
+    submitButton: "Anmelden",
+    invalidCredentials: "Ungultiger Benutzername oder Passwort.",
   },
 } as const;
 

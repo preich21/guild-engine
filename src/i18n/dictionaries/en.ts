@@ -23,6 +23,16 @@ const en = {
     german: "Deutsch",
     toggleToLight: "Switch to light mode",
     toggleToDark: "Switch to dark mode",
+    logoutButton: "Log out",
+  },
+  login: {
+    heading: "Sign in",
+    usernameLabel: "Username",
+    usernamePlaceholder: "Enter your username",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Enter your password",
+    submitButton: "Sign in",
+    invalidCredentials: "Invalid username or password.",
   },
 } as const;
 
