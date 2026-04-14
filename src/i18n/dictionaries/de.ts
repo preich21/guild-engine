@@ -18,6 +18,7 @@ const de = {
   },
   topbar: {
     brand: "Guild Engine",
+    getPointsLink: "Punkte Erfassen",
     languageButton: "Sprache wechseln",
     english: "English",
     german: "Deutsch",
@@ -55,7 +56,8 @@ const de = {
     presentationsLabel:
       "Hast du während des letzten Gildentreffs ein Projekt oder ein Konzept vorgestellt?",
     saveButton: "Speichern",
-    savedAlert: "Gespeichert!",
+    saveSuccess: "Erfolgreich gespeichert.",
+    saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   },
 } as const;
 

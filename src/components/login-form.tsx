@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { LoginActionState } from "@/app/[lang]/login/actions";
 
 type LoginFormProps = {
@@ -32,29 +34,31 @@ export function LoginForm({ action, dictionary }: LoginFormProps) {
         {dictionary.heading}
       </h1>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
-        <span>{dictionary.usernameLabel}</span>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="username">{dictionary.usernameLabel}</Label>
+        <Input
+          id="username"
           name="username"
           type="text"
           autoComplete="username"
           required
-          className="h-10 rounded-md border border-input bg-background px-3 text-base outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 px-3"
           placeholder={dictionary.usernamePlaceholder}
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
-        <span>{dictionary.passwordLabel}</span>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">{dictionary.passwordLabel}</Label>
+        <Input
+          id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
-          className="h-10 rounded-md border border-input bg-background px-3 text-base outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 px-3"
           placeholder={dictionary.passwordPlaceholder}
         />
-      </label>
+      </div>
 
       {state.error ? (
         <p className="text-sm text-destructive" role="alert">

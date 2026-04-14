@@ -1,0 +1,102 @@
+{
+  "id": "de2915f4-1079-41e8-81f5-d7116a408565",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.get_points_submissions": {
+      "name": "get_points_submissions",
+      "schema": "",
+      "columns": {
+        "user": {
+          "name": "user",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "attendance": {
+          "name": "attendance",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol": {
+          "name": "protocol",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moderation": {
+          "name": "moderation",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "working_group": {
+          "name": "working_group",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "twl": {
+          "name": "twl",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "presentations": {
+          "name": "presentations",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "get_points_submissions_user_length": {
+          "name": "get_points_submissions_user_length",
+          "value": "char_length(\"get_points_submissions\".\"user\") <= 255"
+        },
+        "get_points_submissions_attendance_range": {
+          "name": "get_points_submissions_attendance_range",
+          "value": "\"get_points_submissions\".\"attendance\" between 0 and 2"
+        },
+        "get_points_submissions_protocol_range": {
+          "name": "get_points_submissions_protocol_range",
+          "value": "\"get_points_submissions\".\"protocol\" between 0 and 2"
+        },
+        "get_points_submissions_twl_range": {
+          "name": "get_points_submissions_twl_range",
+          "value": "\"get_points_submissions\".\"twl\" between 0 and 99"
+        },
+        "get_points_submissions_presentations_range": {
+          "name": "get_points_submissions_presentations_range",
+          "value": "\"get_points_submissions\".\"presentations\" between 0 and 99"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,14 +1,23 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, useActionState, useState } from "react";
+
+import type { GetPointsActionState } from "@/app/[lang]/get-points/actions";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type AttendanceAnswer = "no" | "virtually" | "onSite";
 type ProtocolAnswer = "no" | "forced" | "voluntary";
 type YesNoAnswer = "no" | "yes";
 
 type GetPointsFormProps = {
+  action: (
+    state: GetPointsActionState,
+    formData: FormData,
+  ) => Promise<GetPointsActionState>;
   dictionary: {
     heading: string;
     attendanceLabel: string;
@@ -26,11 +35,15 @@ type GetPointsFormProps = {
     twlPostsLabel: string;
     presentationsLabel: string;
     saveButton: string;
-    savedAlert: string;
+    saveSuccess: string;
+    saveError: string;
   };
 };
 
-export function GetPointsForm({ dictionary }: GetPointsFormProps) {
+const initialState: GetPointsActionState = { status: "idle" };
+
+export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
+  const [state, formAction, pending] = useActionState(action, initialState);
   const [attendance, setAttendance] = useState<AttendanceAnswer>("no");
   const [protocol, setProtocol] = useState<ProtocolAnswer>("no");
   const [moderation, setModeration] = useState<YesNoAnswer>("no");
@@ -40,8 +53,7 @@ export function GetPointsForm({ dictionary }: GetPointsFormProps) {
 
   const isAttendanceNo = attendance === "no";
 
-  const handleAttendanceChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextAttendance = event.target.value as AttendanceAnswer;
+  const handleAttendanceChange = (nextAttendance: AttendanceAnswer) => {
     setAttendance(nextAttendance);
 
     if (nextAttendance === "no") {
@@ -53,131 +65,127 @@ export function GetPointsForm({ dictionary }: GetPointsFormProps) {
   const handleNumberChange =
     (setter: (value: number) => void) => (event: ChangeEvent<HTMLInputElement>) => {
       const nextValue = event.target.valueAsNumber;
-      setter(Number.isNaN(nextValue) || nextValue < 0 ? 0 : nextValue);
+      if (Number.isNaN(nextValue)) {
+        setter(0);
+        return;
+      }
+
+      setter(Math.min(99, Math.max(0, nextValue)));
     };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    window.alert(dictionary.savedAlert);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form action={formAction} className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         {dictionary.heading}
       </h1>
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-foreground">{dictionary.attendanceLabel}</legend>
-        <RadioOption
+        <RadioGroup
           name="attendance"
-          value="no"
-          checked={attendance === "no"}
-          onChange={handleAttendanceChange}
-          label={dictionary.attendanceNo}
-        />
-        <RadioOption
-          name="attendance"
-          value="virtually"
-          checked={attendance === "virtually"}
-          onChange={handleAttendanceChange}
-          label={dictionary.attendanceVirtually}
-        />
-        <RadioOption
-          name="attendance"
-          value="onSite"
-          checked={attendance === "onSite"}
-          onChange={handleAttendanceChange}
-          label={dictionary.attendanceOnSite}
-        />
+          value={attendance}
+          onValueChange={(value) => handleAttendanceChange(value as AttendanceAnswer)}
+          className="space-y-3"
+        >
+          <RadioOption id="attendance-no" value="no" label={dictionary.attendanceNo} />
+          <RadioOption
+            id="attendance-virtually"
+            value="virtually"
+            label={dictionary.attendanceVirtually}
+          />
+          <RadioOption id="attendance-on-site" value="onSite" label={dictionary.attendanceOnSite} />
+        </RadioGroup>
       </fieldset>
 
-      <fieldset className="space-y-3" disabled={isAttendanceNo}>
+      <fieldset className="space-y-3 disabled:opacity-60" disabled={isAttendanceNo}>
         <legend className="text-sm font-medium text-foreground">{dictionary.protocolLabel}</legend>
-        <RadioOption
+        <RadioGroup
           name="protocol"
-          value="no"
-          checked={protocol === "no"}
-          onChange={(event) => setProtocol(event.target.value as ProtocolAnswer)}
-          label={dictionary.protocolNo}
-        />
-        <RadioOption
-          name="protocol"
-          value="forced"
-          checked={protocol === "forced"}
-          onChange={(event) => setProtocol(event.target.value as ProtocolAnswer)}
-          label={dictionary.protocolForced}
-        />
-        <RadioOption
-          name="protocol"
-          value="voluntary"
-          checked={protocol === "voluntary"}
-          onChange={(event) => setProtocol(event.target.value as ProtocolAnswer)}
-          label={dictionary.protocolVoluntary}
-        />
+          value={protocol}
+          onValueChange={(value) => setProtocol(value as ProtocolAnswer)}
+          disabled={isAttendanceNo}
+          className="space-y-3"
+        >
+          <RadioOption id="protocol-no" value="no" label={dictionary.protocolNo} />
+          <RadioOption id="protocol-forced" value="forced" label={dictionary.protocolForced} />
+          <RadioOption
+            id="protocol-voluntary"
+            value="voluntary"
+            label={dictionary.protocolVoluntary}
+          />
+        </RadioGroup>
       </fieldset>
 
-      <fieldset className="space-y-3" disabled={isAttendanceNo}>
+      <fieldset className="space-y-3 disabled:opacity-60" disabled={isAttendanceNo}>
         <legend className="text-sm font-medium text-foreground">{dictionary.moderationLabel}</legend>
-        <RadioOption
+        <RadioGroup
           name="moderation"
-          value="no"
-          checked={moderation === "no"}
-          onChange={(event) => setModeration(event.target.value as YesNoAnswer)}
-          label={dictionary.no}
-        />
-        <RadioOption
-          name="moderation"
-          value="yes"
-          checked={moderation === "yes"}
-          onChange={(event) => setModeration(event.target.value as YesNoAnswer)}
-          label={dictionary.yes}
-        />
+          value={moderation}
+          onValueChange={(value) => setModeration(value as YesNoAnswer)}
+          disabled={isAttendanceNo}
+          className="space-y-3"
+        >
+          <RadioOption id="moderation-no" value="no" label={dictionary.no} />
+          <RadioOption id="moderation-yes" value="yes" label={dictionary.yes} />
+        </RadioGroup>
       </fieldset>
 
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-foreground">{dictionary.participationLabel}</legend>
-        <RadioOption
+        <RadioGroup
           name="participation"
-          value="no"
-          checked={participation === "no"}
-          onChange={(event) => setParticipation(event.target.value as YesNoAnswer)}
-          label={dictionary.no}
-        />
-        <RadioOption
-          name="participation"
-          value="yes"
-          checked={participation === "yes"}
-          onChange={(event) => setParticipation(event.target.value as YesNoAnswer)}
-          label={dictionary.yes}
-        />
+          value={participation}
+          onValueChange={(value) => setParticipation(value as YesNoAnswer)}
+          className="space-y-3"
+        >
+          <RadioOption id="participation-no" value="no" label={dictionary.no} />
+          <RadioOption id="participation-yes" value="yes" label={dictionary.yes} />
+        </RadioGroup>
       </fieldset>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
-        <span>{dictionary.twlPostsLabel}</span>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="twlPosts">{dictionary.twlPostsLabel}</Label>
+        <Input
+          id="twlPosts"
           name="twlPosts"
           type="number"
           min={0}
+          max={99}
           value={twlPosts}
           onChange={handleNumberChange(setTwlPosts)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-base outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 px-3"
+          required
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
-        <span>{dictionary.presentationsLabel}</span>
-        <input
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="presentations">{dictionary.presentationsLabel}</Label>
+        <Input
+          id="presentations"
           name="presentations"
           type="number"
           min={0}
+          max={99}
           value={presentations}
           onChange={handleNumberChange(setPresentations)}
-          className="h-10 rounded-md border border-input bg-background px-3 text-base outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 px-3"
+          required
         />
-      </label>
+      </div>
 
-      <Button type="submit" className="h-10 w-full sm:w-auto">
+      {state.status === "success" ? (
+        <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">
+          {dictionary.saveSuccess}
+        </p>
+      ) : null}
+
+      {state.status === "error" ? (
+        <p className="text-sm text-destructive" role="alert">
+          {dictionary.saveError}
+        </p>
+      ) : null}
+
+      <Button type="submit" disabled={pending} className="h-10 w-full sm:w-auto">
         {dictionary.saveButton}
       </Button>
     </form>
@@ -185,26 +193,17 @@ export function GetPointsForm({ dictionary }: GetPointsFormProps) {
 }
 
 type RadioOptionProps = {
-  name: string;
+  id: string;
   value: string;
-  checked: boolean;
   label: string;
-  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
-function RadioOption({ name, value, checked, label, onChange }: RadioOptionProps) {
+function RadioOption({ id, value, label }: RadioOptionProps) {
   return (
-    <label className="flex items-center gap-2 text-sm text-foreground">
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={onChange}
-        className="h-4 w-4 border-input bg-background text-primary"
-      />
-      <span>{label}</span>
-    </label>
+    <div className="flex items-center gap-2 text-sm text-foreground">
+      <RadioGroupItem id={id} value={value} />
+      <Label htmlFor={id}>{label}</Label>
+    </div>
   );
 }
 

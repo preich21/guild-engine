@@ -18,6 +18,7 @@ const en = {
   },
   topbar: {
     brand: "Guild Engine",
+    getPointsLink: "Get Points",
     languageButton: "Switch language",
     english: "English",
     german: "Deutsch",
@@ -55,7 +56,8 @@ const en = {
     presentationsLabel:
       "Did you present any project or concept during the last guild meeting?",
     saveButton: "Save",
-    savedAlert: "Saved!",
+    saveSuccess: "Saved successfully.",
+    saveError: "Could not save your submission. Please try again.",
   },
 } as const;
 
