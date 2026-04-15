@@ -8,6 +8,13 @@
       "when": 1776237505060,
       "tag": "0000_nappy_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776244722382,
+      "tag": "0001_wonderful_vargas",
+      "breakpoints": true
     }
   ]
 }

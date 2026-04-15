@@ -1,9 +1,21 @@
 import { boolean, check, pgTable, smallint, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
+export const NO_TEAM_ASSIGNED_TEAM_ID = "00000000-0000-0000-0000-000000000001";
+
+export const teams = pgTable("team", {
+  id: uuid("id").notNull().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+});
+
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   username: varchar("username", { length: 255 }).notNull(),
+  profilePicture: varchar("profile_picture", { length: 65535 }),
+  teamId: uuid("team_id")
+    .notNull()
+    .default(NO_TEAM_ASSIGNED_TEAM_ID)
+    .references(() => teams.id),
 });
 
 export const pointDistribution = pgTable("point_distribution", {

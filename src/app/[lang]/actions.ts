@@ -8,12 +8,14 @@ import { db } from "@/lib/db";
 export type LeaderboardEntry = {
   userId: string;
   username: string;
+  profilePicture: string | null;
   totalPoints: number;
 };
 
 type RawLeaderboardEntry = {
   userId: string;
   username: string;
+  profilePicture: string | null;
   totalPoints: number | string;
 };
 
@@ -21,6 +23,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
   const result = await db.execute(sql<RawLeaderboardEntry>`
       select u.id       as "userId",
              u.username,
+              u.profile_picture as "profilePicture",
              coalesce(
                      sum(
                              case ups.attendance
@@ -63,7 +66,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
           order by pd.active_from desc
           limit 1
           ) pd on true
-      group by u.id, u.username
+      group by u.id, u.username, u.profile_picture
       order by "totalPoints" desc, u.username
   `);
 
@@ -72,6 +75,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
   return rows.map((row) => ({
     userId: String(row.userId),
     username: String(row.username),
+    profilePicture: row.profilePicture,
     totalPoints: Number(row.totalPoints),
   }));
 };
