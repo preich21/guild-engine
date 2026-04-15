@@ -75,8 +75,38 @@ const de = {
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   },
   admin: {
-    pointDistributionPageTitle: "Punkteverteilung",
     guildMeetingsPageTitle: "Gildentreffen",
+    pointDistribution: {
+      heading: "Punkteverteilung",
+      warning:
+        "Du bist Administratorin oder Administrator. Änderungen auf dieser Seite beeinflussen die Punkte aller Benutzerinnen und Benutzer in allen Ranglisten. Mit großer Macht kommt große Verantwortung.",
+      explanation:
+        "Jeder Eintrag wird für die Punkteberechnung aller Gildentreffen verwendet, die nach dem active_from-Zeitpunkt stattfinden, bis der nächste Eintrag aktiv wird.",
+      addEntryButton: "Eintrag hinzufügen",
+      hideIdColumnButton: "id-Spalte ausblenden",
+      showIdColumnButton: "id-Spalte anzeigen",
+      deleteRowButton: "Eintrag löschen",
+      confirmDeleteMessage:
+        "Möchtest du die Punkteverteilung die ab {date} aktiv wäre wirklich löschen?",
+      confirmDeleteYesButton: "Ja",
+      confirmDeleteNoButton: "Nein",
+      deleteError: "Eintrag konnte nicht gelöscht werden. Bitte versuche es erneut.",
+      saveButton: "Änderungen speichern",
+      saveSuccess: "Punkteverteilung gespeichert.",
+      saveError: "Punkteverteilung konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.",
+      columns: {
+        id: "id",
+        activeFrom: "active_from",
+        attendanceVirtual: "attendance_virtual",
+        attendanceOnSite: "attendance_on_site",
+        protocolForced: "protocol_forced",
+        protocolVoluntarily: "protocol_voluntarily",
+        moderation: "moderation",
+        workingGroup: "working_group",
+        twl: "twl",
+        presentation: "presentation",
+      },
+    },
   },
 } as const;
 

@@ -75,8 +75,38 @@ const en = {
     saveError: "Could not save your submission. Please try again.",
   },
   admin: {
-    pointDistributionPageTitle: "Point Distribution",
     guildMeetingsPageTitle: "Guild Meetings",
+    pointDistribution: {
+      heading: "Point Distribution",
+      warning:
+        "You are an admin. Changes on this page affect point totals for all users across all leaderboards. With great power comes great responsibility.",
+      explanation:
+        "Each entry is used for point calculation for every guild meeting that starts after its active_from timestamp, until the next entry becomes active.",
+      addEntryButton: "Add entry",
+      hideIdColumnButton: "Hide id column",
+      showIdColumnButton: "Show id column",
+      deleteRowButton: "Delete entry",
+      confirmDeleteMessage:
+        "Are you sure you want to delete the point distribution that would be active from {date}?",
+      confirmDeleteYesButton: "Yes",
+      confirmDeleteNoButton: "No",
+      deleteError: "Could not delete entry. Please try again.",
+      saveButton: "Save changes",
+      saveSuccess: "Point distribution saved.",
+      saveError: "Could not save point distribution. Please check your inputs.",
+      columns: {
+        id: "id",
+        activeFrom: "active_from",
+        attendanceVirtual: "attendance_virtual",
+        attendanceOnSite: "attendance_on_site",
+        protocolForced: "protocol_forced",
+        protocolVoluntarily: "protocol_voluntarily",
+        moderation: "moderation",
+        workingGroup: "working_group",
+        twl: "twl",
+        presentation: "presentation",
+      },
+    },
   },
 } as const;
 
