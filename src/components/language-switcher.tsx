@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Languages } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ export function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const labels = {
     en: englishLabel,
@@ -51,7 +52,9 @@ export function LanguageSwitcher({
   };
 
   const handleLanguageChange = (targetLocale: Locale) => {
-    router.push(getLanguageHref(targetLocale));
+    const nextPath = getLanguageHref(targetLocale);
+    const query = searchParams.toString();
+    router.push(query ? `${nextPath}?${query}` : nextPath);
   };
 
   return (

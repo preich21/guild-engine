@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { guildMeetings, userPointSubmissions, users } from "@/db/schema";
 import { db } from "@/lib/db";
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 
 export type GetPointsActionState = {
   status: "idle" | "success" | "error";
@@ -26,8 +26,18 @@ export type GetPointsPageData = {
   hasEligibleMeeting: boolean;
   formDisabled: boolean;
   meetingId: string | null;
+  selectedMeetingDate: string | null;
+  availableMeetingDates: string[];
+  previousMeetingDate: string | null;
+  nextMeetingDate: string | null;
   initialValues: GetPointsFormValues;
   lastModifiedAt: string | null;
+};
+
+type MeetingEntry = {
+  id: string;
+  timestamp: Date;
+  dateKey: string;
 };
 
 const defaultFormValues: GetPointsFormValues = {
@@ -70,17 +80,52 @@ const protocolNumberToAnswer: Record<number, ProtocolAnswer> = {
 
 const booleanToYesNoAnswer = (value: boolean): YesNoAnswer => (value ? "yes" : "no");
 
-const getEligibleMeeting = async () => {
-  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
+const isValidMeetingDateKey = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
+const getDateKey = (value: Date): string => value.toISOString().slice(0, 10);
+
+const getAllMeetings = async (): Promise<MeetingEntry[]> => {
   const meetingRows = await db
     .select({
       id: guildMeetings.id,
       timestamp: guildMeetings.timestamp,
     })
     .from(guildMeetings)
-    .where(gte(guildMeetings.timestamp, cutoff))
     .orderBy(asc(guildMeetings.timestamp))
+    .execute();
+
+  return meetingRows.map((meeting) => ({
+    ...meeting,
+    dateKey: getDateKey(meeting.timestamp),
+  }));
+};
+
+const getDefaultMeeting = (meetings: MeetingEntry[]): MeetingEntry | null => {
+  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+  return meetings.find((meeting) => meeting.timestamp >= cutoff) ?? null;
+};
+
+const getSelectedMeeting = (
+  meetings: MeetingEntry[],
+  selectedMeetingDate: string | null,
+): MeetingEntry | null => {
+  if (!selectedMeetingDate) {
+    return getDefaultMeeting(meetings);
+  }
+
+  if (!isValidMeetingDateKey(selectedMeetingDate)) {
+    return null;
+  }
+
+  return meetings.find((meeting) => meeting.dateKey === selectedMeetingDate) ?? null;
+};
+
+const getMeetingById = async (meetingId: string) => {
+  const meetingRows = await db
+    .select({ id: guildMeetings.id })
+    .from(guildMeetings)
+    .where(eq(guildMeetings.id, meetingId))
     .limit(1);
 
   return meetingRows[0] ?? null;
@@ -103,18 +148,34 @@ const getCurrentUserRecord = async () => {
   return userRows[0] ?? null;
 };
 
-export const getGetPointsPageData = async (): Promise<GetPointsPageData> => {
-  const meeting = await getEligibleMeeting();
+export const getGetPointsPageData = async (
+  selectedMeetingDate: string | null,
+): Promise<GetPointsPageData> => {
+  const meetings = await getAllMeetings();
+  const meeting = getSelectedMeeting(meetings, selectedMeetingDate);
+  const availableMeetingDates = meetings.map((entry) => entry.dateKey);
 
   if (!meeting) {
     return {
       hasEligibleMeeting: false,
       formDisabled: true,
       meetingId: null,
+      selectedMeetingDate: null,
+      availableMeetingDates,
+      previousMeetingDate: null,
+      nextMeetingDate: null,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
     };
   }
+
+  const selectedMeetingIndex = meetings.findIndex((entry) => entry.id === meeting.id);
+  const previousMeetingDate =
+    selectedMeetingIndex > 0 ? meetings[selectedMeetingIndex - 1]?.dateKey ?? null : null;
+  const nextMeetingDate =
+    selectedMeetingIndex >= 0 && selectedMeetingIndex < meetings.length - 1
+      ? meetings[selectedMeetingIndex + 1]?.dateKey ?? null
+      : null;
 
   const userRecord = await getCurrentUserRecord();
 
@@ -123,6 +184,10 @@ export const getGetPointsPageData = async (): Promise<GetPointsPageData> => {
       hasEligibleMeeting: true,
       formDisabled: false,
       meetingId: meeting.id,
+      selectedMeetingDate: meeting.dateKey,
+      availableMeetingDates,
+      previousMeetingDate,
+      nextMeetingDate,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
     };
@@ -155,6 +220,10 @@ export const getGetPointsPageData = async (): Promise<GetPointsPageData> => {
       hasEligibleMeeting: true,
       formDisabled: false,
       meetingId: meeting.id,
+      selectedMeetingDate: meeting.dateKey,
+      availableMeetingDates,
+      previousMeetingDate,
+      nextMeetingDate,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
     };
@@ -164,6 +233,10 @@ export const getGetPointsPageData = async (): Promise<GetPointsPageData> => {
     hasEligibleMeeting: true,
     formDisabled: false,
     meetingId: meeting.id,
+    selectedMeetingDate: meeting.dateKey,
+    availableMeetingDates,
+    previousMeetingDate,
+    nextMeetingDate,
     initialValues: {
       attendance: attendanceNumberToAnswer[submission.attendance] ?? "no",
       protocol: protocolNumberToAnswer[submission.protocol] ?? "no",
@@ -206,9 +279,9 @@ export const saveGetPoints = async (
     return { status: "error" };
   }
 
-  const eligibleMeeting = await getEligibleMeeting();
+  const selectedMeeting = await getMeetingById(meetingId);
 
-  if (!eligibleMeeting || eligibleMeeting.id !== meetingId) {
+  if (!selectedMeeting) {
     return { status: "error" };
   }
 

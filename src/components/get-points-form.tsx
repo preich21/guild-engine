@@ -1,6 +1,8 @@
 "use client";
 
-import { type ChangeEvent, useActionState, useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { type ChangeEvent, useActionState, useMemo, useTransition, useState } from "react";
 
 import type {
   AttendanceAnswer,
@@ -11,8 +13,10 @@ import type {
 } from "@/app/[lang]/get-points/actions";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type GetPointsFormProps = {
@@ -39,6 +43,10 @@ type GetPointsFormProps = {
     cancelButton: string;
     saveButton: string;
     noMeetingError: string;
+    previousMeetingButton: string;
+    nextMeetingButton: string;
+    meetingDateButton: string;
+    loading: string;
     lastModified: string;
     never: string;
     saveSuccess: string;
@@ -49,6 +57,11 @@ type GetPointsFormProps = {
   meetingId: string | null;
   initialValues: GetPointsFormValues;
   lastModified: string;
+  selectedMeetingDate: string | null;
+  selectedMeetingDateLabel: string;
+  availableMeetingDates: string[];
+  previousMeetingDate: string | null;
+  nextMeetingDate: string | null;
 };
 
 const initialState: GetPointsActionState = { status: "idle" };
@@ -61,8 +74,18 @@ export function GetPointsForm({
   meetingId,
   initialValues,
   lastModified,
+  selectedMeetingDate,
+  selectedMeetingDateLabel,
+  availableMeetingDates,
+  previousMeetingDate,
+  nextMeetingDate,
 }: GetPointsFormProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [isNavigating, startNavigationTransition] = useTransition();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceAnswer>(initialValues.attendance);
   const [protocol, setProtocol] = useState<ProtocolAnswer>(initialValues.protocol);
   const [moderation, setModeration] = useState<YesNoAnswer>(initialValues.moderation);
@@ -71,7 +94,9 @@ export function GetPointsForm({
   const [presentations, setPresentations] = useState<number>(initialValues.presentations);
 
   const isAttendanceNo = attendance === "no";
+  const isLoading = pending || isNavigating;
   const isSubmissionBlocked = formDisabled || pending;
+  const availableMeetingDateSet = useMemo(() => new Set(availableMeetingDates), [availableMeetingDates]);
 
   const handleAttendanceChange = (nextAttendance: AttendanceAnswer) => {
     setAttendance(nextAttendance);
@@ -102,13 +127,111 @@ export function GetPointsForm({
     setPresentations(initialValues.presentations);
   };
 
+  const parseDateKey = (value: string): Date => {
+    const [year, month, day] = value.split("-").map((part) => Number(part));
+    return new Date(year, month - 1, day);
+  };
+
+  const toDateKey = (value: Date): string => {
+    const year = value.getFullYear();
+    const month = `${value.getMonth() + 1}`.padStart(2, "0");
+    const day = `${value.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const selectedDate = selectedMeetingDate ? parseDateKey(selectedMeetingDate) : undefined;
+
+  const navigateToMeeting = (nextMeetingDate: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    nextSearchParams.set("meeting", nextMeetingDate);
+
+    startNavigationTransition(() => {
+      router.push(`${pathname}?${nextSearchParams.toString()}`);
+    });
+  };
+
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (!date) {
+      return;
+    }
+
+    const nextMeetingDate = toDateKey(date);
+
+    if (!availableMeetingDateSet.has(nextMeetingDate)) {
+      return;
+    }
+
+    setIsCalendarOpen(false);
+    navigateToMeeting(nextMeetingDate);
+  };
+
   return (
     <form action={formAction} className="space-y-6">
       {meetingId ? <input type="hidden" name="guildMeetingId" value={meetingId} /> : null}
 
-      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-        {dictionary.heading}
-      </h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          {dictionary.heading}
+        </h1>
+
+        <div className="flex items-center gap-2 self-start">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => previousMeetingDate && navigateToMeeting(previousMeetingDate)}
+            disabled={!previousMeetingDate || isLoading}
+            aria-label={dictionary.previousMeetingButton}
+            title={dictionary.previousMeetingButton}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 min-w-36 justify-center px-3"
+                  disabled={availableMeetingDates.length === 0 || isLoading}
+                  aria-label={dictionary.meetingDateButton}
+                  title={dictionary.meetingDateButton}
+                >
+                  {selectedMeetingDateLabel}
+                </Button>
+              }
+            />
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleCalendarSelect}
+                disabled={(date) => !availableMeetingDateSet.has(toDateKey(date))}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => nextMeetingDate && navigateToMeeting(nextMeetingDate)}
+            disabled={!nextMeetingDate || isLoading}
+            aria-label={dictionary.nextMeetingButton}
+            title={dictionary.nextMeetingButton}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
+          <Loader2 className="size-4 animate-spin" />
+          {dictionary.loading}
+        </p>
+      ) : null}
 
       {showNoMeetingError ? (
         <p className="text-sm text-destructive" role="alert">
