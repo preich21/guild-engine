@@ -46,6 +46,10 @@ const en = {
       "Did you write any TWL (Today We Learned) or Security News posts between the last two guild meetings?",
     presentationsLabel:
       "Did you present any project or concept during the last guild meeting?",
+    noMeetingError: "No matching guild meeting found. Please contact your administrator.",
+    lastModified: "Last modified",
+    never: "Never",
+    cancelButton: "Reset",
     saveButton: "Save",
     saveSuccess: "Saved successfully.",
     saveError: "Could not save your submission. Please try again.",

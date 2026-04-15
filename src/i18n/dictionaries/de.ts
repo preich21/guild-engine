@@ -46,6 +46,10 @@ const de = {
       "Hast du zwischen den letzten zwei Gildentreffs TWL (Today We Learned) oder Security-News Posts geschrieben?",
     presentationsLabel:
       "Hast du während des letzten Gildentreffs ein Projekt oder ein Konzept vorgestellt?",
+    noMeetingError: "Kein passendes Gildentreffen gefunden. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
+    lastModified: "Zuletzt geändert",
+    never: "Nie",
+    cancelButton: "Zurücksetzen",
     saveButton: "Speichern",
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",

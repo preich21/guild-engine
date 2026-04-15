@@ -2,16 +2,18 @@
 
 import { type ChangeEvent, useActionState, useState } from "react";
 
-import type { GetPointsActionState } from "@/app/[lang]/get-points/actions";
+import type {
+  AttendanceAnswer,
+  GetPointsActionState,
+  GetPointsFormValues,
+  ProtocolAnswer,
+  YesNoAnswer,
+} from "@/app/[lang]/get-points/actions";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-type AttendanceAnswer = "no" | "virtually" | "onSite";
-type ProtocolAnswer = "no" | "forced" | "voluntary";
-type YesNoAnswer = "no" | "yes";
 
 type GetPointsFormProps = {
   action: (
@@ -34,24 +36,42 @@ type GetPointsFormProps = {
     participationLabel: string;
     twlPostsLabel: string;
     presentationsLabel: string;
+    cancelButton: string;
     saveButton: string;
+    noMeetingError: string;
+    lastModified: string;
+    never: string;
     saveSuccess: string;
     saveError: string;
   };
+  formDisabled: boolean;
+  showNoMeetingError: boolean;
+  meetingId: string | null;
+  initialValues: GetPointsFormValues;
+  lastModified: string;
 };
 
 const initialState: GetPointsActionState = { status: "idle" };
 
-export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
+export function GetPointsForm({
+  action,
+  dictionary,
+  formDisabled,
+  showNoMeetingError,
+  meetingId,
+  initialValues,
+  lastModified,
+}: GetPointsFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [attendance, setAttendance] = useState<AttendanceAnswer>("no");
-  const [protocol, setProtocol] = useState<ProtocolAnswer>("no");
-  const [moderation, setModeration] = useState<YesNoAnswer>("no");
-  const [participation, setParticipation] = useState<YesNoAnswer>("no");
-  const [twlPosts, setTwlPosts] = useState<number>(0);
-  const [presentations, setPresentations] = useState<number>(0);
+  const [attendance, setAttendance] = useState<AttendanceAnswer>(initialValues.attendance);
+  const [protocol, setProtocol] = useState<ProtocolAnswer>(initialValues.protocol);
+  const [moderation, setModeration] = useState<YesNoAnswer>(initialValues.moderation);
+  const [participation, setParticipation] = useState<YesNoAnswer>(initialValues.participation);
+  const [twlPosts, setTwlPosts] = useState<number>(initialValues.twlPosts);
+  const [presentations, setPresentations] = useState<number>(initialValues.presentations);
 
   const isAttendanceNo = attendance === "no";
+  const isSubmissionBlocked = formDisabled || pending;
 
   const handleAttendanceChange = (nextAttendance: AttendanceAnswer) => {
     setAttendance(nextAttendance);
@@ -73,18 +93,36 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
       setter(Math.min(99, Math.max(0, nextValue)));
     };
 
+  const handleReset = () => {
+    setAttendance(initialValues.attendance);
+    setProtocol(initialValues.protocol);
+    setModeration(initialValues.moderation);
+    setParticipation(initialValues.participation);
+    setTwlPosts(initialValues.twlPosts);
+    setPresentations(initialValues.presentations);
+  };
+
   return (
     <form action={formAction} className="space-y-6">
+      {meetingId ? <input type="hidden" name="guildMeetingId" value={meetingId} /> : null}
+
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">
         {dictionary.heading}
       </h1>
 
-      <fieldset className="space-y-3">
+      {showNoMeetingError ? (
+        <p className="text-sm text-destructive" role="alert">
+          {dictionary.noMeetingError}
+        </p>
+      ) : null}
+
+      <fieldset className="space-y-3" disabled={isSubmissionBlocked}>
         <legend className="text-sm font-medium text-foreground">{dictionary.attendanceLabel}</legend>
         <RadioGroup
           name="attendance"
           value={attendance}
           onValueChange={(value) => handleAttendanceChange(value as AttendanceAnswer)}
+          disabled={isSubmissionBlocked}
           className="space-y-3"
         >
           <RadioOption id="attendance-no" value="no" label={dictionary.attendanceNo} />
@@ -97,13 +135,13 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
         </RadioGroup>
       </fieldset>
 
-      <fieldset className="space-y-3 disabled:opacity-60" disabled={isAttendanceNo}>
+      <fieldset className="space-y-3 disabled:opacity-60" disabled={isSubmissionBlocked || isAttendanceNo}>
         <legend className="text-sm font-medium text-foreground">{dictionary.protocolLabel}</legend>
         <RadioGroup
           name="protocol"
           value={protocol}
           onValueChange={(value) => setProtocol(value as ProtocolAnswer)}
-          disabled={isAttendanceNo}
+          disabled={isSubmissionBlocked || isAttendanceNo}
           className="space-y-3"
         >
           <RadioOption id="protocol-no" value="no" label={dictionary.protocolNo} />
@@ -116,13 +154,13 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
         </RadioGroup>
       </fieldset>
 
-      <fieldset className="space-y-3 disabled:opacity-60" disabled={isAttendanceNo}>
+      <fieldset className="space-y-3 disabled:opacity-60" disabled={isSubmissionBlocked || isAttendanceNo}>
         <legend className="text-sm font-medium text-foreground">{dictionary.moderationLabel}</legend>
         <RadioGroup
           name="moderation"
           value={moderation}
           onValueChange={(value) => setModeration(value as YesNoAnswer)}
-          disabled={isAttendanceNo}
+          disabled={isSubmissionBlocked || isAttendanceNo}
           className="space-y-3"
         >
           <RadioOption id="moderation-no" value="no" label={dictionary.no} />
@@ -130,12 +168,13 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
         </RadioGroup>
       </fieldset>
 
-      <fieldset className="space-y-3">
+      <fieldset className="space-y-3" disabled={isSubmissionBlocked}>
         <legend className="text-sm font-medium text-foreground">{dictionary.participationLabel}</legend>
         <RadioGroup
           name="participation"
           value={participation}
           onValueChange={(value) => setParticipation(value as YesNoAnswer)}
+          disabled={isSubmissionBlocked}
           className="space-y-3"
         >
           <RadioOption id="participation-no" value="no" label={dictionary.no} />
@@ -154,6 +193,7 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
           value={twlPosts}
           onChange={handleNumberChange(setTwlPosts)}
           className="h-10 px-3"
+          disabled={isSubmissionBlocked}
           required
         />
       </div>
@@ -169,6 +209,7 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
           value={presentations}
           onChange={handleNumberChange(setPresentations)}
           className="h-10 px-3"
+          disabled={isSubmissionBlocked}
           required
         />
       </div>
@@ -185,9 +226,26 @@ export function GetPointsForm({ action, dictionary }: GetPointsFormProps) {
         </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="h-10 w-full sm:w-auto">
-        {dictionary.saveButton}
-      </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {dictionary.lastModified}: {lastModified || dictionary.never}
+        </p>
+
+        <div className="flex flex-col sm:flex-row w-full justify-end gap-2 sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isSubmissionBlocked}
+            className="h-10 w-full sm:w-auto"
+          >
+            {dictionary.cancelButton}
+          </Button>
+          <Button type="submit" disabled={isSubmissionBlocked} className="h-10 w-full sm:w-auto">
+            {dictionary.saveButton}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

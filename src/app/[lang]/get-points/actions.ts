@@ -1,12 +1,42 @@
 "use server";
 
 import { auth } from "@/auth";
-import { userPointSubmissions, users } from "@/db/schema";
+import { guildMeetings, userPointSubmissions, users } from "@/db/schema";
 import { db } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte } from "drizzle-orm";
 
 export type GetPointsActionState = {
   status: "idle" | "success" | "error";
+};
+
+export type AttendanceAnswer = "no" | "virtually" | "onSite";
+export type ProtocolAnswer = "no" | "forced" | "voluntary";
+export type YesNoAnswer = "no" | "yes";
+
+export type GetPointsFormValues = {
+  attendance: AttendanceAnswer;
+  protocol: ProtocolAnswer;
+  moderation: YesNoAnswer;
+  participation: YesNoAnswer;
+  twlPosts: number;
+  presentations: number;
+};
+
+export type GetPointsPageData = {
+  hasEligibleMeeting: boolean;
+  formDisabled: boolean;
+  meetingId: string | null;
+  initialValues: GetPointsFormValues;
+  lastModifiedAt: string | null;
+};
+
+const defaultFormValues: GetPointsFormValues = {
+  attendance: "no",
+  protocol: "no",
+  moderation: "no",
+  participation: "no",
+  twlPosts: 0,
+  presentations: 0,
 };
 
 const attendanceMap = {
@@ -26,6 +56,126 @@ const yesNoMap = {
   yes: true,
 } as const;
 
+const attendanceNumberToAnswer: Record<number, AttendanceAnswer> = {
+  0: "no",
+  1: "virtually",
+  2: "onSite",
+};
+
+const protocolNumberToAnswer: Record<number, ProtocolAnswer> = {
+  0: "no",
+  1: "forced",
+  2: "voluntary",
+};
+
+const booleanToYesNoAnswer = (value: boolean): YesNoAnswer => (value ? "yes" : "no");
+
+const getEligibleMeeting = async () => {
+  const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+  const meetingRows = await db
+    .select({
+      id: guildMeetings.id,
+      timestamp: guildMeetings.timestamp,
+    })
+    .from(guildMeetings)
+    .where(gte(guildMeetings.timestamp, cutoff))
+    .orderBy(asc(guildMeetings.timestamp))
+    .limit(1);
+
+  return meetingRows[0] ?? null;
+};
+
+const getCurrentUserRecord = async () => {
+  const session = await auth();
+  const userName = session?.user?.name;
+
+  if (typeof userName !== "string" || userName.trim() === "" || userName.length > 255) {
+    return null;
+  }
+
+  const userRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, userName))
+    .limit(1);
+
+  return userRows[0] ?? null;
+};
+
+export const getGetPointsPageData = async (): Promise<GetPointsPageData> => {
+  const meeting = await getEligibleMeeting();
+
+  if (!meeting) {
+    return {
+      hasEligibleMeeting: false,
+      formDisabled: true,
+      meetingId: null,
+      initialValues: defaultFormValues,
+      lastModifiedAt: null,
+    };
+  }
+
+  const userRecord = await getCurrentUserRecord();
+
+  if (!userRecord) {
+    return {
+      hasEligibleMeeting: true,
+      formDisabled: false,
+      meetingId: meeting.id,
+      initialValues: defaultFormValues,
+      lastModifiedAt: null,
+    };
+  }
+
+  const submissionRows = await db
+    .select({
+      attendance: userPointSubmissions.attendance,
+      protocol: userPointSubmissions.protocol,
+      moderation: userPointSubmissions.moderation,
+      workingGroup: userPointSubmissions.workingGroup,
+      twl: userPointSubmissions.twl,
+      presentations: userPointSubmissions.presentations,
+      modifiedAt: userPointSubmissions.modifiedAt,
+    })
+    .from(userPointSubmissions)
+    .where(
+      and(
+        eq(userPointSubmissions.userId, userRecord.id),
+        eq(userPointSubmissions.guildMeetingId, meeting.id),
+      ),
+    )
+    .orderBy(desc(userPointSubmissions.modifiedAt))
+    .limit(1);
+
+  const submission = submissionRows[0];
+
+  if (!submission) {
+    return {
+      hasEligibleMeeting: true,
+      formDisabled: false,
+      meetingId: meeting.id,
+      initialValues: defaultFormValues,
+      lastModifiedAt: null,
+    };
+  }
+
+  return {
+    hasEligibleMeeting: true,
+    formDisabled: false,
+    meetingId: meeting.id,
+    initialValues: {
+      attendance: attendanceNumberToAnswer[submission.attendance] ?? "no",
+      protocol: protocolNumberToAnswer[submission.protocol] ?? "no",
+      moderation: booleanToYesNoAnswer(submission.moderation),
+      participation: booleanToYesNoAnswer(submission.workingGroup),
+      twlPosts: submission.twl,
+      presentations: submission.presentations,
+    },
+    lastModifiedAt: submission.modifiedAt.toISOString(),
+  };
+};
+
 const parseNonNegativeSmallInt = (value: FormDataEntryValue | null) => {
   if (typeof value !== "string" || value.trim() === "") {
     return null;
@@ -44,22 +194,21 @@ export const saveGetPoints = async (
   _previousState: GetPointsActionState,
   formData: FormData,
 ): Promise<GetPointsActionState> => {
-  const session = await auth();
-  const userName = session?.user?.name;
+  const userRecord = await getCurrentUserRecord();
 
-  if (typeof userName !== "string" || userName.trim() === "" || userName.length > 255) {
+  if (!userRecord) {
     return { status: "error" };
   }
 
-  const userRows = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.username, userName))
-    .limit(1);
+  const meetingId = formData.get("guildMeetingId");
 
-  const userRecord = userRows[0];
+  if (typeof meetingId !== "string" || meetingId.trim() === "") {
+    return { status: "error" };
+  }
 
-  if (!userRecord) {
+  const eligibleMeeting = await getEligibleMeeting();
+
+  if (!eligibleMeeting || eligibleMeeting.id !== meetingId) {
     return { status: "error" };
   }
 
@@ -107,15 +256,45 @@ export const saveGetPoints = async (
     return { status: "error" };
   }
 
-  await db.insert(userPointSubmissions).values({
-    userId: userRecord.id,
-    attendance,
-    protocol,
-    moderation,
-    workingGroup,
-    twl,
-    presentations,
-  });
+  const existingSubmissionRows = await db
+    .select({ id: userPointSubmissions.id })
+    .from(userPointSubmissions)
+    .where(
+      and(
+        eq(userPointSubmissions.userId, userRecord.id),
+        eq(userPointSubmissions.guildMeetingId, meetingId),
+      ),
+    )
+    .orderBy(desc(userPointSubmissions.modifiedAt))
+    .limit(1);
+
+  const existingSubmission = existingSubmissionRows[0];
+
+  if (existingSubmission) {
+    await db
+      .update(userPointSubmissions)
+      .set({
+        modifiedAt: new Date(),
+        attendance,
+        protocol,
+        moderation,
+        workingGroup,
+        twl,
+        presentations,
+      })
+      .where(eq(userPointSubmissions.id, existingSubmission.id));
+  } else {
+    await db.insert(userPointSubmissions).values({
+      userId: userRecord.id,
+      guildMeetingId: meetingId,
+      attendance,
+      protocol,
+      moderation,
+      workingGroup,
+      twl,
+      presentations,
+    });
+  }
 
   return { status: "success" };
 };
