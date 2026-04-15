@@ -19,6 +19,11 @@ export const pointDistribution = pgTable("point_distribution", {
   presentation: smallint("presentation").notNull(),
 });
 
+export const guildMeetings = pgTable("guild_meetings", {
+  id: uuid("id").defaultRandom().notNull().primaryKey(),
+  timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+});
+
 export const userPointSubmissions = pgTable(
   "user_point_submissions",
   {
@@ -26,7 +31,8 @@ export const userPointSubmissions = pgTable(
   userId: uuid("user_id")
 	.notNull()
 	.references(() => users.id),
-  timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull().defaultNow(),
+  guildMeetingId: uuid("guild_meeting_id").notNull().references(() => guildMeetings.id),
   attendance: smallint("attendance").notNull(),
   protocol: smallint("protocol").notNull(),
   moderation: boolean("moderation").notNull(),

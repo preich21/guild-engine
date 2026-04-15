@@ -2,7 +2,7 @@
 
 import { sql } from "drizzle-orm";
 
-import { pointDistribution, userPointSubmissions, users } from "@/db/schema";
+import { guildMeetings, pointDistribution, userPointSubmissions, users } from "@/db/schema";
 import { db } from "@/lib/db";
 
 export type LeaderboardEntry = {
@@ -48,6 +48,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
              )::integer as "totalPoints"
       from ${users} u
                left join ${userPointSubmissions} ups on ups.user_id = u.id
+               left join ${guildMeetings} gm on gm.id = ups.guild_meeting_id and gm.timestamp <= now()
                left join lateral (
           select attendance_virtual,
                  attendance_on_site,
@@ -58,7 +59,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
                  twl,
                  presentation
           from ${pointDistribution} pd
-          where pd.active_from <= ups.timestamp
+          where pd.active_from <= gm.timestamp
           order by pd.active_from desc
           limit 1
           ) pd on true
@@ -74,5 +75,3 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     totalPoints: Number(row.totalPoints),
   }));
 };
-
-

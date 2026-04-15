@@ -29,7 +29,7 @@ const getPlaceClassName = (place: number) => {
 
 export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
   const rankedEntries = entries.map((entry, index) => {
-    let rank = index + 1;
+    let rank = 1;
     for (let i = index - 1; i >= 0; i--) {
       const previousEntry = entries[i];
       if (previousEntry == undefined || previousEntry.totalPoints !== entry.totalPoints) {
