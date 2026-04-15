@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/config";
 
-export const getDefaultPostLoginPath = (locale: Locale) => `/${locale}`;
+export const getDefaultPostLoginPath = (locale: Locale) =>
+  `/${locale}/leaderboard/individual`;
 
 export const getSafePostLoginPath = (
   locale: Locale,

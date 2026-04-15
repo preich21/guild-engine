@@ -7,8 +7,21 @@ const de = {
     heading: "Rangliste",
     empty: "Keine Benutzer verfügbar.",
   },
+  leaderboard: {
+    individual: {
+      heading: "Individuelle Rangliste",
+      empty: "Keine Benutzer verfügbar.",
+    },
+    team: {
+      heading: "Team-Rangliste",
+      empty: "Keine Teams verfügbar.",
+    },
+  },
   topbar: {
     brand: "Guild Engine",
+    leaderboardLink: "Rangliste",
+    individualLeaderboardLink: "Individuelle Rangliste",
+    teamLeaderboardLink: "Team-Rangliste",
     getPointsLink: "Punkte Erfassen",
     languageButton: "Sprache wechseln",
     english: "English",

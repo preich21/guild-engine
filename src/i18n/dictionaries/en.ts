@@ -7,8 +7,21 @@ const en = {
     heading: "Leaderboard",
     empty: "No users available.",
   },
+  leaderboard: {
+    individual: {
+      heading: "Individual Leaderboard",
+      empty: "No users available.",
+    },
+    team: {
+      heading: "Team Leaderboard",
+      empty: "No teams available.",
+    },
+  },
   topbar: {
     brand: "Guild Engine",
+    leaderboardLink: "Leaderboard",
+    individualLeaderboardLink: "Individual Leaderboard",
+    teamLeaderboardLink: "Team Leaderboard",
     getPointsLink: "Get Points",
     languageButton: "Switch language",
     english: "English",

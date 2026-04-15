@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -16,9 +17,14 @@ export function ThemeToggle({
   darkLabel,
   showLabel = true,
 }: ThemeToggleProps) {
+  const [mounted, setMounted] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 
-  const isDark = resolvedTheme === "dark";
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <Button
@@ -26,11 +32,11 @@ export function ThemeToggle({
       variant="outline"
       size={showLabel ? "sm" : "icon-sm"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label={isDark ? lightLabel : darkLabel}
-      title={isDark ? lightLabel : darkLabel}
+      aria-label={mounted && isDark ? lightLabel : darkLabel}
+      title={mounted && isDark ? lightLabel : darkLabel}
     >
       {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-      {showLabel ? <span>{isDark ? lightLabel : darkLabel}</span> : null}
+      {showLabel ? <span>{mounted && isDark ? lightLabel : darkLabel}</span> : null}
     </Button>
   );
 }

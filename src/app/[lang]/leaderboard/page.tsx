@@ -2,7 +2,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { hasLocale } from "@/i18n/config";
 
-export default async function Home({ params }: PageProps<"/[lang]">) {
+export default async function LeaderboardIndexPage({
+  params,
+}: PageProps<"/[lang]/leaderboard">) {
   const { lang } = await params;
 
   if (!hasLocale(lang)) {
