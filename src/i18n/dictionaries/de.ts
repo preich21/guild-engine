@@ -23,6 +23,9 @@ const de = {
     individualLeaderboardLink: "Individuelle Rangliste",
     teamLeaderboardLink: "Team-Rangliste",
     getPointsLink: "Punkte Erfassen",
+    adminLink: "Admin",
+    pointDistributionLink: "Punkteverteilung",
+    guildMeetingsLink: "Gildentreffen",
     languageButton: "Sprache wechseln",
     english: "English",
     german: "Deutsch",
@@ -71,7 +74,10 @@ const de = {
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   },
+  admin: {
+    pointDistributionPageTitle: "Punkteverteilung",
+    guildMeetingsPageTitle: "Gildentreffen",
+  },
 } as const;
 
 export default de;
-

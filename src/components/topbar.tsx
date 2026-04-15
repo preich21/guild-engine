@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { signOut } from "@/auth";
+import { AdminNavLink } from "@/components/admin-nav-link";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LeaderboardNavLink } from "@/components/leaderboard-nav-link";
 import { TopbarNavLink } from "@/components/topbar-nav-link";
@@ -17,6 +18,9 @@ type TopbarProps = {
     individualLeaderboardLink: string;
     teamLeaderboardLink: string;
     getPointsLink: string;
+    adminLink: string;
+    pointDistributionLink: string;
+    guildMeetingsLink: string;
     languageButton: string;
     english: string;
     german: string;
@@ -24,9 +28,10 @@ type TopbarProps = {
     toggleToDark: string;
     logoutButton: string;
   };
+  showAdminLink?: boolean;
 };
 
-export function Topbar({ lang, dictionary }: TopbarProps) {
+export function Topbar({ lang, dictionary, showAdminLink = false }: TopbarProps) {
   const logout = async () => {
     "use server";
     await signOut({ redirectTo: `/${lang}/login` });
@@ -46,6 +51,12 @@ export function Topbar({ lang, dictionary }: TopbarProps) {
             teamLabel={dictionary.teamLeaderboardLink}
           />
           <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
+          {showAdminLink && <AdminNavLink
+              lang={lang}
+              label={dictionary.adminLink}
+              pointDistributionLabel={dictionary.pointDistributionLink}
+              guildMeetingsLabel={dictionary.guildMeetingsLink}
+            />}
         </div>
         <div className="flex items-center gap-2">
           <LanguageSwitcher
@@ -75,4 +86,3 @@ export function Topbar({ lang, dictionary }: TopbarProps) {
     </header>
   );
 }
-

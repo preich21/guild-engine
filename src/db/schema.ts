@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   username: varchar("username", { length: 255 }).notNull(),
   profilePicture: varchar("profile_picture", { length: 65535 }),
+  admin: boolean("admin").notNull().default(false),
   teamId: uuid("team_id")
     .notNull()
     .default(NO_TEAM_ASSIGNED_TEAM_ID)
@@ -62,4 +63,3 @@ export const userPointSubmissions = pgTable(
   ),
   ],
 );
-

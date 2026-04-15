@@ -15,6 +15,13 @@
       "when": 1776244722382,
       "tag": "0001_wonderful_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776251898260,
+      "tag": "0002_freezing_dakota_north",
+      "breakpoints": true
     }
   ]
 }

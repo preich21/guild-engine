@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/auth";
-import { guildMeetings, userPointSubmissions, users } from "@/db/schema";
+import { guildMeetings, userPointSubmissions } from "@/db/schema";
+import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
 import { and, asc, desc, eq } from "drizzle-orm";
 
@@ -129,23 +129,6 @@ const getMeetingById = async (meetingId: string) => {
     .limit(1);
 
   return meetingRows[0] ?? null;
-};
-
-const getCurrentUserRecord = async () => {
-  const session = await auth();
-  const userName = session?.user?.name;
-
-  if (typeof userName !== "string" || userName.trim() === "" || userName.length > 255) {
-    return null;
-  }
-
-  const userRows = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.username, userName))
-    .limit(1);
-
-  return userRows[0] ?? null;
 };
 
 export const getGetPointsPageData = async (
@@ -371,5 +354,3 @@ export const saveGetPoints = async (
 
   return { status: "success" };
 };
-
-

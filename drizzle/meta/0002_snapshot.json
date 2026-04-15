@@ -1,0 +1,324 @@
+{
+  "id": "8cfe2d7a-9db8-41d4-bb88-8820ca55d413",
+  "prevId": "e1737f14-4e06-488f-ac5c-1451a087ec8a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.guild_meetings": {
+      "name": "guild_meetings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.point_distribution": {
+      "name": "point_distribution",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "active_from": {
+          "name": "active_from",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "attendance_virtual": {
+          "name": "attendance_virtual",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attendance_on_site": {
+          "name": "attendance_on_site",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol_forced": {
+          "name": "protocol_forced",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol_voluntarily": {
+          "name": "protocol_voluntarily",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moderation": {
+          "name": "moderation",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "working_group": {
+          "name": "working_group",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "twl": {
+          "name": "twl",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "presentation": {
+          "name": "presentation",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.team": {
+      "name": "team",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_point_submissions": {
+      "name": "user_point_submissions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modified_at": {
+          "name": "modified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "guild_meeting_id": {
+          "name": "guild_meeting_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attendance": {
+          "name": "attendance",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol": {
+          "name": "protocol",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "moderation": {
+          "name": "moderation",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "working_group": {
+          "name": "working_group",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "twl": {
+          "name": "twl",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "presentations": {
+          "name": "presentations",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_point_submissions_user_id_users_id_fk": {
+          "name": "user_point_submissions_user_id_users_id_fk",
+          "tableFrom": "user_point_submissions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_point_submissions_guild_meeting_id_guild_meetings_id_fk": {
+          "name": "user_point_submissions_guild_meeting_id_guild_meetings_id_fk",
+          "tableFrom": "user_point_submissions",
+          "tableTo": "guild_meetings",
+          "columnsFrom": [
+            "guild_meeting_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "user_point_submissions_attendance_range": {
+          "name": "user_point_submissions_attendance_range",
+          "value": "\"user_point_submissions\".\"attendance\" between 0 and 2"
+        },
+        "user_point_submissions_protocol_range": {
+          "name": "user_point_submissions_protocol_range",
+          "value": "\"user_point_submissions\".\"protocol\" between 0 and 2"
+        },
+        "user_point_submissions_twl_range": {
+          "name": "user_point_submissions_twl_range",
+          "value": "\"user_point_submissions\".\"twl\" between 0 and 99"
+        },
+        "user_point_submissions_presentations_range": {
+          "name": "user_point_submissions_presentations_range",
+          "value": "\"user_point_submissions\".\"presentations\" between 0 and 99"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profile_picture": {
+          "name": "profile_picture",
+          "type": "varchar(65535)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "admin": {
+          "name": "admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'00000000-0000-0000-0000-000000000001'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_team_id_team_id_fk": {
+          "name": "users_team_id_team_id_fk",
+          "tableFrom": "users",
+          "tableTo": "team",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

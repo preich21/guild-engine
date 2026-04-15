@@ -23,6 +23,9 @@ const en = {
     individualLeaderboardLink: "Individual Leaderboard",
     teamLeaderboardLink: "Team Leaderboard",
     getPointsLink: "Get Points",
+    adminLink: "Admin",
+    pointDistributionLink: "Point Distribution",
+    guildMeetingsLink: "Guild Meetings",
     languageButton: "Switch language",
     english: "English",
     german: "Deutsch",
@@ -71,7 +74,10 @@ const en = {
     saveSuccess: "Saved successfully.",
     saveError: "Could not save your submission. Please try again.",
   },
+  admin: {
+    pointDistributionPageTitle: "Point Distribution",
+    guildMeetingsPageTitle: "Guild Meetings",
+  },
 } as const;
 
 export default en;
-
