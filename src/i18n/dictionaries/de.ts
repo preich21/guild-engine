@@ -56,7 +56,7 @@ const de = {
     participationLabel:
       "Hast du in den Wochen vor dem Gildentreff am {date} aktiv in mindestens einer Arbeitsgruppe mitgemacht?",
     twlPostsLabel:
-      "Hast du zwischen dem vorherigen Gildentreff und dem Gildentreff am {date} TWL (Today We Learned) oder Security-News Posts geschrieben?",
+      "Hast du in den Wochen vor dem Gildentreff am {date} TWL (Today We Learned) oder Security-News Posts geschrieben?",
     presentationsLabel:
       "Hast du während des Gildentreffs am {date} ein Projekt oder ein Konzept vorgestellt?",
     noMeetingError: "Kein passendes Gildentreffen gefunden. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
