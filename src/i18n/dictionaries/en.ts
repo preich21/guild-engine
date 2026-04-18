@@ -75,7 +75,36 @@ const en = {
     saveError: "Could not save your submission. Please try again.",
   },
   admin: {
-    guildMeetingsPageTitle: "Guild Meetings",
+    guildMeetings: {
+      heading: "Guild Meetings",
+      addNewButton: "Add new",
+      noEntries: "No guild meetings yet.",
+      idLabel: "id",
+      dateTimeLabel: "Date and time",
+      fixedTimeHint: "Time is always fixed to 14:30.",
+      newCardTitle: "Add new guild meeting",
+      datePickerButton: "Select guild meeting date",
+      datePickerPlaceholder: "Select date",
+      cancelButton: "Cancel",
+      saveButton: "Save",
+      saveSuccess: "Guild meeting saved.",
+      saveError: "Could not save guild meeting. Please try again.",
+      deleteButtonAriaLabel: "Delete guild meeting",
+      deletePopoverTitle: "Delete guild meeting",
+      deletePopoverDescription: "Do you really want to delete this guild meeting?",
+      deleteWithMigrationDescription:
+        "The guild meeting you are trying to delete has point entries of users. In the next step, please select to which meeting you want them to migrate to",
+      continueButton: "Continue",
+      deleteConfirmButton: "Delete",
+      deleteError: "Could not delete guild meeting. Please try again.",
+      migrationDialogTitle: "Migrate entries before deleting",
+      migrationDialogDescription:
+        "Select the guild meeting that should receive all point entries from the meeting you are deleting.",
+      migrationTargetLabel: "Target guild meeting",
+      migrationEmptyState: "No other guild meetings available for migration.",
+      migrateAndDeleteButton: "Migrate & Delete",
+      migrateAndDeleteError: "Could not migrate and delete. Please try again.",
+    },
     pointDistribution: {
       heading: "Point Distribution",
       warning:

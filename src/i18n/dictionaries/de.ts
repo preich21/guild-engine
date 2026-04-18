@@ -75,7 +75,36 @@ const de = {
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   },
   admin: {
-    guildMeetingsPageTitle: "Gildentreffen",
+    guildMeetings: {
+      heading: "Gildentreffen",
+      addNewButton: "Neu hinzufügen",
+      noEntries: "Noch keine Gildentreffen vorhanden.",
+      idLabel: "id",
+      dateTimeLabel: "Datum und Uhrzeit",
+      fixedTimeHint: "Die Uhrzeit ist immer fest auf 14:30 gesetzt.",
+      newCardTitle: "Neues Gildentreffen hinzufügen",
+      datePickerButton: "Datum des Gildentreffens auswählen",
+      datePickerPlaceholder: "Datum auswählen",
+      cancelButton: "Abbrechen",
+      saveButton: "Speichern",
+      saveSuccess: "Gildentreffen gespeichert.",
+      saveError: "Gildentreffen konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      deleteButtonAriaLabel: "Gildentreffen löschen",
+      deletePopoverTitle: "Gildentreffen löschen",
+      deletePopoverDescription: "Möchtest du dieses Gildentreffen wirklich löschen?",
+      deleteWithMigrationDescription:
+        "Das Gildentreffen, das du löschen möchtest, hat Punkteinträge von Benutzerinnen und Benutzern. Im nächsten Schritt wähle bitte aus, zu welchem Treffen diese migriert werden sollen",
+      continueButton: "Weiter",
+      deleteConfirmButton: "Löschen",
+      deleteError: "Gildentreffen konnte nicht gelöscht werden. Bitte versuche es erneut.",
+      migrationDialogTitle: "Einträge vor dem Löschen migrieren",
+      migrationDialogDescription:
+        "Wähle das Gildentreffen aus, das alle Punkteinträge des zu löschenden Treffens übernehmen soll.",
+      migrationTargetLabel: "Ziel-Gildentreffen",
+      migrationEmptyState: "Keine anderen Gildentreffen für eine Migration verfügbar.",
+      migrateAndDeleteButton: "Migrieren & Löschen",
+      migrateAndDeleteError: "Migrieren und Löschen fehlgeschlagen. Bitte versuche es erneut.",
+    },
     pointDistribution: {
       heading: "Punkteverteilung",
       warning:

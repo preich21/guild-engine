@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
 
+import {
+  createGuildMeeting,
+  deleteGuildMeeting,
+  getGuildMeetingEntries,
+  migrateSubmissionsAndDeleteGuildMeeting,
+} from "@/app/[lang]/admin/guild-meetings/actions";
+import { GuildMeetingsTable } from "@/components/guild-meetings-table";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -12,14 +19,20 @@ export default async function AdminGuildMeetingsPage({
     notFound();
   }
 
-  const dictionary = await getDictionary(lang);
+  const [dictionary, entries] = await Promise.all([getDictionary(lang), getGuildMeetingEntries()]);
 
   return (
     <main className="flex flex-1 justify-center bg-background px-4 py-8 sm:px-6 sm:py-12">
       <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
-        {dictionary.admin.guildMeetingsPageTitle}
+        <GuildMeetingsTable
+          lang={lang}
+          rows={entries}
+          createAction={createGuildMeeting}
+          deleteAction={deleteGuildMeeting}
+          migrateAndDeleteAction={migrateSubmissionsAndDeleteGuildMeeting}
+          dictionary={dictionary.admin.guildMeetings}
+        />
       </div>
     </main>
   );
 }
-
