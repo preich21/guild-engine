@@ -10,12 +10,14 @@ type ThemeToggleProps = {
   lightLabel: string;
   darkLabel: string;
   showLabel?: boolean;
+  className?: string;
 };
 
 export function ThemeToggle({
   lightLabel,
   darkLabel,
   showLabel = true,
+  className,
 }: ThemeToggleProps) {
   const [mounted, setMounted] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
@@ -29,8 +31,9 @@ export function ThemeToggle({
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="ghost"
       size={showLabel ? "sm" : "icon-sm"}
+      className={className}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={mounted && isDark ? lightLabel : darkLabel}
       title={mounted && isDark ? lightLabel : darkLabel}

@@ -21,6 +21,8 @@ export const getCurrentUserRecord = async () => {
   const userRows = await db
     .select({
       id: users.id,
+      username: users.username,
+      profilePicture: users.profilePicture,
       admin: users.admin,
     })
     .from(users)

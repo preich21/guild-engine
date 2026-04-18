@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { Topbar } from "@/components/topbar";
-import { isCurrentUserAdmin } from "@/lib/auth/user";
+import { getCurrentUserRecord } from "@/lib/auth/user";
 
 export const generateStaticParams = async () =>
   locales.map((lang) => ({ lang }));
@@ -32,14 +32,27 @@ export default async function RootLayout({
     notFound();
   }
 
-  const [dictionary, showAdminLink] = await Promise.all([
+  const [dictionary, currentUser] = await Promise.all([
     getDictionary(lang),
-    isCurrentUserAdmin(),
+    getCurrentUserRecord(),
   ]);
 
   return (
     <>
-      <Topbar lang={lang} dictionary={dictionary.topbar} showAdminLink={showAdminLink} />
+      <Topbar
+        lang={lang}
+        dictionary={dictionary.topbar}
+        showAdminLink={Boolean(currentUser?.admin)}
+        currentUser={
+          currentUser
+            ? {
+                id: currentUser.id,
+                username: currentUser.username,
+                profilePicture: currentUser.profilePicture,
+              }
+            : undefined
+        }
+      />
       {children}
     </>
   );

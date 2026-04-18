@@ -31,7 +31,11 @@ const de = {
     german: "Deutsch",
     toggleToLight: "Zum hellen Modus wechseln",
     toggleToDark: "Zum dunklen Modus wechseln",
+    profileButton: "Profil",
     logoutButton: "Abmelden",
+  },
+  profile: {
+    heading: "Profil von Benutzer {uuid}",
   },
   login: {
     heading: "Anmelden",

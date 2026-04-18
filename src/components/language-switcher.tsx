@@ -17,6 +17,8 @@ type LanguageSwitcherProps = {
   buttonLabel: string;
   englishLabel: string;
   germanLabel: string;
+  showLabel?: boolean;
+  className?: string;
 };
 
 const languageOptions = [
@@ -29,6 +31,8 @@ export function LanguageSwitcher({
   buttonLabel,
   englishLabel,
   germanLabel,
+  showLabel = false,
+  className,
 }: LanguageSwitcherProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,12 +67,14 @@ export function LanguageSwitcher({
         render={
           <Button
             type="button"
-            variant="outline"
-            size="icon-sm"
+            variant="ghost"
+            size={showLabel ? "sm" : "icon-sm"}
+            className={className}
             aria-label={buttonLabel}
             title={buttonLabel}
           >
             <Languages aria-hidden="true" />
+            {showLabel ? <span>{buttonLabel}</span> : null}
           </Button>
         }
       />
