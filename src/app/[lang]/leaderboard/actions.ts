@@ -16,6 +16,10 @@ export type LeaderboardEntry = {
   username: string;
   profilePicture: string | null;
   totalPoints: number;
+  attendanceStreak: {
+    count: number;
+    hasPendingRecentMeeting: boolean;
+  };
 };
 
 export type TeamMemberEntry = {
@@ -37,6 +41,8 @@ type RawLeaderboardEntry = {
   username: string;
   profilePicture: string | null;
   totalPoints: number | string;
+  attendanceStreakCount: number | string;
+  attendanceStreakHasPendingRecentMeeting: boolean;
 };
 
 type RawTeamLeaderboardEntry = {
@@ -76,7 +82,9 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
           + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
         ),
         0
-      )::integer as "totalPoints"
+      )::integer as "totalPoints",
+      coalesce(max(streak.count), 0)::integer as "attendanceStreakCount",
+      coalesce(bool_or(streak.has_pending_recent_meeting), false) as "attendanceStreakHasPendingRecentMeeting"
     from ${users} u
     left join ${userPointSubmissions} ups on ups.user_id = u.id
     left join ${guildMeetings} gm on gm.id = ups.guild_meeting_id and gm.timestamp <= now()
@@ -95,6 +103,69 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       order by pd.active_from desc
       limit 1
     ) pd on true
+    left join lateral (
+      with meeting_rows as (
+        select
+          gm2.id as meeting_id,
+          gm2.timestamp as meeting_time,
+          ups2.id as submission_id,
+          coalesce(ups2.attendance in (1, 2), false) as attended
+        from ${guildMeetings} gm2
+        left join ${userPointSubmissions} ups2
+          on ups2.guild_meeting_id = gm2.id
+          and ups2.user_id = u.id
+        where gm2.timestamp <= now()
+      ),
+      latest_meeting as (
+        select
+          mr.meeting_id,
+          mr.meeting_time,
+          mr.submission_id
+        from meeting_rows mr
+        order by mr.meeting_time desc, mr.meeting_id desc
+        limit 1
+      ),
+      should_ignore_latest as (
+        select coalesce(
+          (
+            select lm.submission_id is null
+              and lm.meeting_time >= now() - interval '72 hours'
+            from latest_meeting lm
+          ),
+          false
+        ) as value
+      ),
+      considered_meetings as (
+        select
+          mr.meeting_id,
+          mr.meeting_time,
+          mr.attended
+        from meeting_rows mr
+        cross join should_ignore_latest sil
+        where not sil.value
+          or mr.meeting_id <> (
+            select lm.meeting_id
+            from latest_meeting lm
+          )
+      ),
+      ordered_meetings as (
+        select
+          cm.attended,
+          sum(case when cm.attended then 0 else 1 end)
+            over (order by cm.meeting_time desc, cm.meeting_id desc) as missed_count
+        from considered_meetings cm
+      )
+      select
+        coalesce(
+          (
+            select count(*)
+            from ordered_meetings om
+            where om.missed_count = 0 and om.attended
+          ),
+          0
+        )::integer as count,
+        (select sil.value from should_ignore_latest sil) as has_pending_recent_meeting
+    ) streak on true
     group by u.id, u.username, u.profile_picture
     order by "totalPoints" desc, u.username
   `);
@@ -106,6 +177,10 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     username: String(row.username),
     profilePicture: row.profilePicture,
     totalPoints: Number(row.totalPoints),
+    attendanceStreak: {
+      count: Number(row.attendanceStreakCount),
+      hasPendingRecentMeeting: Boolean(row.attendanceStreakHasPendingRecentMeeting),
+    },
   }));
 };
 

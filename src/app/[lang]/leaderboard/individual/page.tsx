@@ -25,6 +25,7 @@ export default async function IndividualLeaderboardPage({
       dictionary={{
         heading: dictionary.leaderboard.individual.heading,
         empty: dictionary.leaderboard.individual.empty,
+        streakLabel: dictionary.leaderboard.individual.streakLabel,
       }}
     />
   );
