@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { Topbar } from "@/components/topbar";
-import { getCurrentUserRecord } from "@/lib/auth/user";
+import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
 
 export const generateStaticParams = async () =>
   locales.map((lang) => ({ lang }));
@@ -32,10 +32,11 @@ export default async function RootLayout({
     notFound();
   }
 
-  const [dictionary, currentUser] = await Promise.all([
-    getDictionary(lang),
-    getCurrentUserRecord(),
-  ]);
+  const [dictionary, currentUser] = await Promise.all([getDictionary(lang), getCurrentUserRecord()]);
+
+  const attendanceStreak = currentUser
+    ? await getUserGuildMeetingAttendanceStreak(currentUser.id)
+    : { count: 0, hasPendingRecentMeeting: false };
 
   return (
     <>
@@ -43,6 +44,7 @@ export default async function RootLayout({
         lang={lang}
         dictionary={dictionary.topbar}
         showAdminLink={Boolean(currentUser?.admin)}
+        attendanceStreak={attendanceStreak}
         currentUser={
           currentUser
             ? {

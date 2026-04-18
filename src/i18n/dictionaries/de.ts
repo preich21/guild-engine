@@ -31,6 +31,7 @@ const de = {
     german: "Deutsch",
     toggleToLight: "Zum hellen Modus wechseln",
     toggleToDark: "Zum dunklen Modus wechseln",
+    attendanceStreakLabel: "Teilnahme-Serie bei Gildentreffen",
     profileButton: "Profil",
     logoutButton: "Abmelden",
   },

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { signOut } from "@/auth";
 import { AdminNavLink } from "@/components/admin-nav-link";
+import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LeaderboardNavLink } from "@/components/leaderboard-nav-link";
@@ -28,10 +29,15 @@ type TopbarProps = {
     german: string;
     toggleToLight: string;
     toggleToDark: string;
+    attendanceStreakLabel: string;
     logoutButton: string;
     profileButton: string;
   };
   showAdminLink?: boolean;
+  attendanceStreak: {
+    count: number;
+    hasPendingRecentMeeting: boolean;
+  };
   currentUser?: {
     id: string;
     username: string;
@@ -43,6 +49,7 @@ export function Topbar({
   lang,
   dictionary,
   showAdminLink = false,
+  attendanceStreak,
   currentUser,
 }: TopbarProps) {
   const logout = async () => {
@@ -74,6 +81,11 @@ export function Topbar({
             />}
         </div>
         <div className="flex items-center gap-2">
+          <AttendanceStreakIndicator
+            initialCount={attendanceStreak.count}
+            initialHasPendingRecentMeeting={attendanceStreak.hasPendingRecentMeeting}
+            label={dictionary.attendanceStreakLabel}
+          />
           <Popover>
             <PopoverTrigger
               render={

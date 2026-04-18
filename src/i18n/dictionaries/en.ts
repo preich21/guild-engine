@@ -31,6 +31,7 @@ const en = {
     german: "Deutsch",
     toggleToLight: "Switch to light mode",
     toggleToDark: "Switch to dark mode",
+    attendanceStreakLabel: "Meeting attendance streak",
     profileButton: "Profile",
     logoutButton: "Log out",
   },
