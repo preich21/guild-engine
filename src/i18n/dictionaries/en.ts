@@ -11,6 +11,7 @@ const en = {
     individual: {
       heading: "Individual Leaderboard",
       empty: "No users available.",
+      streakLabel: "Attendance streak",
     },
     team: {
       heading: "Team Leaderboard",

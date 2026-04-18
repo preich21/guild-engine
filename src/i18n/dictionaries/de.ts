@@ -11,6 +11,7 @@ const de = {
     individual: {
       heading: "Individuelle Rangliste",
       empty: "Keine Benutzer verfügbar.",
+      streakLabel: "Teilnahme-Serie",
     },
     team: {
       heading: "Team-Rangliste",

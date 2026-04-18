@@ -1,5 +1,6 @@
 import type { LeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
 
+import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -9,6 +10,7 @@ type LeaderboardProps = {
   dictionary: {
     heading: string;
     empty: string;
+    streakLabel: string;
   };
 };
 
@@ -75,6 +77,13 @@ export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
                           </Avatar>
                           <span>{entry.username}</span>
                         </div>
+                      </TableCell>
+                      <TableCell className="w-28">
+                        <AttendanceStreakIndicator
+                          initialCount={entry.attendanceStreak.count}
+                          initialHasPendingRecentMeeting={entry.attendanceStreak.hasPendingRecentMeeting}
+                          label={dictionary.streakLabel}
+                        />
                       </TableCell>
                       <TableCell className="w-24 text-right tabular-nums">{entry.totalPoints}</TableCell>
                     </TableRow>
