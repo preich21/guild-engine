@@ -17,6 +17,7 @@ type AdminNavLinkProps = {
   label: string;
   pointDistributionLabel: string;
   guildMeetingsLabel: string;
+  achievementsLabel: string;
 };
 
 const normalizePath = (path: string) => {
@@ -32,6 +33,7 @@ export function AdminNavLink({
   label,
   pointDistributionLabel,
   guildMeetingsLabel,
+  achievementsLabel,
 }: AdminNavLinkProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,6 +42,7 @@ export function AdminNavLink({
   const adminBasePath = `/${lang}/admin`;
   const pointDistributionPath = `${adminBasePath}/point-distribution`;
   const guildMeetingsPath = `${adminBasePath}/guild-meetings`;
+  const achievementsPath = `${adminBasePath}/achievements`;
 
   const isAdminRoute =
     normalizedPath === adminBasePath ||
@@ -47,6 +50,7 @@ export function AdminNavLink({
 
   const isPointDistributionActive = normalizedPath === pointDistributionPath;
   const isGuildMeetingsActive = normalizedPath === guildMeetingsPath;
+  const isAchievementsActive = normalizedPath === achievementsPath;
 
   return (
     <DropdownMenu>
@@ -81,8 +85,15 @@ export function AdminNavLink({
           <span>{guildMeetingsLabel}</span>
           {isGuildMeetingsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => router.push(achievementsPath)}
+          aria-current={isAchievementsActive ? "page" : undefined}
+          className={cn(isAchievementsActive && "text-foreground")}
+        >
+          <span>{achievementsLabel}</span>
+          {isAchievementsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-

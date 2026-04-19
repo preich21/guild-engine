@@ -24,6 +24,7 @@ type TopbarProps = {
     adminLink: string;
     pointDistributionLink: string;
     guildMeetingsLink: string;
+    achievementsLink: string;
     languageButton: string;
     english: string;
     german: string;
@@ -73,12 +74,15 @@ export function Topbar({
             teamLabel={dictionary.teamLeaderboardLink}
           />
           <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
-          {showAdminLink && <AdminNavLink
+          {showAdminLink ? (
+            <AdminNavLink
               lang={lang}
               label={dictionary.adminLink}
               pointDistributionLabel={dictionary.pointDistributionLink}
               guildMeetingsLabel={dictionary.guildMeetingsLink}
-            />}
+              achievementsLabel={dictionary.achievementsLink}
+            />
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <AttendanceStreakIndicator

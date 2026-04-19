@@ -1,5 +1,6 @@
-import { boolean, check, pgTable, smallint, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, check, jsonb, pgTable, smallint, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { AchievementCriteria } from "@/lib/achievements";
 
 export const NO_TEAM_ASSIGNED_TEAM_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -35,6 +36,14 @@ export const pointDistribution = pgTable("point_distribution", {
 export const guildMeetings = pgTable("guild_meetings", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   timestamp: timestamp("timestamp", { withTimezone: true }).notNull(),
+});
+
+export const achievements = pgTable("achievements", {
+  id: uuid("id").defaultRandom().notNull().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  image: varchar("image", { length: 65535 }).notNull(),
+  criteria: jsonb("criteria").$type<AchievementCriteria>().notNull(),
 });
 
 export const userPointSubmissions = pgTable(
