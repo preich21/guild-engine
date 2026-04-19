@@ -1,5 +1,6 @@
 import type { LeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
 
+import { AchievementStack } from "@/components/achievement-stack";
 import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +54,7 @@ export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
 
   return (
     <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
-      <Card className="w-full max-w-3xl">
+      <Card className="w-full max-w-6xl">
         <CardHeader>
           <CardTitle>{dictionary.heading}</CardTitle>
         </CardHeader>
@@ -78,6 +79,9 @@ export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
                           <span>{entry.username}</span>
                         </div>
                       </TableCell>
+                      <TableCell className="hidden w-40 sm:table-cell">
+                        <AchievementStack achievements={entry.achievements} />
+                      </TableCell>
                       <TableCell className="w-28">
                         <AttendanceStreakIndicator
                           initialCount={entry.attendanceStreak.count}
@@ -97,4 +101,3 @@ export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
     </main>
   );
 }
-

@@ -9,6 +9,7 @@ import type {
   AwardAchievement,
   AwardAchievementUserRow,
 } from "@/app/[lang]/admin/award-achievements/actions";
+import { AchievementStack } from "@/components/achievement-stack";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -63,42 +64,6 @@ const formatMessage = (template: string, values: Record<string, string>) =>
     (message, [key, value]) => message.replaceAll(`{${key}}`, value),
     template,
   );
-
-const AchievementStack = ({
-  achievements,
-  emptyLabel,
-}: {
-  achievements: Array<Pick<AwardAchievement, "id" | "title" | "image">>;
-  emptyLabel: string;
-}) => {
-  if (achievements.length === 0) {
-    return <span className="text-sm text-muted-foreground">{emptyLabel}</span>;
-  }
-
-  return (
-    <div className="flex min-w-0 items-center pl-2">
-      {achievements.map((achievement, index) => (
-        <div
-          key={achievement.id}
-          className="-ml-2 first:ml-0"
-          style={{ zIndex: achievements.length - index }}
-          title={achievement.title}
-        >
-          <div className="relative size-10 overflow-hidden rounded-full border border-background bg-muted shadow-sm">
-            <Image
-              src={achievement.image}
-              alt=""
-              fill
-              sizes="40px"
-              unoptimized
-              className="object-cover"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export function AwardAchievementsTable({
   lang,

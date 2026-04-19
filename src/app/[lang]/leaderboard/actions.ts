@@ -4,9 +4,11 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
+  achievements,
   guildMeetings,
   pointDistribution,
   teams,
+  userAchievements,
   userPointSubmissions,
   users,
 } from "@/db/schema";
@@ -20,6 +22,11 @@ export type LeaderboardEntry = {
     count: number;
     hasPendingRecentMeeting: boolean;
   };
+  achievements: Array<{
+    id: string;
+    title: string;
+    image: string;
+  }>;
 };
 
 export type TeamMemberEntry = {
@@ -43,6 +50,7 @@ type RawLeaderboardEntry = {
   totalPoints: number | string;
   attendanceStreakCount: number | string;
   attendanceStreakHasPendingRecentMeeting: boolean;
+  achievements: string;
 };
 
 type RawTeamLeaderboardEntry = {
@@ -84,7 +92,23 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
         0
       )::integer as "totalPoints",
       coalesce(max(streak.count), 0)::integer as "attendanceStreakCount",
-      coalesce(bool_or(streak.has_pending_recent_meeting), false) as "attendanceStreakHasPendingRecentMeeting"
+      coalesce(bool_or(streak.has_pending_recent_meeting), false) as "attendanceStreakHasPendingRecentMeeting",
+      coalesce(
+        (
+          select json_agg(
+            json_build_object(
+              'id', a.id,
+              'title', a.title,
+              'image', a.image
+            )
+            order by a.title, a.id
+          )
+          from ${userAchievements} ua
+          inner join ${achievements} a on a.id = ua.achievement_id
+          where ua.user_id = u.id
+        ),
+        '[]'::json
+      )::text as achievements
     from ${users} u
     left join ${userPointSubmissions} ups on ups.user_id = u.id
     left join ${guildMeetings} gm on gm.id = ups.guild_meeting_id and gm.timestamp <= now()
@@ -181,6 +205,17 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       count: Number(row.attendanceStreakCount),
       hasPendingRecentMeeting: Boolean(row.attendanceStreakHasPendingRecentMeeting),
     },
+    achievements: (
+      JSON.parse(row.achievements) as Array<{
+        id: string;
+        title: string;
+        image: string;
+      }>
+    ).map((achievement) => ({
+      id: String(achievement.id),
+      title: String(achievement.title),
+      image: String(achievement.image),
+    })),
   }));
 };
 
@@ -279,5 +314,4 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
     })),
   }));
 };
-
 
