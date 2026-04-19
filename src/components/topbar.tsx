@@ -25,6 +25,7 @@ type TopbarProps = {
     pointDistributionLink: string;
     guildMeetingsLink: string;
     achievementsLink: string;
+    awardAchievementsLink: string;
     languageButton: string;
     english: string;
     german: string;
@@ -81,6 +82,7 @@ export function Topbar({
               pointDistributionLabel={dictionary.pointDistributionLink}
               guildMeetingsLabel={dictionary.guildMeetingsLink}
               achievementsLabel={dictionary.achievementsLink}
+              awardAchievementsLabel={dictionary.awardAchievementsLink}
             />
           ) : null}
         </div>
