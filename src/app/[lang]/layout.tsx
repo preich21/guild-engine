@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { Topbar } from "@/components/topbar";
+import { evaluateAchievementsForUser } from "@/lib/achievement-evaluation";
 import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
 
 export const generateStaticParams = async () =>
@@ -35,7 +36,15 @@ export default async function RootLayout({
   const [dictionary, currentUser] = await Promise.all([getDictionary(lang), getCurrentUserRecord()]);
 
   const attendanceStreak = currentUser
-    ? await getUserGuildMeetingAttendanceStreak(currentUser.id)
+    ? (
+        await Promise.all([
+          evaluateAchievementsForUser({
+            id: currentUser.id,
+            teamId: currentUser.teamId,
+          }),
+          getUserGuildMeetingAttendanceStreak(currentUser.id),
+        ])
+      )[1]
     : { count: 0, hasPendingRecentMeeting: false };
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { CalendarIcon, ChevronDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,7 +17,8 @@ import {
   ACHIEVEMENT_OPERATORS,
   ACHIEVEMENT_TITLE_MAX_LENGTH,
   getDefaultAchievementCriteriaInput,
-  parseAchievementDuration,
+  isValidAchievementTimeFrame,
+  parseAchievementDateKey,
   toAchievementCriteriaInput,
   validateAchievementInput,
   type AchievementCriteria,
@@ -28,6 +29,7 @@ import {
   type AchievementOperator,
 } from "@/lib/achievements";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -101,12 +103,16 @@ type AchievementsTableProps = {
     typeCount: string;
     typeStreak: string;
     timeFrameLabel: string;
-    timeFramePlaceholder: string;
-    timeFrameParsedHint: string;
+    timeFrameFromLabel: string;
+    timeFrameToLabel: string;
+    datePickerPlaceholder: string;
     timeFrameInvalid: string;
     operatorLabel: string;
     countLabel: string;
+    streakDurationLabel: string;
     countPlaceholder: string;
+    minimumPointsLabel: string;
+    minimumPointsPlaceholder: string;
     leaderboardLabel: string;
     leaderboardIndividual: string;
     leaderboardTeam: string;
@@ -116,17 +122,6 @@ type AchievementsTableProps = {
     manualAwardedSummary: string;
     basedOnMetricsSummary: string;
     basedOnPositionSummary: string;
-    durationYearSingular: string;
-    durationYearPlural: string;
-    durationMonthSingular: string;
-    durationMonthPlural: string;
-    durationWeekSingular: string;
-    durationWeekPlural: string;
-    durationDaySingular: string;
-    durationDayPlural: string;
-    durationHourSingular: string;
-    durationHourPlural: string;
-    durationAnd: string;
     cancelButton: string;
     saveButton: string;
     saveSuccess: string;
@@ -156,9 +151,10 @@ const defaultDefinedCriteria = (): Extract<AchievementCriteriaInput, { mode: "de
   mode: "defined",
   metric: ACHIEVEMENT_METRICS[0],
   type: ACHIEVEMENT_CRITERIA_TYPES[0],
-  timeFrame: "",
-  operator: ">=",
+  timeFrameFrom: "",
+  timeFrameTo: "",
   count: "",
+  minimumPoints: "",
 });
 
 const defaultPositionCriteria = (): Extract<AchievementCriteriaInput, { mode: "position" }> => ({
@@ -212,6 +208,19 @@ const resizeImageToBase64 = (file: File): Promise<string> =>
     image.src = objectUrl;
   });
 
+const toDateKey = (value: Date) => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, "0");
+  const day = `${value.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDays = (value: Date, days: number) => {
+  const nextDate = new Date(value);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
+
 export function AchievementsTable({
   lang,
   rows,
@@ -237,30 +246,16 @@ export function AchievementsTable({
     count: dictionary.typeCount,
     streak: dictionary.typeStreak,
   };
-  const operatorLabels: Record<AchievementOperator, string> = {
-    "<": "<",
-    "<=": "<=",
-    "==": "==",
-    ">=": ">=",
-    ">": ">",
-  };
   const leaderboardLabels: Record<AchievementLeaderboard, string> = {
     individual: dictionary.leaderboardIndividual,
     team: dictionary.leaderboardTeam,
   };
-  const durationLabels = {
-    years: [dictionary.durationYearSingular, dictionary.durationYearPlural],
-    months: [dictionary.durationMonthSingular, dictionary.durationMonthPlural],
-    weeks: [dictionary.durationWeekSingular, dictionary.durationWeekPlural],
-    days: [dictionary.durationDaySingular, dictionary.durationDayPlural],
-    hours: [dictionary.durationHourSingular, dictionary.durationHourPlural],
-  } as const;
   const router = useRouter();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingAchievementId, setEditingAchievementId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftAchievement>(() => defaultDraftAchievement());
   const [imageError, setImageError] = useState(false);
-  const [showTimeFrameFeedback, setShowTimeFrameFeedback] = useState(false);
+  const [openDatePicker, setOpenDatePicker] = useState<string | null>(null);
   const [confirmingDeleteRowId, setConfirmingDeleteRowId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState(false);
   const [updateError, setUpdateError] = useState(false);
@@ -272,7 +267,7 @@ export function AchievementsTable({
       if (nextState.status === "success") {
         setDraft(defaultDraftAchievement());
         setImageError(false);
-        setShowTimeFrameFeedback(false);
+        setOpenDatePicker(null);
         setIsAddingNew(false);
         setUpdateError(false);
         setUpdateSuccess(false);
@@ -295,7 +290,7 @@ export function AchievementsTable({
     setEditingAchievementId(null);
     setIsAddingNew(false);
     setImageError(false);
-    setShowTimeFrameFeedback(false);
+    setOpenDatePicker(null);
   };
 
   const handleCancelEditor = () => {
@@ -343,7 +338,7 @@ export function AchievementsTable({
     setEditingAchievementId(null);
     setDraft(defaultDraftAchievement());
     setImageError(false);
-    setShowTimeFrameFeedback(false);
+    setOpenDatePicker(null);
   };
 
   const handleStartEdit = (row: AchievementEntry) => {
@@ -359,7 +354,7 @@ export function AchievementsTable({
       criteria: toAchievementCriteriaInput(row.criteria),
     });
     setImageError(false);
-    setShowTimeFrameFeedback(false);
+    setOpenDatePicker(null);
   };
 
   const handleUpdateAchievement = () => {
@@ -385,7 +380,7 @@ export function AchievementsTable({
   };
 
   const handleCriteriaModeChange = (value: string) => {
-    setShowTimeFrameFeedback(false);
+    setOpenDatePicker(null);
     setDraft((currentDraft) => ({
       ...currentDraft,
       criteria:
@@ -414,6 +409,78 @@ export function AchievementsTable({
           ...currentDraft.criteria,
           [key]: value,
         },
+      };
+    });
+  };
+
+  const handleDefinedMetricChange = (value: AchievementMetric) => {
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "defined") {
+        return currentDraft;
+      }
+
+      return {
+        ...currentDraft,
+        criteria: {
+          ...currentDraft.criteria,
+          metric: value,
+          minimumPoints:
+            currentDraft.criteria.type === "streak" && value === "points"
+              ? currentDraft.criteria.minimumPoints
+              : "",
+        },
+      };
+    });
+  };
+
+  const handleDefinedTypeChange = (value: AchievementCriteriaType) => {
+    setOpenDatePicker(null);
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "defined") {
+        return currentDraft;
+      }
+
+      return {
+        ...currentDraft,
+        criteria: {
+          ...currentDraft.criteria,
+          type: value,
+          timeFrameFrom: value === "count" ? currentDraft.criteria.timeFrameFrom : "",
+          timeFrameTo: value === "count" ? currentDraft.criteria.timeFrameTo : "",
+          minimumPoints:
+            value === "streak" && currentDraft.criteria.metric === "points"
+              ? currentDraft.criteria.minimumPoints
+              : "",
+        },
+      };
+    });
+  };
+
+  const handleDefinedTimeFrameChange = (
+    key: "timeFrameFrom" | "timeFrameTo",
+    value: string,
+  ) => {
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "defined") {
+        return currentDraft;
+      }
+
+      const nextCriteria = {
+        ...currentDraft.criteria,
+        [key]: value,
+      };
+
+      if (
+        key === "timeFrameFrom" &&
+        nextCriteria.timeFrameTo !== "" &&
+        !isValidAchievementTimeFrame(nextCriteria.timeFrameFrom, nextCriteria.timeFrameTo)
+      ) {
+        nextCriteria.timeFrameTo = "";
+      }
+
+      return {
+        ...currentDraft,
+        criteria: nextCriteria,
       };
     });
   };
@@ -482,39 +549,17 @@ export function AchievementsTable({
     </DropdownMenu>
   );
 
-  const formatDurationForDisplay = (input: string) => {
-    const parsedDuration = parseAchievementDuration(input);
+  const formatDateLabel = (value: string) => {
+    const parsedDate = parseAchievementDateKey(value);
 
-    if (!parsedDuration) {
-      return input;
+    if (!parsedDate) {
+      return dictionary.datePickerPlaceholder;
     }
 
-    const parts = (
-      [
-        ["years", parsedDuration.years],
-        ["months", parsedDuration.months],
-        ["weeks", parsedDuration.weeks],
-        ["days", parsedDuration.days],
-        ["hours", parsedDuration.hours],
-      ] as const
-    ).flatMap(([unit, amount]) => {
-      if (!amount) {
-        return [];
-      }
-
-      const [singular, plural] = durationLabels[unit];
-      return [`${amount} ${amount === 1 ? singular : plural}`];
-    });
-
-    if (parts.length === 0) {
-      return input;
-    }
-
-    if (parts.length === 1) {
-      return parts[0];
-    }
-
-    return `${parts.slice(0, -1).join(", ")} ${dictionary.durationAnd} ${parts[parts.length - 1]}`;
+    return new Intl.DateTimeFormat(lang, {
+      dateStyle: "medium",
+      timeZone: "UTC",
+    }).format(parsedDate);
   };
 
   const formatCriteriaTimeFrame = (criteria: AchievementCriteria) => {
@@ -522,16 +567,25 @@ export function AchievementsTable({
       return dictionary.allTimeLabel;
     }
 
-    return formatDurationForDisplay(criteria.timeFrame);
-  };
+    if (typeof criteria.timeFrame === "string") {
+      return criteria.timeFrame;
+    }
 
-  const timeFrameFeedback =
-    draft.criteria.mode === "defined" && draft.criteria.timeFrame.trim() !== ""
-      ? parseAchievementDuration(draft.criteria.timeFrame)
-      : null;
+    return `${formatDateLabel(criteria.timeFrame.from)} - ${formatDateLabel(criteria.timeFrame.to)}`;
+  };
 
   const renderEditorCard = (mode: "create" | "edit") => {
     const idPrefix = mode === "create" ? "new-achievement" : `edit-achievement-${editingAchievementId ?? "draft"}`;
+    const definedCriteria = draft.criteria.mode === "defined" ? draft.criteria : null;
+    const selectedFromDate =
+      definedCriteria?.timeFrameFrom ? parseAchievementDateKey(definedCriteria.timeFrameFrom) ?? undefined : undefined;
+    const selectedToDate =
+      definedCriteria?.timeFrameTo ? parseAchievementDateKey(definedCriteria.timeFrameTo) ?? undefined : undefined;
+    const minimumToDate = selectedFromDate ? addDays(selectedFromDate, 1) : undefined;
+    const isDefinedTimeFrameValid =
+      definedCriteria && definedCriteria.type === "count"
+        ? isValidAchievementTimeFrame(definedCriteria.timeFrameFrom, definedCriteria.timeFrameTo)
+        : true;
 
     return (
       <Card className="border border-border bg-background">
@@ -544,15 +598,15 @@ export function AchievementsTable({
           <div className="space-y-2">
             <Label htmlFor={`${idPrefix}-image-upload`}>{dictionary.imageLabel}</Label>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="flex size-21 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+              <div className="relative flex size-21 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
                 {draft.image ? (
                   <Image
                     src={draft.image}
                     alt=""
-                    width={ACHIEVEMENT_IMAGE_SIZE}
-                    height={ACHIEVEMENT_IMAGE_SIZE}
+                    fill
+                    sizes={`${ACHIEVEMENT_IMAGE_SIZE}px`}
                     unoptimized
-                    className="size-21 object-cover"
+                    className="object-cover"
                   />
                 ) : (
                   <Upload className="size-5 text-muted-foreground" aria-hidden="true" />
@@ -634,7 +688,7 @@ export function AchievementsTable({
                     valueLabels: metricLabels,
                     label: dictionary.metricLabel,
                     disabled: isBusy,
-                    onValueChange: (value) => handleDefinedCriteriaChange("metric", value),
+                    onValueChange: handleDefinedMetricChange,
                   })}
                 </div>
 
@@ -646,51 +700,14 @@ export function AchievementsTable({
                     valueLabels: criteriaTypeLabels,
                     label: dictionary.typeLabel,
                     disabled: isBusy,
-                    onValueChange: (value) => handleDefinedCriteriaChange("type", value),
+                    onValueChange: handleDefinedTypeChange,
                   })}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-time-frame`}>{dictionary.timeFrameLabel}</Label>
-                  <Input
-                    id={`${idPrefix}-time-frame`}
-                    value={draft.criteria.timeFrame}
-                    placeholder={dictionary.timeFramePlaceholder}
-                    disabled={isBusy}
-                    onBlur={() => setShowTimeFrameFeedback(true)}
-                    onChange={(event) => {
-                      setShowTimeFrameFeedback(false);
-                      handleDefinedCriteriaChange("timeFrame", event.target.value);
-                    }}
-                  />
-                  {showTimeFrameFeedback && draft.criteria.timeFrame.trim() !== "" ? (
-                    timeFrameFeedback ? (
-                      <p className="text-sm text-muted-foreground">
-                        {dictionary.timeFrameParsedHint.replace(
-                          "{duration}",
-                          formatDurationForDisplay(timeFrameFeedback.normalized),
-                        )}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-destructive">{dictionary.timeFrameInvalid}</p>
-                    )
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{dictionary.operatorLabel}</Label>
-                  {renderSingleSelect({
-                    value: draft.criteria.operator as AchievementOperator,
-                    values: ACHIEVEMENT_OPERATORS,
-                    valueLabels: operatorLabels,
-                    label: dictionary.operatorLabel,
-                    disabled: isBusy,
-                    onValueChange: (value) => handleDefinedCriteriaChange("operator", value),
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-count`}>{dictionary.countLabel}</Label>
+                  <Label htmlFor={`${idPrefix}-count`}>
+                    {draft.criteria.type === "streak" ? dictionary.streakDurationLabel : dictionary.countLabel}
+                  </Label>
                   <Input
                     id={`${idPrefix}-count`}
                     type="number"
@@ -703,6 +720,110 @@ export function AchievementsTable({
                     onChange={(event) => handleDefinedCriteriaChange("count", event.target.value)}
                   />
                 </div>
+
+                {draft.criteria.type === "streak" && draft.criteria.metric === "points" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor={`${idPrefix}-minimum-points`}>{dictionary.minimumPointsLabel}</Label>
+                    <Input
+                      id={`${idPrefix}-minimum-points`}
+                      type="number"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      value={draft.criteria.minimumPoints}
+                      placeholder={dictionary.minimumPointsPlaceholder}
+                      disabled={isBusy}
+                      onChange={(event) => handleDefinedCriteriaChange("minimumPoints", event.target.value)}
+                    />
+                  </div>
+                ) : null}
+
+                {draft.criteria.type === "count" ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">{dictionary.timeFrameLabel}</Label>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>{dictionary.timeFrameFromLabel}</Label>
+                        <Popover
+                          open={openDatePicker === `${idPrefix}-from`}
+                          onOpenChange={(open) => setOpenDatePicker(open ? `${idPrefix}-from` : null)}
+                        >
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-between"
+                                disabled={isBusy}
+                              >
+                                <span>{definedCriteria ? formatDateLabel(definedCriteria.timeFrameFrom) : dictionary.datePickerPlaceholder}</span>
+                                <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                              </Button>
+                            }
+                          />
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedFromDate}
+                              onSelect={(date) => {
+                                if (!date) {
+                                  return;
+                                }
+
+                                handleDefinedTimeFrameChange("timeFrameFrom", toDateKey(date));
+                                setOpenDatePicker(null);
+                              }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>{dictionary.timeFrameToLabel}</Label>
+                        <Popover
+                          open={openDatePicker === `${idPrefix}-to`}
+                          onOpenChange={(open) => setOpenDatePicker(open ? `${idPrefix}-to` : null)}
+                        >
+                          <PopoverTrigger
+                            render={
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-between"
+                                disabled={isBusy || !selectedFromDate}
+                              >
+                                <span>{definedCriteria ? formatDateLabel(definedCriteria.timeFrameTo) : dictionary.datePickerPlaceholder}</span>
+                                <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                              </Button>
+                            }
+                          />
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedToDate}
+                              onSelect={(date) => {
+                                if (!date) {
+                                  return;
+                                }
+
+                                handleDefinedTimeFrameChange("timeFrameTo", toDateKey(date));
+                                setOpenDatePicker(null);
+                              }}
+                              disabled={(date) => Boolean(minimumToDate && date < minimumToDate)}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    {!isDefinedTimeFrameValid ? (
+                      <p className="text-sm text-destructive">{dictionary.timeFrameInvalid}</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -725,7 +846,13 @@ export function AchievementsTable({
                   {renderSingleSelect({
                     value: draft.criteria.operator as AchievementOperator,
                     values: ACHIEVEMENT_OPERATORS,
-                    valueLabels: operatorLabels,
+                    valueLabels: {
+                      "<": "<",
+                      "<=": "<=",
+                      "==": "==",
+                      ">=": ">=",
+                      ">": ">",
+                    },
                     label: dictionary.operatorLabel,
                     disabled: isBusy,
                     onValueChange: (value) => handlePositionCriteriaChange("operator", value),
@@ -817,14 +944,14 @@ export function AchievementsTable({
             <Card key={row.id} className="border border-border bg-background">
               <CardHeader>
                 <div className="flex items-start gap-3">
-                  <div className="flex size-21 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                  <div className="relative flex size-21 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
                     <Image
                       src={row.image}
                       alt=""
-                      width={ACHIEVEMENT_IMAGE_SIZE}
-                      height={ACHIEVEMENT_IMAGE_SIZE}
+                      fill
+                      sizes={`${ACHIEVEMENT_IMAGE_SIZE}px`}
                       unoptimized
-                      className="size-21 object-cover"
+                      className="object-cover"
                     />
                   </div>
                   <div className="min-w-0 space-y-1">
@@ -922,17 +1049,23 @@ export function AchievementsTable({
                         {criteriaTypeLabels[row.criteria.type]}
                       </p>
                       <p>
-                        <span className="font-medium text-foreground">{dictionary.timeFrameLabel}: </span>
-                        {formatCriteriaTimeFrame(row.criteria)}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">{dictionary.operatorLabel}: </span>
-                        {row.criteria.operator}
-                      </p>
-                      <p>
-                        <span className="font-medium text-foreground">{dictionary.countLabel}: </span>
+                        <span className="font-medium text-foreground">
+                          {row.criteria.type === "streak" ? dictionary.streakDurationLabel : dictionary.countLabel}:{" "}
+                        </span>
                         {row.criteria.count}
                       </p>
+                      {row.criteria.type === "streak" && row.criteria.metric === "points" && row.criteria.minimumPoints ? (
+                        <p>
+                          <span className="font-medium text-foreground">{dictionary.minimumPointsLabel}: </span>
+                          {row.criteria.minimumPoints}
+                        </p>
+                      ) : null}
+                      {row.criteria.type === "count" ? (
+                        <p>
+                          <span className="font-medium text-foreground">{dictionary.timeFrameLabel}: </span>
+                          {formatCriteriaTimeFrame(row.criteria)}
+                        </p>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="space-y-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">

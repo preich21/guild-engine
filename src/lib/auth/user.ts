@@ -35,6 +35,7 @@ export const getCurrentUserRecord = async () => {
       username: users.username,
       profilePicture: users.profilePicture,
       admin: users.admin,
+      teamId: users.teamId,
     })
     .from(users)
     .where(eq(users.username, userName))
@@ -137,4 +138,3 @@ export const requireCurrentUserAdmin = async () => {
     notFound();
   }
 };
-
