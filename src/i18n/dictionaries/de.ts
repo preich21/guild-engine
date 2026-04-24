@@ -40,7 +40,19 @@ const de = {
     logoutButton: "Abmelden",
   },
   profile: {
-    heading: "Profil von Benutzer {uuid}",
+    heading: "Profil von {username}",
+    placementLabel: "Ranglistenplatz",
+    placementTooltip: "Aktuelle Position in der individuellen Rangliste",
+    placementLinkLabel: "Individuelle Rangliste öffnen",
+    streakLabel: "Aktuelle Serie",
+    achievementsHeading: "Erfolge",
+    achievementsEmpty: "Noch keine Erfolge.",
+    showAllAchievementsButton: "Alle Erfolge anzeigen",
+    allAchievementsTitle: "Alle Erfolge",
+    allAchievementsDescription:
+      "Freigeschaltete Erfolge bleiben farbig. Noch nicht freigeschaltete Erfolge werden ausgegraut angezeigt.",
+    openProfileButton: "Profil von {username} öffnen",
+    openProfilePage: "Vollständige Profilseite öffnen",
   },
   login: {
     heading: "Anmelden",

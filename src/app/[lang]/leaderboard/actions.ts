@@ -3,6 +3,7 @@
 import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
+import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 import {
   achievements,
   guildMeetings,
@@ -332,4 +333,9 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
       totalPoints: Number(member.totalPoints),
     })),
   }));
+};
+
+export const getIndividualLeaderboardPlacement = async (userId: string): Promise<number | null> => {
+  const rankedEntries = rankLeaderboardEntries(await getLeaderboard());
+  return rankedEntries.find((entry) => entry.userId === userId)?.rank ?? null;
 };

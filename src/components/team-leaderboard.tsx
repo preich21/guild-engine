@@ -1,22 +1,26 @@
 import type { TeamLeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
-import {
-  getPlaceClassName,
-  withRanking,
-} from "@/components/leaderboard";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getPlaceClassName } from "@/components/leaderboard";
+import { UserProfilePopover } from "@/components/user-profile-popover";
+import type { UserProfileDictionary } from "@/components/user-profile-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import type { Locale } from "@/i18n/config";
+import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
+import type { UserProfileData } from "@/lib/user-profile";
 
 type TeamLeaderboardProps = {
+  lang: Locale;
   entries: TeamLeaderboardEntry[];
+  profileDataByUserId: Record<string, UserProfileData>;
   dictionary: {
     heading: string;
     empty: string;
+    profile: UserProfileDictionary;
   };
 };
 
-export function TeamLeaderboard({ entries, dictionary }: TeamLeaderboardProps) {
-  const rankedEntries = withRanking(entries);
+export function TeamLeaderboard({ lang, entries, profileDataByUserId, dictionary }: TeamLeaderboardProps) {
+  const rankedEntries = rankLeaderboardEntries(entries);
 
   return (
     <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
@@ -39,17 +43,20 @@ export function TeamLeaderboard({ entries, dictionary }: TeamLeaderboardProps) {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
                           <div className="flex -space-x-2">
-                            {entry.members.map((member) => (
-                              <Avatar key={member.userId} className="size-8 border border-border bg-background">
-                                {member.profilePicture && <AvatarImage
-                                    src={member.profilePicture}
-                                    alt={member.username}
-                                />}
-                                <AvatarFallback aria-hidden>
-                                  {member.username.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                            ))}
+                            {entry.members.map((member) => {
+                              const profile = profileDataByUserId[member.userId];
+
+                              return profile ? (
+                                <UserProfilePopover
+                                  key={member.userId}
+                                  lang={lang}
+                                  profile={profile}
+                                  dictionary={dictionary.profile}
+                                  triggerClassName="-ml-2 first:ml-0 size-8 rounded-full"
+                                  avatarClassName="size-8"
+                                />
+                              ) : null;
+                            })}
                           </div>
                           <span>{entry.teamName}</span>
                         </div>

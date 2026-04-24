@@ -2,16 +2,25 @@ import type { LeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
 
 import { AchievementStack } from "@/components/achievement-stack";
 import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserProfilePopover } from "@/components/user-profile-popover";
+import type { UserProfileDictionary } from "@/components/user-profile-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import type { Locale } from "@/i18n/config";
+import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
+import { cn } from "@/lib/utils";
+import type { UserProfileData } from "@/lib/user-profile";
 
 type LeaderboardProps = {
+  lang: Locale;
   entries: LeaderboardEntry[];
+  highlightedUserId?: string;
+  profileDataByUserId: Record<string, UserProfileData>;
   dictionary: {
     heading: string;
     empty: string;
     streakLabel: string;
+    profile: UserProfileDictionary;
   };
 };
 
@@ -31,26 +40,16 @@ export const getPlaceClassName = (place: number) => {
   return "text-foreground/80";
 };
 
-export const withRanking = <T extends { totalPoints: number }>(entries: T[]) =>
-  entries.map((entry, index) => {
-    let rank = 1;
-
-    for (let i = index - 1; i >= 0; i--) {
-      const previousEntry = entries[i];
-      if (previousEntry == undefined || previousEntry.totalPoints !== entry.totalPoints) {
-        rank = i + 2;
-        break;
-      }
-    }
-
-    return {
-      ...entry,
-      rank,
-    };
-  });
-
-export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
-  const rankedEntries = withRanking(entries);
+export function Leaderboard({
+  lang,
+  entries,
+  highlightedUserId,
+  profileDataByUserId,
+  dictionary,
+}: LeaderboardProps) {
+  const rankedEntries = rankLeaderboardEntries(entries)
+    .map((entry) => profileDataByUserId[entry.userId])
+    .filter((entry) => entry != undefined);
 
   return (
     <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
@@ -65,17 +64,28 @@ export function Leaderboard({ entries, dictionary }: LeaderboardProps) {
             <Table>
               <TableBody>
                 {rankedEntries.map((entry) => {
+                  const isHighlighted = entry.userId === highlightedUserId;
+
                   return (
-                    <TableRow key={entry.userId}>
+                    <TableRow
+                      key={entry.userId}
+                      id={`leaderboard-user-${entry.userId}`}
+                      className={cn(
+                        "scroll-mt-24",
+                        isHighlighted &&
+                          "bg-amber-50 hover:bg-amber-50 dark:bg-amber-500/10 dark:hover:bg-amber-500/10",
+                      )}
+                    >
                       <TableCell className={`w-14 font-semibold ${getPlaceClassName(entry.rank)}`}>
                         {entry.rank}
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
-                          <Avatar className="size-8 border border-border">
-                            {entry.profilePicture && <AvatarImage src={entry.profilePicture} alt={entry.username} />}
-                            <AvatarFallback aria-hidden>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
+                          <UserProfilePopover
+                            lang={lang}
+                            profile={entry}
+                            dictionary={dictionary.profile}
+                          />
                           <span>{entry.username}</span>
                         </div>
                       </TableCell>

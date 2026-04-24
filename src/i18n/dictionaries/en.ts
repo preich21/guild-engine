@@ -40,7 +40,19 @@ const en = {
     logoutButton: "Log out",
   },
   profile: {
-    heading: "Profile of user {uuid}",
+    heading: "Profile of {username}",
+    placementLabel: "Leaderboard placement",
+    placementTooltip: "Current position on the individual leaderboard",
+    placementLinkLabel: "Open the individual leaderboard",
+    streakLabel: "Current streak",
+    achievementsHeading: "Achievements",
+    achievementsEmpty: "No achievements yet.",
+    showAllAchievementsButton: "Show all achievements",
+    allAchievementsTitle: "All achievements",
+    allAchievementsDescription:
+      "Unlocked achievements stay colorful. Locked achievements are shown greyed out.",
+    openProfileButton: "Open profile of {username}",
+    openProfilePage: "Open full profile page",
   },
   login: {
     heading: "Sign in",
