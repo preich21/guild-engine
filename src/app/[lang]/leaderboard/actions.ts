@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import {
   achievements,
   guildMeetings,
+  manualPoints,
   pointDistribution,
   teams,
   userAchievements,
@@ -66,30 +67,33 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       u.id as "userId",
       u.username,
       u.profile_picture as "profilePicture",
-      coalesce(
-        sum(
-          case ups.attendance
-            when 1 then coalesce(pd.attendance_virtual, 0)
-            when 2 then coalesce(pd.attendance_on_site, 0)
-            else 0
-          end
-          + case ups.protocol
-              when 1 then coalesce(pd.protocol_forced, 0)
-              when 2 then coalesce(pd.protocol_voluntarily, 0)
+      (
+        coalesce(
+          sum(
+            case ups.attendance
+              when 1 then coalesce(pd.attendance_virtual, 0)
+              when 2 then coalesce(pd.attendance_on_site, 0)
               else 0
             end
-          + case
-              when ups.moderation then coalesce(pd.moderation, 0)
-              else 0
-            end
-          + case
-              when ups.working_group then coalesce(pd.working_group, 0)
-              else 0
-            end
-          + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-          + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-        ),
-        0
+            + case ups.protocol
+                when 1 then coalesce(pd.protocol_forced, 0)
+                when 2 then coalesce(pd.protocol_voluntarily, 0)
+                else 0
+              end
+            + case
+                when ups.moderation then coalesce(pd.moderation, 0)
+                else 0
+              end
+            + case
+                when ups.working_group then coalesce(pd.working_group, 0)
+                else 0
+              end
+            + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
+            + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+          ),
+          0
+        )
+        + coalesce(max(mp.total_points), 0)
       )::integer as "totalPoints",
       coalesce(max(streak.count), 0)::integer as "attendanceStreakCount",
       coalesce(bool_or(streak.has_pending_recent_meeting), false) as "attendanceStreakHasPendingRecentMeeting",
@@ -127,6 +131,12 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       order by pd.active_from desc
       limit 1
     ) pd on true
+    left join lateral (
+      select
+        coalesce(sum(mp.points), 0)::integer as total_points
+      from ${manualPoints} mp
+      where mp.user_id = u.id
+    ) mp on true
     left join lateral (
       with meeting_rows as (
         select
@@ -227,30 +237,33 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
         u.team_id as team_id,
         u.username,
         u.profile_picture as profile_picture,
-        coalesce(
-          sum(
-            case ups.attendance
-              when 1 then coalesce(pd.attendance_virtual, 0)
-              when 2 then coalesce(pd.attendance_on_site, 0)
-              else 0
-            end
-            + case ups.protocol
-                when 1 then coalesce(pd.protocol_forced, 0)
-                when 2 then coalesce(pd.protocol_voluntarily, 0)
+        (
+          coalesce(
+            sum(
+              case ups.attendance
+                when 1 then coalesce(pd.attendance_virtual, 0)
+                when 2 then coalesce(pd.attendance_on_site, 0)
                 else 0
               end
-            + case
-                when ups.moderation then coalesce(pd.moderation, 0)
-                else 0
-              end
-            + case
-                when ups.working_group then coalesce(pd.working_group, 0)
-                else 0
-              end
-            + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-            + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-          ),
-          0
+              + case ups.protocol
+                  when 1 then coalesce(pd.protocol_forced, 0)
+                  when 2 then coalesce(pd.protocol_voluntarily, 0)
+                  else 0
+                end
+              + case
+                  when ups.moderation then coalesce(pd.moderation, 0)
+                  else 0
+                end
+              + case
+                  when ups.working_group then coalesce(pd.working_group, 0)
+                  else 0
+                end
+              + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
+              + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+            ),
+            0
+          )
+          + coalesce(max(mp.total_points), 0)
         )::integer as total_points
       from ${users} u
       left join ${userPointSubmissions} ups on ups.user_id = u.id
@@ -270,6 +283,12 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
         order by pd.active_from desc
         limit 1
       ) pd on true
+      left join lateral (
+        select
+          coalesce(sum(mp.points), 0)::integer as total_points
+        from ${manualPoints} mp
+        where mp.user_id = u.id
+      ) mp on true
       group by u.id, u.team_id, u.username, u.profile_picture
     )
     select
@@ -314,4 +333,3 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
     })),
   }));
 };
-

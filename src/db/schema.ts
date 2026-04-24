@@ -89,6 +89,23 @@ export const userAchievements = pgTable(
   ],
 );
 
+export const manualPoints = pgTable(
+  "manual_points",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    points: smallint("points").notNull(),
+    reason: text("reason").notNull(),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("manual_points_user_id_idx").on(table.userId),
+    index("manual_points_timestamp_idx").on(table.timestamp),
+  ],
+);
+
 export const userPointSubmissions = pgTable(
   "user_point_submissions",
   {
