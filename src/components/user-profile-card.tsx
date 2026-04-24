@@ -9,7 +9,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -174,10 +173,7 @@ export function UserProfileCard({
 
       <Card className="shadow-md ring-1 ring-foreground/10">
         <CardHeader>
-          <div className="space-y-1">
-            <CardTitle>{dictionary.achievementsHeading}</CardTitle>
-            <CardDescription>{dictionary.allAchievementsDescription}</CardDescription>
-          </div>
+          <CardTitle>{dictionary.achievementsHeading}</CardTitle>
           <CardAction>
             <Dialog>
               <DialogTrigger
