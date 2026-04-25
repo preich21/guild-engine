@@ -21,6 +21,7 @@ type TopbarProps = {
     individualLeaderboardLink: string;
     teamLeaderboardLink: string;
     getPointsLink: string;
+    protocolRaffleLink: string;
     adminLink: string;
     pointDistributionLink: string;
     guildMeetingsLink: string;
@@ -76,6 +77,7 @@ export function Topbar({
             teamLabel={dictionary.teamLeaderboardLink}
           />
           <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
+          <TopbarNavLink href={`/${lang}/protocol-raffle`} label={dictionary.protocolRaffleLink} />
           {showAdminLink ? (
             <AdminNavLink
               lang={lang}

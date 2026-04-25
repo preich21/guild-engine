@@ -19,6 +19,8 @@ export type LeaderboardEntry = {
   userId: string;
   username: string;
   profilePicture: string | null;
+  description: string | null;
+  teamId: string;
   totalPoints: number;
   attendanceStreak: {
     count: number;
@@ -49,6 +51,8 @@ type RawLeaderboardEntry = {
   userId: string;
   username: string;
   profilePicture: string | null;
+  description: string | null;
+  teamId: string;
   totalPoints: number | string;
   attendanceStreakCount: number | string;
   attendanceStreakHasPendingRecentMeeting: boolean;
@@ -68,6 +72,8 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       u.id as "userId",
       u.username,
       u.profile_picture as "profilePicture",
+      u.description,
+      u.team_id as "teamId",
       (
         coalesce(
           sum(
@@ -201,7 +207,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
         )::integer as count,
         (select sil.value from should_ignore_latest sil) as has_pending_recent_meeting
     ) streak on true
-    group by u.id, u.username, u.profile_picture
+    group by u.id, u.username, u.profile_picture, u.description, u.team_id
     order by "totalPoints" desc, u.username
   `);
 
@@ -211,6 +217,8 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     userId: String(row.userId),
     username: String(row.username),
     profilePicture: row.profilePicture,
+    description: row.description,
+    teamId: String(row.teamId),
     totalPoints: Number(row.totalPoints),
     attendanceStreak: {
       count: Number(row.attendanceStreakCount),

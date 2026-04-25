@@ -24,6 +24,7 @@ const de = {
     individualLeaderboardLink: "Individuelle Rangliste",
     teamLeaderboardLink: "Team-Rangliste",
     getPointsLink: "Punkte Erfassen",
+    protocolRaffleLink: "Protokoll-Verlosung",
     adminLink: "Admin",
     pointDistributionLink: "Punkteverteilung",
     guildMeetingsLink: "Gildentreffen",
@@ -53,6 +54,24 @@ const de = {
       "Freigeschaltete Erfolge bleiben farbig. Noch nicht freigeschaltete Erfolge werden ausgegraut angezeigt.",
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",
+    edit: {
+      editProfileButton: "Profil bearbeiten",
+      editProfileTitle: "Profil bearbeiten",
+      editProfileDescription: "Aktualisiere deine öffentlichen Profildaten.",
+      profilePictureLabel: "Profilbild",
+      profilePictureUploadButton: "Profilbild hochladen",
+      profilePictureUploadHint: "Lade ein Bild hoch, es wird auf 84x84 Pixel skaliert.",
+      imageUploadError: "Das Bild konnte nicht geladen werden. Bitte wähle eine andere Datei.",
+      usernameLabel: "Benutzername",
+      usernamePlaceholder: "Benutzernamen eingeben",
+      descriptionLabel: "Beschreibung",
+      descriptionPlaceholder: "Profilbeschreibung eingeben",
+      teamLabel: "Team",
+      teamPlaceholder: "Team auswählen",
+      cancelButton: "Abbrechen",
+      saveButton: "Speichern",
+      saveError: "Profil konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    },
   },
   login: {
     heading: "Anmelden",
@@ -94,6 +113,24 @@ const de = {
     saveButton: "Speichern",
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
+  },
+  protocolRaffle: {
+    heading: "Protokoll-Verlosung",
+    selectVictimsButton: "Opfer auswählen",
+    spinButton: "Drehen!",
+    selectVictimsTitle: "Opfer auswählen",
+    selectVictimsDescription:
+      "Wähle alle Benutzer aus, die aktuell am Gildentreffen teilnehmen und heute nicht bereits moderieren. Diese kommen in die Protokoll-Verlosung.",
+    selectAllButton: "Alle auswählen",
+    deselectAllButton: "Alle abwählen",
+    cancelButton: "Abbrechen",
+    selectButton: "Auswählen",
+    emptyState:
+      "Noch keine Einträge in der Verlosung. Wähle mindestens zwei Benutzer aus, um das Glücksrad zu füllen.",
+    winnerTitle: "Glückwunsch {username}!",
+    winnerDescription:
+      'Du darfst während des heutigen Gildentreffens das Protokoll schreiben!\nDu kannst in deinem Punkteformular für das heutige Gildentreffen "Protokoll - Verpflichtet" eintragen. Viel Spaß mit deinen Extrapunkten :wink:',
+    dismissButton: "Schließen",
   },
   admin: {
     guildMeetings: {

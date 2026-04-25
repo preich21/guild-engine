@@ -27,6 +27,7 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     username: varchar("username", { length: 255 }).notNull(),
     profilePicture: varchar("profile_picture", { length: 65535 }),
+    description: varchar("description", { length: 1023 }),
     admin: boolean("admin").notNull().default(false),
     teamId: uuid("team_id")
       .notNull()

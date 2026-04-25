@@ -3,8 +3,16 @@ import Link from "next/link";
 import { ExternalLink, Flame } from "lucide-react";
 
 import { AchievementStack } from "@/components/achievement-stack";
+import {
+  UserProfileEditDialog,
+  type UserProfileEditDictionary,
+} from "@/components/user-profile-edit-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
+import type {
+  ProfileEditTeam,
+  SaveProfileActionState,
+} from "@/app/[lang]/user/[uuid]/actions";
 import {
   Card,
   CardAction,
@@ -44,6 +52,15 @@ export type UserProfileDictionary = {
   allAchievementsDescription: string;
   openProfileButton: string;
   openProfilePage: string;
+  edit: UserProfileEditDictionary;
+};
+
+type UserProfileEditProps = {
+  teams: ProfileEditTeam[];
+  action: (
+    state: SaveProfileActionState,
+    formData: FormData,
+  ) => Promise<SaveProfileActionState>;
 };
 
 type UserProfileCardProps = {
@@ -51,6 +68,7 @@ type UserProfileCardProps = {
   profile: UserProfileData;
   dictionary: UserProfileDictionary;
   mode?: "page" | "popover";
+  edit?: UserProfileEditProps;
 };
 
 const getPlacementCardClassName = (rank: number) => {
@@ -84,6 +102,7 @@ export function UserProfileCard({
   profile,
   dictionary,
   mode = "page",
+  edit,
 }: UserProfileCardProps) {
   const earnedAchievementIds = new Set(profile.achievements.map((achievement) => achievement.id));
   const leaderboardHref = `/${lang}/leaderboard/individual?highlight=${profile.userId}#leaderboard-user-${profile.userId}`;
@@ -122,8 +141,26 @@ export function UserProfileCard({
           >
             <ExternalLink aria-hidden="true" />
           </Button>
+        ) : edit ? (
+          <UserProfileEditDialog
+            lang={lang}
+            userId={profile.userId}
+            username={profile.username}
+            profilePicture={profile.profilePicture}
+            description={profile.description}
+            teamId={profile.teamId}
+            teams={edit.teams}
+            dictionary={dictionary.edit}
+            action={edit.action}
+          />
         ) : null}
       </div>
+
+      {profile.description ? (
+        <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground sm:text-base">
+          {profile.description}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className={cn("border-0 shadow-lg ring-1 ring-black/5", getPlacementCardClassName(profile.rank))}>

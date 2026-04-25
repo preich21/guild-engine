@@ -26,6 +26,8 @@ export type UserProfileData = {
   userId: string;
   username: string;
   profilePicture: string | null;
+  description: string | null;
+  teamId: string;
   totalPoints: number;
   rank: number;
   attendanceStreak: UserAttendanceStreak;
@@ -58,6 +60,8 @@ export const toUserProfileData = (
   userId: entry.userId,
   username: entry.username,
   profilePicture: entry.profilePicture,
+  description: entry.description,
+  teamId: entry.teamId,
   totalPoints: entry.totalPoints,
   rank: entry.rank,
   attendanceStreak,

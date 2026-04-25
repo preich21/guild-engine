@@ -38,7 +38,7 @@ if (
   );
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update: updateSession } = NextAuth({
   providers,
   pages: {
     signIn: "/login",
@@ -46,7 +46,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
-});
+  callbacks: {
+    jwt({ token, trigger, session }) {
+      const updatedName = session?.user?.name;
 
+      if (trigger === "update" && typeof updatedName === "string") {
+        token.name = updatedName;
+      }
+
+      return token;
+    },
+  },
+});
 
 
