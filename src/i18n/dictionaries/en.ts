@@ -27,6 +27,7 @@ const en = {
     protocolRaffleLink: "Protocol Raffle",
     rulesLink: "Rules",
     adminLink: "Admin",
+    featureConfigLink: "Feature Configuration",
     pointDistributionLink: "Point Distribution",
     guildMeetingsLink: "Guild Meetings",
     achievementsLink: "Achievements",
@@ -138,6 +139,18 @@ const en = {
     empty: "No rules are configured yet. Please contact your administrator.",
   },
   admin: {
+    featureConfig: {
+      heading: "Feature Configuration",
+      description:
+        "Use this page to enable or disable all user-facing features the Guild Engine offers. When saved, changes take effect immediately and for all users.",
+      prerequisitesLabel: "Prerequisites",
+      configurationLabel: "Configuration",
+      cancelButton: "Cancel",
+      saveButton: "Save",
+      savedAlert: "Saved!",
+      selectPlaceholder: "Select option",
+      disabledUntilFeatureEnabled: "Enable this feature before changing its settings.",
+    },
     rulesConfig: {
       heading: "Rules Configuration",
       description:

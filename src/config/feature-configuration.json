@@ -1,0 +1,586 @@
+{
+  "features": [
+    {
+      "id": "point-system",
+      "name": {
+        "en": "Point System",
+        "de": "Punktesystem"
+      },
+      "description": {
+        "en": "Translation of tracked performance metrics to a point value. Point distribution is configurable via its own admin page.",
+        "de": "Übersetzung erfasster Leistungsmetriken in Punktwerte. Die Punkteverteilung ist auf einer eigenen Admin-Seite konfigurierbar."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [],
+      "configuration": []
+    },
+    {
+      "id": "individual-leaderboard",
+      "name": {
+        "en": "Individual Leaderboard",
+        "de": "Individuelle Rangliste"
+      },
+      "description": {
+        "en": "Presenting the accumulated points of each user and ranking all users based on their total points.",
+        "de": "Zeigt die gesammelten Punkte einzelner Benutzerinnen und Benutzer und sortiert alle nach ihrer Gesamtpunktzahl."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [
+        {
+          "message": {
+            "en": "Point System must be enabled.",
+            "de": "Das Punktesystem muss aktiviert sein."
+          },
+          "tooltip": {
+            "en": "To use this feature you must enable the Point System first.",
+            "de": "Um diese Funktion zu nutzen, musst du zuerst das Punktesystem aktivieren."
+          },
+          "condition": {
+            "featureEnabled": "point-system"
+          }
+        }
+      ],
+      "configuration": [
+        {
+          "id": "start-date",
+          "type": "date",
+          "label": {
+            "en": "Start Date",
+            "de": "Startdatum"
+          },
+          "description": {
+            "en": "Points before this date are not taken into account. Leave empty for all time.",
+            "de": "Punkte vor diesem Datum werden nicht berücksichtigt. Leer lassen für keine Einschränkung."
+          },
+          "defaultValue": ""
+        },
+        {
+          "id": "show-dashboard",
+          "type": "switch",
+          "label": {
+            "en": "Show Dashboard",
+            "de": "Dashboard anzeigen"
+          },
+          "description": {
+            "en": "When enabled, the performance metric data that was used to calculate the score of each user is depicted in the leaderboard.",
+            "de": "Wenn diese Option aktiviert ist, werden die Leistungsdaten, aus denen die Punktzahl jedes Nutzers berechnet wurde, in der Rangliste angezeigt."
+          },
+          "defaultValue": true
+        }
+      ]
+    },
+    {
+      "id": "team-leaderboard",
+      "name": {
+        "en": "Team Leaderboard",
+        "de": "Team-Rangliste"
+      },
+      "description": {
+        "en": "Presenting the accumulated points of a group of users and ranking these groups based on their total points.",
+        "de": "Zeigt die gesammelten Punkte von Benutzergruppen und sortiert diese Gruppen nach ihrer Gesamtpunktzahl."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [
+        {
+          "message": {
+            "en": "Point System must be enabled.",
+            "de": "Das Punktesystem muss aktiviert sein."
+          },
+          "tooltip": {
+            "en": "To use this feature you must enable Point System first.",
+            "de": "Um diese Funktion zu nutzen, musst du zuerst das Punktesystem aktivieren."
+          },
+          "condition": {
+            "featureEnabled": "point-system"
+          }
+        }
+      ],
+      "configuration": [
+        {
+          "id": "start-date",
+          "type": "date",
+          "label": {
+            "en": "Start Date",
+            "de": "Startdatum"
+          },
+          "description": {
+            "en": "Points before this date are not taken into account. Leave empty for all time.",
+            "de": "Punkte vor diesem Datum werden nicht berücksichtigt. Leer lassen für keine Einschränkung."
+          },
+          "defaultValue": ""
+        },
+        {
+          "id": "aggregation",
+          "type": "select",
+          "label": {
+            "en": "Point aggregation",
+            "de": "Punkteaggregation"
+          },
+          "description": {
+            "en": "How team points are calculated from team member points.",
+            "de": "Wie Teampunkte aus den Punkten der Teammitglieder berechnet werden."
+          },
+          "defaultValue": "sum",
+          "options": [
+            {
+              "value": "sum",
+              "label": {
+                "en": "Sum",
+                "de": "Summe"
+              }
+            },
+            {
+              "value": "average",
+              "label": {
+                "en": "Average",
+                "de": "Durchschnitt"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "level-system",
+      "name": {
+        "en": "Level System",
+        "de": "Levelsystem"
+      },
+      "description": {
+        "en": "Per user level progress based on the points the user has collected.",
+        "de": "Level-Fortschritt pro Benutzerin oder Benutzer basierend auf den gesammelten Punkten."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [
+        {
+          "message": {
+            "en": "Point System must be enabled.",
+            "de": "Das Punktesystem muss aktiviert sein."
+          },
+          "tooltip": {
+            "en": "To use this feature you must enable Point System first.",
+            "de": "Um diese Funktion zu nutzen, musst du zuerst das Punktesystem aktivieren."
+          },
+          "condition": {
+            "featureEnabled": "point-system"
+          }
+        }
+      ],
+      "configuration": [
+        {
+          "id": "first-level-points",
+          "type": "number",
+          "label": {
+            "en": "First Level Points",
+            "de": "Erstes Level Punkte"
+          },
+          "description": {
+            "en": "How many points a user has to accumulate to reach the first level.",
+            "de": "Wie viele Punkte ein Benutzer ansammeln muss um das erste Level zu erreichen."
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1
+        },
+        {
+          "id": "level-multiplier",
+          "type": "decimal",
+          "label": {
+            "en": "Points-necessary multiplicator per level",
+            "de": "Punkte-Multiplikator pro Level"
+          },
+          "description": {
+            "en": "For each level after the first, a user must accumulate [this value] times the points they had to accumulate for the previous level.",
+            "de": "Ab dem zweiten Level muss ein Nutzer [diesen Wert] mal so viele Punkte sammeln um das nächste Level zu erreichen, wie für das vorherige Level erforderlich waren."
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 0.01
+        }
+      ]
+    },
+    {
+      "id": "badges",
+      "name": {
+        "en": "Badges",
+        "de": "Abzeichen"
+      },
+      "description": {
+        "en": "Badge-awarding system based on any of the other features. Badges are configurable via their own admin page.",
+        "de": "Vergabesystem für Abzeichen basierend auf beliebigen anderen Funktionen. Abzeichen sind auf einer eigenen Admin-Seite konfigurierbar."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [],
+      "configuration": []
+    },
+    {
+      "id": "cooperative-progress-bar",
+      "name": {
+        "en": "Cooperative Progress Bar",
+        "de": "Kooperativer Fortschrittsbalken"
+      },
+      "description": {
+        "en": "A progress bar based on the accumulated points of all users.",
+        "de": "Ein Fortschrittsbalken auf Basis der gesammelten Punkte aller Benutzerinnen und Benutzer."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [
+        {
+          "message": {
+            "en": "Point System must be enabled.",
+            "de": "Das Punktesystem muss aktiviert sein."
+          },
+          "tooltip": {
+            "en": "To use this feature you must enable Point System first.",
+            "de": "Um diese Funktion zu nutzen, musst du zuerst das Punktesystem aktivieren."
+          },
+          "condition": {
+            "featureEnabled": "point-system"
+          }
+        }
+      ],
+      "configuration": [
+        {
+          "id": "start-date",
+          "type": "date",
+          "label": {
+            "en": "Start Date",
+            "de": "Startdatum"
+          },
+          "description": {
+            "en": "Points before this date are not taken into account. Leave empty for all time.",
+            "de": "Punkte vor diesem Datum werden nicht berucksichtigt. Leer lassen für den gesamten Zeitraum."
+          },
+          "defaultValue": ""
+        },
+        {
+          "id": "aggregation",
+          "type": "select",
+          "label": {
+            "en": "Point aggregation",
+            "de": "Punkteaggregation"
+          },
+          "description": {
+            "en": "How the total points are calculated from individual user points.",
+            "de": "Wie die Gesamtpunkte aus den Punkten der einzelnen Benutzer berechnet werden."
+          },
+          "defaultValue": "sum",
+          "options": [
+            {
+              "value": "sum",
+              "label": {
+                "en": "Sum",
+                "de": "Summe"
+              }
+            },
+            {
+              "value": "average",
+              "label": {
+                "en": "Average",
+                "de": "Durchschnitt"
+              }
+            }
+          ]
+        },
+        {
+          "id": "goal-points",
+          "type": "number",
+          "label": {
+            "en": "Goal Points",
+            "de": "Zielpunkte"
+          },
+          "description": {
+            "en": "Indicates how many points are necessary to fill the progress bar.",
+            "de": "Zeigt an wie viele Punkte insgesamt nötig sind um den Fortschrittsbalken zu füllen."
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "quests",
+      "name": {
+        "en": "Quests",
+        "de": "Quests"
+      },
+      "description": {
+        "en": "A quest board presenting quests to users. Users can accept quests that have a limited user count. Quests are configurable via their own admin page.",
+        "de": "Ein Quest-Board, das Benutzerinnen und Benutzern Quests anzeigt. Quests konnen eine begrenzte Teilnehmerzahl haben und sind auf einer eigenen Admin-Seite konfigurierbar."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [],
+      "configuration": []
+    },
+    {
+      "id": "streaks",
+      "name": {
+        "en": "Streaks",
+        "de": "Serien"
+      },
+      "description": {
+        "en": "An indicator for how many consecutive meetings a user has fulfilled a specific performance metric.",
+        "de": "Eine Anzeige, wie viele aufeinanderfolgende Treffen eine Benutzerin oder ein Benutzer eine bestimmte Leistungsmetrik erfullt hat."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [],
+      "configuration": [
+        {
+          "id": "performance-metric",
+          "type": "select",
+          "label": {
+            "en": "Performance Metric",
+            "de": "Leistungsmetrik"
+          },
+          "description": {
+            "en": "The streak calculation is based on this performance metric.",
+            "de": "Die Serien-Berechnung basiert auf dieser Leistungsmetrik."
+          },
+          "defaultValue": "attendance",
+          "options": [
+            {
+              "value": "attendance",
+              "label": {
+                "en": "Attendance",
+                "de": "Anwesenheit"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "minigames",
+      "name": {
+        "en": "Minigames",
+        "de": "Minispiele"
+      },
+      "description": {
+        "en": "Helper implementations for specific minigames, which feature direct user selection from the db, and possibly allow users to use specific power-ups for those minigames.",
+        "de": "Hilfsimplementierungen für bestimmte Minispiele mit direkter Benutzerauswahl aus der Datenbank und möglicher Nutzung spezieller Powerups."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [],
+      "configuration": [
+        {
+          "id": "role-raffle",
+          "type": "switch",
+          "label": {
+            "en": "Role Raffle",
+            "de": "Rollen-Verlosung"
+          },
+          "description": {
+            "en": "Enables a wheel of fortune which can be used to randomly assign a user a role. Can be used together with \"Role Shield\" powerups.",
+            "de": "Aktiviert ein Glücksrad, mit dem einem Benutzer zufällig eine Rolle zugewiesen werden kann. Kann zusammen mit \"Rollen-Schild\" Powerups verwendet werden."
+          },
+          "defaultValue": true
+        },
+        {
+          "id": "one-time-doing-raffle",
+          "type": "switch",
+          "label": {
+            "en": "One-Time Doing Raffle",
+            "de": "Einmalige-Aufgabe-Verlosung"
+          },
+          "description": {
+            "en": "Enables a wheel of fortune which can be used to randomly assign a user a one-time doing. Can be used together with \"One-time Doing Shield\" powerups.",
+            "de": "Aktiviert ein Glücksrad, mit dem einem Benutzer zufällig eine einmalige Aufgabe zugewiesen werden kann. Kann zusammen mit \"Einmalige-Aufgabe-Schild\" Powerups verwendet werden."
+          },
+          "defaultValue": true
+        }
+      ]
+    },
+    {
+      "id": "powerups",
+      "name": {
+        "en": "Powerups",
+        "de": "Powerups"
+      },
+      "description": {
+        "en": "Virtual items that can be used for different purposes. Powerups can be randomly unlocked by users by leveling up.",
+        "de": "Virtuelle Gegenstände, die für unterschiedliche Zwecke genutzt werden konnen. Powerups können von Benutzern durch Levelups zufällig freigeschaltet werden."
+      },
+      "defaultEnabled": true,
+      "prerequisites": [
+        {
+          "message": {
+            "en": "The Level System must be enabled.",
+            "de": "Das Levelsystem muss aktiviert sein."
+          },
+          "tooltip": {
+            "en": "To use this feature you must enable the Level System first.",
+            "de": "Um diese Funktion zu nutzen, musst du zuerst das Levelsystem aktivieren."
+          },
+          "condition": {
+            "featureEnabled": "level-system"
+          }
+        }
+      ],
+      "configuration": [
+        {
+          "id": "point-multiplicator",
+          "type": "switch",
+          "label": {
+            "en": "Point Multiplicator",
+            "de": "Punkte-Multiplikator"
+          },
+          "description": {
+            "en": "Allows a user to duplicate their received points for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu verdoppeln."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable Point System first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst das Punktesystem aktivieren."
+              },
+              "condition": {
+                "featureEnabled": "point-system"
+              }
+            }
+          ]
+        },
+        {
+          "id": "streak-freeze",
+          "type": "switch",
+          "label": {
+            "en": "Streak Freeze",
+            "de": "Serien-Freeze"
+          },
+          "description": {
+            "en": "Allows a user to skip a meeting without breaking their streak.",
+            "de": "Erlaubt es einem Benutzer, ein Meeting zu überspringen ohne seine Serie zu unterbrechen."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable Streaks first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst Serien aktivieren."
+              },
+              "condition": {
+                "featureEnabled": "streaks"
+              }
+            }
+          ]
+        },
+        {
+          "id": "role-present",
+          "type": "switch",
+          "label": {
+            "en": "Role Present",
+            "de": "Rollen-Geschenk"
+          },
+          "description": {
+            "en": "Allows a user to force another user to receive a specific role for a meeting. Can be countered with a \"Role Shield\" powerup.",
+            "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte Rolle für ein Meeting zu erhalten. Kann mit einem \"Rollen-Schild\" Powerup gekontert werden."
+          },
+          "defaultValue": true
+        },
+        {
+          "id": "role-shield",
+          "type": "switch",
+          "label": {
+            "en": "Role Shield",
+            "de": "Rollen-Schild"
+          },
+          "description": {
+            "en": "Allows a user to opt-out of a role raffle beforehand or to counter one \"Role Present\" powerup.",
+            "de": "Erlaubt es einem Benutzer, sich im Voraus aus einer Rollenverlosung zu befreien oder ein \"Rollen-Geschenk\" Powerup zu kontern."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable Role Raffle with Minigames, or enable Role Present first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst die Rollen-Verlosung mit Minispielen oder das Rollen-Geschenk aktivieren."
+              },
+              "condition": {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "featureEnabled": "minigames"
+                      },
+                      {
+                        "settingEnabled": {
+                          "featureId": "minigames",
+                          "settingId": "role-raffle"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "settingEnabled": {
+                      "featureId": "powerups",
+                      "settingId": "role-present"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "one-time-doing-present",
+          "type": "switch",
+          "label": {
+            "en": "One-Time Doing Present",
+            "de": "Einmalige-Aufgabe-Geschenk"
+          },
+          "description": {
+            "en": "Allows a user to force another user to receive a specific one-time doing. Can be countered with a \"One-Time Doing Shield\" powerup.",
+            "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte einmalige Aufgabe zu erhalten. Kann mit einem \"Einmalige-Aufgabe-Schild\" Powerup gekontert werden."
+          },
+          "defaultValue": true
+        },
+        {
+          "id": "one-time-doing-shield",
+          "type": "switch",
+          "label": {
+            "en": "One-Time Doing Shield",
+            "de": "Einmalige-Aufgabe-Schild"
+          },
+          "description": {
+            "en": "Allows a user to opt-out of a one-time doing raffle beforehand or to counter one \"One-Time Doing Present\" powerup.",
+            "de": "Erlaubt es einem Benutzer, sich im Voraus aus einer Einmalige-Aufgabe-Verlosung zu befreien oder ein \"Einmalige-Aufgabe-Geschenk\" Powerup zu kontern."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable One-Time Doing Raffle with Minigames, or enable One-Time Doing Present first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst die Einmalige-Aufgabe-Verlosung mit Minispielen oder das Einmalige-Aufgabe-Geschenk aktivieren."
+              },
+              "condition": {
+                "any": [
+                  {
+                    "all": [
+                      {
+                        "featureEnabled": "minigames"
+                      },
+                      {
+                        "settingEnabled": {
+                          "featureId": "minigames",
+                          "settingId": "one-time-doing-raffle"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "settingEnabled": {
+                      "featureId": "powerups",
+                      "settingId": "one-time-doing-present"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

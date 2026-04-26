@@ -27,6 +27,7 @@ const de = {
     protocolRaffleLink: "Protokoll-Verlosung",
     rulesLink: "Regeln",
     adminLink: "Admin",
+    featureConfigLink: "Feature-Konfiguration",
     pointDistributionLink: "Punkteverteilung",
     guildMeetingsLink: "Gildentreffen",
     achievementsLink: "Erfolge",
@@ -139,6 +140,18 @@ const de = {
     empty: "Es sind noch keine Regeln konfiguriert. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
   },
   admin: {
+    featureConfig: {
+      heading: "Feature-Konfiguration",
+      description:
+        "Auf dieser Seite kannst du alle benutzerseitigen Funktionen der Guild Engine aktivieren oder deaktivieren. Nach dem Speichern gelten die Anderungen sofort und fur alle Benutzerinnen und Benutzer.",
+      prerequisitesLabel: "Voraussetzungen",
+      configurationLabel: "Konfiguration",
+      cancelButton: "Abbrechen",
+      saveButton: "Speichern",
+      savedAlert: "Saved!",
+      selectPlaceholder: "Option auswahlen",
+      disabledUntilFeatureEnabled: "Aktiviere diese Funktion, bevor du ihre Einstellungen anderst.",
+    },
     rulesConfig: {
       heading: "Regel-Konfiguration",
       description:

@@ -24,6 +24,7 @@ type TopbarProps = {
     protocolRaffleLink: string;
     rulesLink: string;
     adminLink: string;
+    featureConfigLink: string;
     pointDistributionLink: string;
     guildMeetingsLink: string;
     achievementsLink: string;
@@ -84,6 +85,7 @@ export function Topbar({
             <AdminNavLink
               lang={lang}
               label={dictionary.adminLink}
+              featureConfigLabel={dictionary.featureConfigLink}
               pointDistributionLabel={dictionary.pointDistributionLink}
               guildMeetingsLabel={dictionary.guildMeetingsLink}
               achievementsLabel={dictionary.achievementsLink}

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 type AdminNavLinkProps = {
   lang: Locale;
   label: string;
+  featureConfigLabel: string;
   pointDistributionLabel: string;
   guildMeetingsLabel: string;
   achievementsLabel: string;
@@ -34,6 +35,7 @@ const normalizePath = (path: string) => {
 export function AdminNavLink({
   lang,
   label,
+  featureConfigLabel,
   pointDistributionLabel,
   guildMeetingsLabel,
   achievementsLabel,
@@ -46,6 +48,7 @@ export function AdminNavLink({
 
   const normalizedPath = normalizePath(pathname);
   const adminBasePath = `/${lang}/admin`;
+  const featureConfigPath = `${adminBasePath}/feature-config`;
   const pointDistributionPath = `${adminBasePath}/point-distribution`;
   const guildMeetingsPath = `${adminBasePath}/guild-meetings`;
   const achievementsPath = `${adminBasePath}/achievements`;
@@ -57,6 +60,7 @@ export function AdminNavLink({
     normalizedPath === adminBasePath ||
     normalizedPath.startsWith(`${adminBasePath}/`);
 
+  const isFeatureConfigActive = normalizedPath === featureConfigPath;
   const isPointDistributionActive = normalizedPath === pointDistributionPath;
   const isGuildMeetingsActive = normalizedPath === guildMeetingsPath;
   const isAchievementsActive = normalizedPath === achievementsPath;
@@ -81,6 +85,14 @@ export function AdminNavLink({
         }
       />
       <DropdownMenuContent align="start" className="min-w-52">
+        <DropdownMenuItem
+          onClick={() => router.push(featureConfigPath)}
+          aria-current={isFeatureConfigActive ? "page" : undefined}
+          className={cn(isFeatureConfigActive && "text-foreground")}
+        >
+          <span>{featureConfigLabel}</span>
+          {isFeatureConfigActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => router.push(pointDistributionPath)}
           aria-current={isPointDistributionActive ? "page" : undefined}
