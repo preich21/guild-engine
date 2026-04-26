@@ -56,7 +56,7 @@ export function LeaderboardNavLink({
             type="button"
             aria-current={isLeaderboardRoute ? "page" : undefined}
             className={cn(
-              "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+              "text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
               isLeaderboardRoute && "text-foreground",
             )}
           >
@@ -85,4 +85,3 @@ export function LeaderboardNavLink({
     </DropdownMenu>
   );
 }
-

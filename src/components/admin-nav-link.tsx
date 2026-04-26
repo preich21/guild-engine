@@ -20,6 +20,7 @@ type AdminNavLinkProps = {
   achievementsLabel: string;
   awardAchievementsLabel: string;
   manualPointsLabel: string;
+  rulesConfigLabel: string;
 };
 
 const normalizePath = (path: string) => {
@@ -38,6 +39,7 @@ export function AdminNavLink({
   achievementsLabel,
   awardAchievementsLabel,
   manualPointsLabel,
+  rulesConfigLabel,
 }: AdminNavLinkProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -49,6 +51,7 @@ export function AdminNavLink({
   const achievementsPath = `${adminBasePath}/achievements`;
   const awardAchievementsPath = `${adminBasePath}/award-achievements`;
   const manualPointsPath = `${adminBasePath}/manual-points`;
+  const rulesConfigPath = `${adminBasePath}/rules-config`;
 
   const isAdminRoute =
     normalizedPath === adminBasePath ||
@@ -59,6 +62,7 @@ export function AdminNavLink({
   const isAchievementsActive = normalizedPath === achievementsPath;
   const isAwardAchievementsActive = normalizedPath === awardAchievementsPath;
   const isManualPointsActive = normalizedPath === manualPointsPath;
+  const isRulesConfigActive = normalizedPath === rulesConfigPath;
 
   return (
     <DropdownMenu>
@@ -68,7 +72,7 @@ export function AdminNavLink({
             type="button"
             aria-current={isAdminRoute ? "page" : undefined}
             className={cn(
-              "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+              "text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
               isAdminRoute && "text-foreground",
             )}
           >
@@ -116,6 +120,14 @@ export function AdminNavLink({
         >
           <span>{manualPointsLabel}</span>
           {isManualPointsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => router.push(rulesConfigPath)}
+          aria-current={isRulesConfigActive ? "page" : undefined}
+          className={cn(isRulesConfigActive && "text-foreground")}
+        >
+          <span>{rulesConfigLabel}</span>
+          {isRulesConfigActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

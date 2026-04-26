@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
-import { LogOut, User } from "lucide-react";
+import { CircleHelp, LogOut, User } from "lucide-react";
 
 type TopbarProps = {
   lang: Locale;
@@ -22,12 +22,14 @@ type TopbarProps = {
     teamLeaderboardLink: string;
     getPointsLink: string;
     protocolRaffleLink: string;
+    rulesLink: string;
     adminLink: string;
     pointDistributionLink: string;
     guildMeetingsLink: string;
     achievementsLink: string;
     awardAchievementsLink: string;
     manualPointsLink: string;
+    rulesConfigLink: string;
     languageButton: string;
     english: string;
     german: string;
@@ -65,8 +67,8 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Link href={`/${lang}/leaderboard/individual`} className="text-lg font-semibold tracking-tight">
             {dictionary.brand}
           </Link>
@@ -87,6 +89,7 @@ export function Topbar({
               achievementsLabel={dictionary.achievementsLink}
               awardAchievementsLabel={dictionary.awardAchievementsLink}
               manualPointsLabel={dictionary.manualPointsLink}
+              rulesConfigLabel={dictionary.rulesConfigLink}
             />
           ) : null}
         </div>
@@ -136,6 +139,17 @@ export function Topbar({
                   <span>{dictionary.profileButton}</span>
                 </Button>
               )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                nativeButton={false}
+                render={<Link href={`/${lang}/rules`} />}
+              >
+                <CircleHelp aria-hidden="true" />
+                <span>{dictionary.rulesLink}</span>
+              </Button>
 
               <div className="my-1 border-t border-border" />
 

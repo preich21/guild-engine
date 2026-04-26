@@ -27,7 +27,7 @@ export function TopbarNavLink({ href, label }: TopbarNavLinkProps) {
       href={href}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+        "text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
         isActive && "text-foreground"
       )}
     >
@@ -35,4 +35,3 @@ export function TopbarNavLink({ href, label }: TopbarNavLinkProps) {
     </Link>
   );
 }
-

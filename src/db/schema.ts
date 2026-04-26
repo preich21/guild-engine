@@ -71,6 +71,17 @@ export const achievements = pgTable("achievements", {
   criteria: jsonb("criteria").$type<AchievementCriteria>().notNull(),
 });
 
+export const rules = pgTable(
+  "rules",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+    languageCode: varchar("language_code", { length: 3 }).notNull(),
+    content: text("content"),
+  },
+  (table) => [index("rules_language_code_timestamp_idx").on(table.languageCode, table.timestamp)],
+);
+
 export const userAchievements = pgTable(
   "user_achievements",
   {
