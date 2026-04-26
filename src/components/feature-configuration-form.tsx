@@ -2,8 +2,9 @@
 
 import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 
+import { saveFeatureConfig, type LoadedFeatureConfig } from "@/app/[lang]/admin/feature-config/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,7 +36,7 @@ type Requirement = {
   condition: RequirementCondition;
 };
 
-type FieldValue = boolean | number | string;
+export type FieldValue = boolean | number | string;
 
 type FeatureSetting = {
   id: string;
@@ -65,7 +66,7 @@ export type FeatureCatalog = {
   features: FeatureDefinition[];
 };
 
-type FeatureState = Record<
+export type FeatureState = Record<
   string,
   {
     enabled: boolean;
@@ -79,12 +80,18 @@ type FeatureConfigurationFormProps = {
   dictionary: {
     prerequisitesLabel: string;
     configurationLabel: string;
+    lastEditedLabel: string;
+    editedByLabel: string;
+    never: string;
+    notAvailable: string;
     cancelButton: string;
     saveButton: string;
-    savedAlert: string;
+    saveSuccess: string;
+    saveError: string;
     selectPlaceholder: string;
     disabledUntilFeatureEnabled: string;
   };
+  initialLoadedConfig: LoadedFeatureConfig;
 };
 
 const getSettingDefaultValue = (setting: FeatureSetting): FieldValue => {
@@ -120,9 +127,31 @@ const buildInitialState = (features: FeatureDefinition[]): FeatureState =>
     ]),
   );
 
+const mergeFeatureState = (
+  defaults: FeatureState,
+  savedState: FeatureState | null,
+): FeatureState => {
+  if (!savedState) {
+    return defaults;
+  }
+
+  return Object.fromEntries(
+    Object.entries(defaults).map(([featureId, defaultFeature]) => [
+      featureId,
+      {
+        enabled: savedState[featureId]?.enabled ?? defaultFeature.enabled,
+        settings: {
+          ...defaultFeature.settings,
+          ...(savedState[featureId]?.settings ?? {}),
+        },
+      },
+    ]),
+  );
+};
+
 const evaluateCondition = (condition: RequirementCondition, state: FeatureState): boolean => {
   if ("featureEnabled" in condition) {
-    return state[condition.featureEnabled]?.enabled === true;
+    return state[condition.featureEnabled]?.enabled;
   }
 
   if ("settingEnabled" in condition) {
@@ -169,11 +198,40 @@ export function FeatureConfigurationForm({
   lang,
   catalog,
   dictionary,
+  initialLoadedConfig,
 }: FeatureConfigurationFormProps) {
-  const initialState = useMemo(() => buildInitialState(catalog.features), [catalog.features]);
+  const defaultState = useMemo(() => buildInitialState(catalog.features), [catalog.features]);
+  const initialState = useMemo(
+    () => mergeFeatureState(defaultState, initialLoadedConfig.state),
+    [defaultState, initialLoadedConfig.state],
+  );
+  const [loadedState, setLoadedState] = useState<FeatureState>(initialState);
   const [featureState, setFeatureState] = useState<FeatureState>(initialState);
-  const serializedInitialState = useMemo(() => JSON.stringify(initialState), [initialState]);
-  const hasChanges = JSON.stringify(featureState) !== serializedInitialState;
+  const [metadata, setMetadata] = useState({
+    timestamp: initialLoadedConfig.timestamp,
+    modifyingUsername: initialLoadedConfig.modifyingUsername,
+  });
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isPending, startTransition] = useTransition();
+  const serializedLoadedState = useMemo(() => JSON.stringify(loadedState), [loadedState]);
+  const hasChanges = JSON.stringify(featureState) !== serializedLoadedState;
+
+  const formattedTimestamp = useMemo(() => {
+    if (!metadata.timestamp) {
+      return dictionary.never;
+    }
+
+    const parsed = new Date(metadata.timestamp);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return metadata.timestamp;
+    }
+
+    return new Intl.DateTimeFormat(lang, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(parsed);
+  }, [dictionary.never, lang, metadata.timestamp]);
 
   const updateFeatureEnabled = (featureId: string, enabled: boolean) => {
     setFeatureState((current) => ({
@@ -183,6 +241,7 @@ export function FeatureConfigurationForm({
         enabled,
       },
     }));
+    setStatus("idle");
   };
 
   const updateSetting = (featureId: string, settingId: string, value: FieldValue) => {
@@ -196,6 +255,29 @@ export function FeatureConfigurationForm({
         },
       },
     }));
+    setStatus("idle");
+  };
+
+  const handleSave = () => {
+    setStatus("idle");
+
+    startTransition(async () => {
+      const result = await saveFeatureConfig(lang, featureState);
+
+      if (result.status === "success") {
+        const nextLoadedState = mergeFeatureState(defaultState, result.entry.state);
+        setLoadedState(nextLoadedState);
+        setFeatureState(nextLoadedState);
+        setMetadata({
+          timestamp: result.entry.timestamp,
+          modifyingUsername: result.entry.modifyingUsername,
+        });
+        setStatus("success");
+        return;
+      }
+
+      setStatus("error");
+    });
   };
 
   return (
@@ -205,7 +287,7 @@ export function FeatureConfigurationForm({
           {catalog.features.map((feature) => {
             const unmetFeatureRequirement = getFirstUnmetRequirement(feature.prerequisites, featureState);
             const isFeatureDisabled = Boolean(unmetFeatureRequirement);
-            const featureEnabled = featureState[feature.id]?.enabled === true;
+            const featureEnabled = featureState[feature.id]?.enabled;
 
             return (
               <Card key={feature.id} className="rounded-lg">
@@ -290,25 +372,38 @@ export function FeatureConfigurationForm({
           })}
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!hasChanges}
-            onClick={() => setFeatureState(initialState)}
-          >
-            {dictionary.cancelButton}
-          </Button>
-          <Button
-            type="button"
-            disabled={!hasChanges}
-            onClick={() => {
-              window.alert(dictionary.savedAlert);
-            }}
-          >
-            {dictionary.saveButton}
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4">
+            <p>
+              {dictionary.lastEditedLabel}: {formattedTimestamp}
+            </p>
+            <p>
+              {dictionary.editedByLabel}: {metadata.modifyingUsername ?? dictionary.notAvailable}
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!hasChanges || isPending}
+              onClick={() => {
+                setFeatureState(loadedState);
+                setStatus("idle");
+              }}
+            >
+              {dictionary.cancelButton}
+            </Button>
+            <Button
+              type="button"
+              disabled={!hasChanges || isPending}
+              onClick={handleSave}
+            >
+              {dictionary.saveButton}
+            </Button>
+          </div>
         </div>
+        {status === "success" ? <p className="text-sm text-muted-foreground">{dictionary.saveSuccess}</p> : null}
+        {status === "error" ? <p className="text-sm text-destructive">{dictionary.saveError}</p> : null}
       </div>
     </TooltipProvider>
   );
@@ -345,7 +440,7 @@ function FeatureSettingControl({
             aria-label={label}
             checked={value === true}
             disabled={disabled}
-            onCheckedChange={(checked) => onValueChange(featureId, setting.id, checked === true)}
+            onCheckedChange={(checked) => onValueChange(featureId, setting.id, checked)}
           />
         </DisabledTooltip>
         <Label htmlFor={id}>{label}</Label>
@@ -387,7 +482,7 @@ function FeatureSettingControl({
                 </Button>
               }
             />
-            <DropdownMenuContent align="start" className="min-w-[var(--anchor-width)]">
+            <DropdownMenuContent align="start" className="min-w-(--anchor-width)">
               <DropdownMenuRadioGroup
                 value={String(value)}
                 onValueChange={(nextValue) => onValueChange(featureId, setting.id, nextValue)}

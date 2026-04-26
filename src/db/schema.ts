@@ -14,6 +14,13 @@ import {
 import { sql } from "drizzle-orm";
 import type { AchievementCriteria } from "@/lib/achievements";
 
+export type FeatureConfigValue = boolean | number | string;
+
+export type FeatureConfigEntry = {
+  id: string;
+  value: FeatureConfigValue;
+};
+
 export const NO_TEAM_ASSIGNED_TEAM_ID = "00000000-0000-0000-0000-000000000001";
 
 export const teams = pgTable("team", {
@@ -80,6 +87,47 @@ export const rules = pgTable(
     content: text("content"),
   },
   (table) => [index("rules_language_code_timestamp_idx").on(table.languageCode, table.timestamp)],
+);
+
+export const featureConfig = pgTable(
+  "feature_config",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+    modifyingUser: uuid("modifying_user")
+      .notNull()
+      .references(() => users.id),
+    pointSystemEnabled: boolean("point_system_enabled").notNull().default(false),
+    pointSystemConfig: jsonb("point_system_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    individualLeaderboardEnabled: boolean("individual_leaderboard_enabled").notNull().default(false),
+    individualLeaderboardConfig: jsonb("individual_leaderboard_config")
+      .$type<FeatureConfigEntry[]>()
+      .notNull()
+      .default([]),
+    teamLeaderboardEnabled: boolean("team_leaderboard_enabled").notNull().default(false),
+    teamLeaderboardConfig: jsonb("team_leaderboard_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    levelSystemEnabled: boolean("level_system_enabled").notNull().default(false),
+    levelSystemConfig: jsonb("level_system_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    badgesEnabled: boolean("badges_enabled").notNull().default(false),
+    badgesConfig: jsonb("badges_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    cooperativeProgressBarEnabled: boolean("cooperative_progress_bar_enabled").notNull().default(false),
+    cooperativeProgressBarConfig: jsonb("cooperative_progress_bar_config")
+      .$type<FeatureConfigEntry[]>()
+      .notNull()
+      .default([]),
+    questsEnabled: boolean("quests_enabled").notNull().default(false),
+    questsConfig: jsonb("quests_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    streaksEnabled: boolean("streaks_enabled").notNull().default(false),
+    streaksConfig: jsonb("streaks_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    minigamesEnabled: boolean("minigames_enabled").notNull().default(false),
+    minigamesConfig: jsonb("minigames_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    powerupsEnabled: boolean("powerups_enabled").notNull().default(false),
+    powerupsConfig: jsonb("powerups_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+  },
+  (table) => [
+    index("feature_config_timestamp_idx").on(table.timestamp),
+    index("feature_config_modifying_user_idx").on(table.modifyingUser),
+  ],
 );
 
 export const userAchievements = pgTable(

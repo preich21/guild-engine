@@ -143,14 +143,19 @@ const de = {
     featureConfig: {
       heading: "Feature-Konfiguration",
       description:
-        "Auf dieser Seite kannst du alle benutzerseitigen Funktionen der Guild Engine aktivieren oder deaktivieren. Nach dem Speichern gelten die Anderungen sofort und fur alle Benutzerinnen und Benutzer.",
+        "Auf dieser Seite kannst du alle benutzerseitigen Funktionen der Guild Engine aktivieren oder deaktivieren. Nach dem Speichern gelten die Änderungen sofort und fur alle Benutzerinnen und Benutzer.",
       prerequisitesLabel: "Voraussetzungen",
       configurationLabel: "Konfiguration",
+      lastEditedLabel: "Zuletzt bearbeitet",
+      editedByLabel: "Bearbeitet von",
+      never: "Nie",
+      notAvailable: "N/A",
       cancelButton: "Abbrechen",
       saveButton: "Speichern",
-      savedAlert: "Saved!",
-      selectPlaceholder: "Option auswahlen",
-      disabledUntilFeatureEnabled: "Aktiviere diese Funktion, bevor du ihre Einstellungen anderst.",
+      saveSuccess: "Feature-Konfiguration gespeichert.",
+      saveError: "Feature-Konfiguration konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.",
+      selectPlaceholder: "Option auswählen",
+      disabledUntilFeatureEnabled: "Aktiviere diese Funktion, bevor du ihre Einstellungen änderst.",
     },
     rulesConfig: {
       heading: "Regel-Konfiguration",
