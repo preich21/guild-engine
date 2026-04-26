@@ -1,10 +1,12 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 
 import { saveFeatureConfig, type LoadedFeatureConfig } from "@/app/[lang]/admin/feature-config/actions";
+import { useFeatureConfig } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
+import { applyFeaturePrerequisites } from "@/lib/feature-flags";
 
 type LocalizedText = Record<Locale, string>;
 
@@ -200,6 +203,8 @@ export function FeatureConfigurationForm({
   dictionary,
   initialLoadedConfig,
 }: FeatureConfigurationFormProps) {
+  const router = useRouter();
+  const globalFeatureConfig = useFeatureConfig();
   const defaultState = useMemo(() => buildInitialState(catalog.features), [catalog.features]);
   const initialState = useMemo(
     () => mergeFeatureState(defaultState, initialLoadedConfig.state),
@@ -272,7 +277,9 @@ export function FeatureConfigurationForm({
           timestamp: result.entry.timestamp,
           modifyingUsername: result.entry.modifyingUsername,
         });
+        globalFeatureConfig.setState(applyFeaturePrerequisites(nextLoadedState));
         setStatus("success");
+        router.refresh();
         return;
       }
 

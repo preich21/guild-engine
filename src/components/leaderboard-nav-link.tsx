@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { TopbarNavLink } from "@/components/topbar-nav-link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,8 @@ type LeaderboardNavLinkProps = {
   label: string;
   individualLabel: string;
   teamLabel: string;
+  showIndividual: boolean;
+  showTeam: boolean;
 };
 
 const normalizePath = (path: string) => {
@@ -32,6 +35,8 @@ export function LeaderboardNavLink({
   label,
   individualLabel,
   teamLabel,
+  showIndividual,
+  showTeam,
 }: LeaderboardNavLinkProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -47,6 +52,18 @@ export function LeaderboardNavLink({
 
   const isIndividualActive = normalizedPath === individualPath;
   const isTeamActive = normalizedPath === teamPath;
+
+  if (showIndividual && !showTeam) {
+    return <TopbarNavLink href={individualPath} label={label} />;
+  }
+
+  if (!showIndividual && showTeam) {
+    return <TopbarNavLink href={teamPath} label={label} />;
+  }
+
+  if (!showIndividual && !showTeam) {
+    return null;
+  }
 
   return (
     <DropdownMenu>
@@ -66,6 +83,7 @@ export function LeaderboardNavLink({
       />
       <DropdownMenuContent align="start" className="min-w-52">
         <DropdownMenuItem
+          disabled={!showIndividual}
           onClick={() => router.push(individualPath)}
           aria-current={isIndividualActive ? "page" : undefined}
           className={cn(isIndividualActive && "text-foreground")}
@@ -74,6 +92,7 @@ export function LeaderboardNavLink({
           {isIndividualActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
         <DropdownMenuItem
+          disabled={!showTeam}
           onClick={() => router.push(teamPath)}
           aria-current={isTeamActive ? "page" : undefined}
           className={cn(isTeamActive && "text-foreground")}

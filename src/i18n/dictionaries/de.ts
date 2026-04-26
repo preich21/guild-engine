@@ -143,7 +143,7 @@ const de = {
     featureConfig: {
       heading: "Feature-Konfiguration",
       description:
-        "Auf dieser Seite kannst du alle benutzerseitigen Funktionen der Guild Engine aktivieren oder deaktivieren. Nach dem Speichern gelten die Änderungen sofort und fur alle Benutzerinnen und Benutzer.",
+        "Auf dieser Seite kannst du alle benutzerseitigen Funktionen der Guild Engine aktivieren oder deaktivieren. Nach dem Speichern gelten die Änderungen sofort und für alle Benutzerinnen und Benutzer.",
       prerequisitesLabel: "Voraussetzungen",
       configurationLabel: "Konfiguration",
       lastEditedLabel: "Zuletzt bearbeitet",

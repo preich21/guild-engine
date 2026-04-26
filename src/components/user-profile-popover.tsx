@@ -10,6 +10,9 @@ type UserProfilePopoverProps = {
   lang: Locale;
   profile: UserProfileData;
   dictionary: UserProfileDictionary;
+  showLeaderboardPlacement: boolean;
+  showStreak: boolean;
+  showAchievements: boolean;
   avatarClassName?: string;
   triggerClassName?: string;
 };
@@ -20,6 +23,9 @@ export function UserProfilePopover({
   lang,
   profile,
   dictionary,
+  showLeaderboardPlacement,
+  showStreak,
+  showAchievements,
   avatarClassName,
   triggerClassName,
 }: UserProfilePopoverProps) {
@@ -47,7 +53,15 @@ export function UserProfilePopover({
         }
       />
       <PopoverContent align="start" className="w-[min(96vw,44rem)] max-h-[85vh] overflow-y-auto p-0">
-        <UserProfileCard lang={lang} profile={profile} dictionary={dictionary} mode="popover" />
+        <UserProfileCard
+          lang={lang}
+          profile={profile}
+          dictionary={dictionary}
+          mode="popover"
+          showLeaderboardPlacement={showLeaderboardPlacement}
+          showStreak={showStreak}
+          showAchievements={showAchievements}
+        />
       </PopoverContent>
     </Popover>
   );

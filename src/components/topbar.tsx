@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
+import {
+  isFeatureEnabled,
+  isProtocolRaffleEnabled,
+  type FeatureConfigState,
+} from "@/lib/feature-flags";
 import { CircleHelp, LogOut, User } from "lucide-react";
 
 type TopbarProps = {
@@ -45,6 +50,7 @@ type TopbarProps = {
     count: number;
     hasPendingRecentMeeting: boolean;
   };
+  featureConfig: FeatureConfigState;
   currentUser?: {
     id: string;
     username: string;
@@ -57,6 +63,7 @@ export function Topbar({
   dictionary,
   showAdminLink = false,
   attendanceStreak,
+  featureConfig,
   currentUser,
 }: TopbarProps) {
   const logout = async () => {
@@ -65,6 +72,12 @@ export function Topbar({
   };
 
   const profileHref = currentUser ? `/${lang}/user/${currentUser.id}` : undefined;
+  const isPointSystemEnabled = isFeatureEnabled(featureConfig, "point-system");
+  const isIndividualLeaderboardEnabled = isFeatureEnabled(featureConfig, "individual-leaderboard");
+  const isTeamLeaderboardEnabled = isFeatureEnabled(featureConfig, "team-leaderboard");
+  const areBadgesEnabled = isFeatureEnabled(featureConfig, "badges");
+  const areStreaksEnabled = isFeatureEnabled(featureConfig, "streaks");
+  const shouldShowProtocolRaffle = isProtocolRaffleEnabled(featureConfig);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
@@ -73,14 +86,22 @@ export function Topbar({
           <Link href={`/${lang}/leaderboard/individual`} className="text-lg font-semibold tracking-tight">
             {dictionary.brand}
           </Link>
-          <LeaderboardNavLink
-            lang={lang}
-            label={dictionary.leaderboardLink}
-            individualLabel={dictionary.individualLeaderboardLink}
-            teamLabel={dictionary.teamLeaderboardLink}
-          />
-          <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
-          <TopbarNavLink href={`/${lang}/protocol-raffle`} label={dictionary.protocolRaffleLink} />
+          {isIndividualLeaderboardEnabled || isTeamLeaderboardEnabled ? (
+            <LeaderboardNavLink
+              lang={lang}
+              label={dictionary.leaderboardLink}
+              individualLabel={dictionary.individualLeaderboardLink}
+              teamLabel={dictionary.teamLeaderboardLink}
+              showIndividual={isIndividualLeaderboardEnabled}
+              showTeam={isTeamLeaderboardEnabled}
+            />
+          ) : null}
+          {isPointSystemEnabled ? (
+            <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
+          ) : null}
+          {shouldShowProtocolRaffle ? (
+            <TopbarNavLink href={`/${lang}/protocol-raffle`} label={dictionary.protocolRaffleLink} />
+          ) : null}
           {showAdminLink ? (
             <AdminNavLink
               lang={lang}
@@ -92,15 +113,21 @@ export function Topbar({
               awardAchievementsLabel={dictionary.awardAchievementsLink}
               manualPointsLabel={dictionary.manualPointsLink}
               rulesConfigLabel={dictionary.rulesConfigLink}
+              showPointDistribution={isPointSystemEnabled}
+              showAchievements={areBadgesEnabled}
+              showAwardAchievements={areBadgesEnabled}
+              showManualPoints={isPointSystemEnabled}
             />
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <AttendanceStreakIndicator
-            initialCount={attendanceStreak.count}
-            initialHasPendingRecentMeeting={attendanceStreak.hasPendingRecentMeeting}
-            label={dictionary.attendanceStreakLabel}
-          />
+          {areStreaksEnabled ? (
+            <AttendanceStreakIndicator
+              initialCount={attendanceStreak.count}
+              initialHasPendingRecentMeeting={attendanceStreak.hasPendingRecentMeeting}
+              label={dictionary.attendanceStreakLabel}
+            />
+          ) : null}
           <Popover>
             <PopoverTrigger
               render={

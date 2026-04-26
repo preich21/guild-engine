@@ -12,6 +12,9 @@ type TeamLeaderboardProps = {
   lang: Locale;
   entries: TeamLeaderboardEntry[];
   profileDataByUserId: Record<string, UserProfileData>;
+  showLeaderboardPlacement: boolean;
+  showStreaks: boolean;
+  showAchievements: boolean;
   dictionary: {
     heading: string;
     empty: string;
@@ -19,7 +22,15 @@ type TeamLeaderboardProps = {
   };
 };
 
-export function TeamLeaderboard({ lang, entries, profileDataByUserId, dictionary }: TeamLeaderboardProps) {
+export function TeamLeaderboard({
+  lang,
+  entries,
+  profileDataByUserId,
+  showLeaderboardPlacement,
+  showStreaks,
+  showAchievements,
+  dictionary,
+}: TeamLeaderboardProps) {
   const rankedEntries = rankLeaderboardEntries(entries);
 
   return (
@@ -52,6 +63,9 @@ export function TeamLeaderboard({ lang, entries, profileDataByUserId, dictionary
                                   lang={lang}
                                   profile={profile}
                                   dictionary={dictionary.profile}
+                                  showLeaderboardPlacement={showLeaderboardPlacement}
+                                  showStreak={showStreaks}
+                                  showAchievements={showAchievements}
                                   triggerClassName="-ml-2 first:ml-0 size-8 rounded-full"
                                   avatarClassName="size-8"
                                 />

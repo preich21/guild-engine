@@ -4,6 +4,8 @@ import { getLeaderboard, getTeamLeaderboard } from "@/app/[lang]/leaderboard/act
 import { TeamLeaderboard } from "@/components/team-leaderboard";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
 
 export default async function TeamLeaderboardPage({
@@ -15,11 +17,15 @@ export default async function TeamLeaderboardPage({
     notFound();
   }
 
+  const featureConfig = await getCurrentFeatureConfig();
+  const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
+  const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+
   const [dictionary, entries, individualEntries, allAchievements] = await Promise.all([
     getDictionary(lang),
     getTeamLeaderboard(),
     getLeaderboard(),
-    getUserProfileAchievementCatalog(),
+    areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
   ]);
 
   return (
@@ -27,6 +33,9 @@ export default async function TeamLeaderboardPage({
       lang={lang}
       entries={entries}
       profileDataByUserId={createUserProfileDataMap(individualEntries, allAchievements)}
+      showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
+      showStreaks={areStreaksEnabled}
+      showAchievements={areBadgesEnabled}
       dictionary={{
         heading: dictionary.leaderboard.team.heading,
         empty: dictionary.leaderboard.team.empty,

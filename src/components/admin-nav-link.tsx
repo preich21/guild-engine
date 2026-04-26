@@ -22,6 +22,10 @@ type AdminNavLinkProps = {
   awardAchievementsLabel: string;
   manualPointsLabel: string;
   rulesConfigLabel: string;
+  showPointDistribution: boolean;
+  showAchievements: boolean;
+  showAwardAchievements: boolean;
+  showManualPoints: boolean;
 };
 
 const normalizePath = (path: string) => {
@@ -42,6 +46,10 @@ export function AdminNavLink({
   awardAchievementsLabel,
   manualPointsLabel,
   rulesConfigLabel,
+  showPointDistribution,
+  showAchievements,
+  showAwardAchievements,
+  showManualPoints,
 }: AdminNavLinkProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -93,14 +101,16 @@ export function AdminNavLink({
           <span>{featureConfigLabel}</span>
           {isFeatureConfigActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push(pointDistributionPath)}
-          aria-current={isPointDistributionActive ? "page" : undefined}
-          className={cn(isPointDistributionActive && "text-foreground")}
-        >
-          <span>{pointDistributionLabel}</span>
-          {isPointDistributionActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
-        </DropdownMenuItem>
+        {showPointDistribution ? (
+          <DropdownMenuItem
+            onClick={() => router.push(pointDistributionPath)}
+            aria-current={isPointDistributionActive ? "page" : undefined}
+            className={cn(isPointDistributionActive && "text-foreground")}
+          >
+            <span>{pointDistributionLabel}</span>
+            {isPointDistributionActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           onClick={() => router.push(guildMeetingsPath)}
           aria-current={isGuildMeetingsActive ? "page" : undefined}
@@ -109,30 +119,36 @@ export function AdminNavLink({
           <span>{guildMeetingsLabel}</span>
           {isGuildMeetingsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push(achievementsPath)}
-          aria-current={isAchievementsActive ? "page" : undefined}
-          className={cn(isAchievementsActive && "text-foreground")}
-        >
-          <span>{achievementsLabel}</span>
-          {isAchievementsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push(awardAchievementsPath)}
-          aria-current={isAwardAchievementsActive ? "page" : undefined}
-          className={cn(isAwardAchievementsActive && "text-foreground")}
-        >
-          <span>{awardAchievementsLabel}</span>
-          {isAwardAchievementsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push(manualPointsPath)}
-          aria-current={isManualPointsActive ? "page" : undefined}
-          className={cn(isManualPointsActive && "text-foreground")}
-        >
-          <span>{manualPointsLabel}</span>
-          {isManualPointsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
-        </DropdownMenuItem>
+        {showAchievements ? (
+          <DropdownMenuItem
+            onClick={() => router.push(achievementsPath)}
+            aria-current={isAchievementsActive ? "page" : undefined}
+            className={cn(isAchievementsActive && "text-foreground")}
+          >
+            <span>{achievementsLabel}</span>
+            {isAchievementsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+          </DropdownMenuItem>
+        ) : null}
+        {showAwardAchievements ? (
+          <DropdownMenuItem
+            onClick={() => router.push(awardAchievementsPath)}
+            aria-current={isAwardAchievementsActive ? "page" : undefined}
+            className={cn(isAwardAchievementsActive && "text-foreground")}
+          >
+            <span>{awardAchievementsLabel}</span>
+            {isAwardAchievementsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+          </DropdownMenuItem>
+        ) : null}
+        {showManualPoints ? (
+          <DropdownMenuItem
+            onClick={() => router.push(manualPointsPath)}
+            aria-current={isManualPointsActive ? "page" : undefined}
+            className={cn(isManualPointsActive && "text-foreground")}
+          >
+            <span>{manualPointsLabel}</span>
+            {isManualPointsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           onClick={() => router.push(rulesConfigPath)}
           aria-current={isRulesConfigActive ? "page" : undefined}

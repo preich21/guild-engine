@@ -16,6 +16,8 @@ type LeaderboardProps = {
   entries: LeaderboardEntry[];
   highlightedUserId?: string;
   profileDataByUserId: Record<string, UserProfileData>;
+  showAchievements: boolean;
+  showStreaks: boolean;
   dictionary: {
     heading: string;
     empty: string;
@@ -45,6 +47,8 @@ export function Leaderboard({
   entries,
   highlightedUserId,
   profileDataByUserId,
+  showAchievements,
+  showStreaks,
   dictionary,
 }: LeaderboardProps) {
   const rankedEntries = rankLeaderboardEntries(entries)
@@ -85,20 +89,27 @@ export function Leaderboard({
                             lang={lang}
                             profile={entry}
                             dictionary={dictionary.profile}
+                            showLeaderboardPlacement
+                            showStreak={showStreaks}
+                            showAchievements={showAchievements}
                           />
                           <span>{entry.username}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden w-40 sm:table-cell">
-                        <AchievementStack achievements={entry.achievements} />
-                      </TableCell>
-                      <TableCell className="w-28">
-                        <AttendanceStreakIndicator
-                          initialCount={entry.attendanceStreak.count}
-                          initialHasPendingRecentMeeting={entry.attendanceStreak.hasPendingRecentMeeting}
-                          label={dictionary.streakLabel}
-                        />
-                      </TableCell>
+                      {showAchievements ? (
+                        <TableCell className="hidden w-40 sm:table-cell">
+                          <AchievementStack achievements={entry.achievements} />
+                        </TableCell>
+                      ) : null}
+                      {showStreaks ? (
+                        <TableCell className="w-28">
+                          <AttendanceStreakIndicator
+                            initialCount={entry.attendanceStreak.count}
+                            initialHasPendingRecentMeeting={entry.attendanceStreak.hasPendingRecentMeeting}
+                            label={dictionary.streakLabel}
+                          />
+                        </TableCell>
+                      ) : null}
                       <TableCell className="w-24 text-right tabular-nums">{entry.totalPoints}</TableCell>
                     </TableRow>
                   );

@@ -4,6 +4,8 @@ import { UserProfileCard } from "@/components/user-profile-card";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentUserRecord } from "@/lib/auth/user";
+import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
+import { isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
 import { getProfileEditTeams, saveProfile } from "./actions";
 
@@ -16,10 +18,11 @@ export default async function UserProfilePage({
     notFound();
   }
 
-  const [dictionary, profile, currentUser] = await Promise.all([
+  const [dictionary, profile, currentUser, featureConfig] = await Promise.all([
     getDictionary(lang),
     getUserProfileData(uuid),
     getCurrentUserRecord(),
+    getCurrentFeatureConfig(),
   ]);
 
   if (!profile) {
@@ -36,6 +39,9 @@ export default async function UserProfilePage({
           lang={lang}
           profile={profile}
           dictionary={dictionary.profile}
+          showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
+          showStreak={isFeatureEnabled(featureConfig.state, "streaks")}
+          showAchievements={isFeatureEnabled(featureConfig.state, "badges")}
           edit={editTeams ? { teams: editTeams, action: saveProfile } : undefined}
         />
       </div>

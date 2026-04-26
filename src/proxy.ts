@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { defaultLocale, hasLocale, locales, type Locale } from "@/i18n/config";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
+import { isRouteEnabled } from "@/lib/feature-flags";
 
 const getPreferredLocale = (request: NextRequest): Locale => {
   const acceptedLanguages = request.headers
@@ -27,7 +29,7 @@ const getLocaleFromPathname = (pathname: string): Locale | null => {
   return maybeLocale && hasLocale(maybeLocale) ? maybeLocale : null;
 };
 
-export const proxy = auth((request: NextRequest & { auth: unknown }) => {
+export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
   const { pathname } = request.nextUrl;
   const pathnameHasLocale = locales.some(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
@@ -64,10 +66,19 @@ export const proxy = auth((request: NextRequest & { auth: unknown }) => {
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
+  const featureConfig = await loadCurrentFeatureConfig();
+
+  if (!isRouteEnabled(pathname, locale, featureConfig.state)) {
+    const notFoundUrl = request.nextUrl.clone();
+    notFoundUrl.pathname = `/${locale}/404`;
+    notFoundUrl.search = "";
+
+    return NextResponse.rewrite(notFoundUrl);
+  }
+
   return NextResponse.next();
 });
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
 };
-

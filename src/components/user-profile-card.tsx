@@ -68,6 +68,9 @@ type UserProfileCardProps = {
   profile: UserProfileData;
   dictionary: UserProfileDictionary;
   mode?: "page" | "popover";
+  showLeaderboardPlacement: boolean;
+  showStreak: boolean;
+  showAchievements: boolean;
   edit?: UserProfileEditProps;
 };
 
@@ -102,6 +105,9 @@ export function UserProfileCard({
   profile,
   dictionary,
   mode = "page",
+  showLeaderboardPlacement,
+  showStreak,
+  showAchievements,
   edit,
 }: UserProfileCardProps) {
   const earnedAchievementIds = new Set(profile.achievements.map((achievement) => achievement.id));
@@ -162,122 +168,130 @@ export function UserProfileCard({
         </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className={cn("border-0 shadow-lg ring-1 ring-black/5", getPlacementCardClassName(profile.rank))}>
-          <CardContent className="flex min-h-40 flex-col justify-between p-6">
-            <p className="text-sm font-semibold opacity-80">{dictionary.placementLabel}</p>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
+      {showLeaderboardPlacement || showStreak ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {showLeaderboardPlacement ? (
+            <Card className={cn("border-0 shadow-lg ring-1 ring-black/5", getPlacementCardClassName(profile.rank))}>
+              <CardContent className="flex min-h-40 flex-col justify-between p-6">
+                <p className="text-sm font-semibold opacity-80">{dictionary.placementLabel}</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Link
+                          href={leaderboardHref}
+                          className={cn(
+                            buttonVariants({ variant: "ghost" }),
+                            "h-auto w-fit px-0 py-0 text-5xl font-black tracking-tight text-current hover:bg-transparent hover:text-current focus-visible:ring-background/30 sm:text-6xl",
+                          )}
+                          aria-label={dictionary.placementLinkLabel}
+                          title={dictionary.placementLinkLabel}
+                        >
+                          #{profile.rank}
+                        </Link>
+                      }
+                    />
+                    <TooltipContent>{dictionary.placementTooltip}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {showStreak ? (
+            <Card
+              className={cn(
+                "border-0 shadow-lg ring-1 ring-black/5",
+                getStreakCardClassName(
+                  profile.attendanceStreak.count,
+                  profile.attendanceStreak.hasPendingRecentMeeting,
+                ),
+              )}
+            >
+              <CardContent className="flex min-h-40 flex-col justify-between p-6">
+                <p className="text-sm font-semibold opacity-80">{dictionary.streakLabel}</p>
+                <div className="flex items-center gap-3 text-5xl font-black tracking-tight sm:text-6xl">
+                  <Flame aria-hidden="true" className="size-10 sm:size-12" />
+                  <span>{profile.attendanceStreak.count}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
+
+      {showAchievements ? (
+        <Card className="shadow-md ring-1 ring-foreground/10">
+          <CardHeader>
+            <CardTitle>{dictionary.achievementsHeading}</CardTitle>
+            <CardAction>
+              <Dialog>
+                <DialogTrigger
                   render={
-                    <Link
-                      href={leaderboardHref}
-                      className={cn(
-                        buttonVariants({ variant: "ghost" }),
-                        "h-auto w-fit px-0 py-0 text-5xl font-black tracking-tight text-current hover:bg-transparent hover:text-current focus-visible:ring-background/30 sm:text-6xl",
-                      )}
-                      aria-label={dictionary.placementLinkLabel}
-                      title={dictionary.placementLinkLabel}
-                    >
-                      #{profile.rank}
-                    </Link>
+                    <Button type="button" variant="outline" className="w-full sm:w-auto">
+                      {dictionary.showAllAchievementsButton}
+                    </Button>
                   }
                 />
-                <TooltipContent>{dictionary.placementTooltip}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardContent>
-        </Card>
+                <DialogContent className="w-[min(95vw,42rem)]">
+                  <DialogHeader>
+                    <DialogTitle>{dictionary.allAchievementsTitle}</DialogTitle>
+                    <DialogDescription>{dictionary.allAchievementsDescription}</DialogDescription>
+                  </DialogHeader>
 
-        <Card
-          className={cn(
-            "border-0 shadow-lg ring-1 ring-black/5",
-            getStreakCardClassName(
-              profile.attendanceStreak.count,
-              profile.attendanceStreak.hasPendingRecentMeeting,
-            ),
-          )}
-        >
-          <CardContent className="flex min-h-40 flex-col justify-between p-6">
-            <p className="text-sm font-semibold opacity-80">{dictionary.streakLabel}</p>
-            <div className="flex items-center gap-3 text-5xl font-black tracking-tight sm:text-6xl">
-              <Flame aria-hidden="true" className="size-10 sm:size-12" />
-              <span>{profile.attendanceStreak.count}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <ScrollArea className="max-h-[60vh]">
+                    <ScrollAreaViewport>
+                      <ScrollAreaContent className="space-y-3 pr-4">
+                        {profile.allAchievements.map((achievement) => {
+                          const isEarned = earnedAchievementIds.has(achievement.id);
 
-      <Card className="shadow-md ring-1 ring-foreground/10">
-        <CardHeader>
-          <CardTitle>{dictionary.achievementsHeading}</CardTitle>
-          <CardAction>
-            <Dialog>
-              <DialogTrigger
-                render={
-                  <Button type="button" variant="outline" className="w-full sm:w-auto">
-                    {dictionary.showAllAchievementsButton}
-                  </Button>
-                }
-              />
-              <DialogContent className="w-[min(95vw,42rem)]">
-                <DialogHeader>
-                  <DialogTitle>{dictionary.allAchievementsTitle}</DialogTitle>
-                  <DialogDescription>{dictionary.allAchievementsDescription}</DialogDescription>
-                </DialogHeader>
-
-                <ScrollArea className="max-h-[60vh]">
-                  <ScrollAreaViewport>
-                    <ScrollAreaContent className="space-y-3 pr-4">
-                      {profile.allAchievements.map((achievement) => {
-                        const isEarned = earnedAchievementIds.has(achievement.id);
-
-                        return (
-                          <div
-                            key={achievement.id}
-                            className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3"
-                          >
+                          return (
                             <div
-                              className={cn(
-                                "relative size-14 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm",
-                                !isEarned && "grayscale opacity-50",
-                              )}
+                              key={achievement.id}
+                              className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3"
                             >
-                              <Image
-                                src={achievement.image}
-                                alt=""
-                                fill
-                                sizes="56px"
-                                unoptimized
-                                className="object-cover"
-                              />
+                              <div
+                                className={cn(
+                                  "relative size-14 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm",
+                                  !isEarned && "grayscale opacity-50",
+                                )}
+                              >
+                                <Image
+                                  src={achievement.image}
+                                  alt=""
+                                  fill
+                                  sizes="56px"
+                                  unoptimized
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="min-w-0 space-y-1">
+                                <p className="font-medium text-foreground">{achievement.title}</p>
+                                {achievement.description ? (
+                                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                                    {achievement.description}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
-                            <div className="min-w-0 space-y-1">
-                              <p className="font-medium text-foreground">{achievement.title}</p>
-                              {achievement.description ? (
-                                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                                  {achievement.description}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </ScrollAreaContent>
-                  </ScrollAreaViewport>
-                  <ScrollBar orientation="vertical" />
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <AchievementStack
-            achievements={profile.achievements}
-            emptyLabel={dictionary.achievementsEmpty}
-          />
-        </CardContent>
-      </Card>
+                          );
+                        })}
+                      </ScrollAreaContent>
+                    </ScrollAreaViewport>
+                    <ScrollBar orientation="vertical" />
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <AchievementStack
+              achievements={profile.achievements}
+              emptyLabel={dictionary.achievementsEmpty}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
     </section>
   );
 }
