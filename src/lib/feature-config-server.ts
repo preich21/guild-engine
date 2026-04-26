@@ -9,6 +9,7 @@ import {
   applyFeaturePrerequisites,
   getDefaultFeatureConfigState,
   mergeFeatureConfigState,
+  normalizeHomePagePath,
   type FeatureConfigState,
 } from "@/lib/feature-flags";
 
@@ -16,6 +17,7 @@ type FeatureConfigRow = typeof featureConfig.$inferSelect;
 
 export type CurrentFeatureConfig = {
   state: FeatureConfigState;
+  homePagePath: string | null;
   timestamp: string | null;
   modifyingUsername: string | null;
 };
@@ -105,6 +107,7 @@ export const loadCurrentFeatureConfig = async (): Promise<CurrentFeatureConfig> 
   if (!row) {
     return {
       state: applyFeaturePrerequisites(defaults),
+      homePagePath: null,
       timestamp: null,
       modifyingUsername: null,
     };
@@ -114,6 +117,7 @@ export const loadCurrentFeatureConfig = async (): Promise<CurrentFeatureConfig> 
     state: applyFeaturePrerequisites(
       mergeFeatureConfigState(defaults, buildStateFromRow(row.config)),
     ),
+    homePagePath: normalizeHomePagePath(row.config.homePagePath),
     timestamp: row.config.timestamp.toISOString(),
     modifyingUsername: row.username,
   };

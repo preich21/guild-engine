@@ -8,7 +8,7 @@ import { Topbar } from "@/components/topbar";
 import { evaluateAchievementsForUser } from "@/lib/achievement-evaluation";
 import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getHomePageHref, isFeatureEnabled } from "@/lib/feature-flags";
 
 export const generateStaticParams = async () =>
   locales.map((lang) => ({ lang }));
@@ -44,6 +44,7 @@ export default async function RootLayout({
 
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const homeHref = getHomePageHref(lang, featureConfig.homePagePath, currentUser?.id);
 
   const attendanceStreak = currentUser
     ? (
@@ -69,6 +70,7 @@ export default async function RootLayout({
         showAdminLink={Boolean(currentUser?.admin)}
         attendanceStreak={attendanceStreak}
         featureConfig={featureConfig.state}
+        homeHref={homeHref}
         currentUser={
           currentUser
             ? {

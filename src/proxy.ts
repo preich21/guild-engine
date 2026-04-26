@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
+import { users } from "@/db/schema";
 import { defaultLocale, hasLocale, locales, type Locale } from "@/i18n/config";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { db } from "@/lib/db";
 import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { isRouteEnabled } from "@/lib/feature-flags";
+import { getHomePageHref, isRouteEnabled } from "@/lib/feature-flags";
 
 const getPreferredLocale = (request: NextRequest): Locale => {
   const acceptedLanguages = request.headers
@@ -27,6 +30,39 @@ const getPreferredLocale = (request: NextRequest): Locale => {
 const getLocaleFromPathname = (pathname: string): Locale | null => {
   const [, maybeLocale] = pathname.split("/");
   return maybeLocale && hasLocale(maybeLocale) ? maybeLocale : null;
+};
+
+const getAuthenticatedUsername = (authValue: unknown) => {
+  const userName = (authValue as { user?: { name?: unknown } } | null)?.user?.name;
+
+  return typeof userName === "string" && userName.trim() !== "" ? userName : null;
+};
+
+const getAuthenticatedUserId = async (authValue: unknown) => {
+  const username = getAuthenticatedUsername(authValue);
+
+  if (!username) {
+    return null;
+  }
+
+  const userRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
+
+  return userRows[0]?.id ?? null;
+};
+
+const getAuthenticatedHomePath = async (
+  locale: Locale,
+  homePagePath: string | null,
+  authValue: unknown,
+) => {
+  const userId = await getAuthenticatedUserId(authValue);
+  const homePath = getHomePageHref(locale, homePagePath, userId);
+
+  return homePath === `/${locale}/login` ? `/${locale}/rules` : homePath;
 };
 
 export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
@@ -59,14 +95,21 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  const featureConfig = await loadCurrentFeatureConfig();
+
   if (isAuthenticated && isLoginPath) {
     const nextPath = request.nextUrl.searchParams.get("next");
-    const redirectPath = getSafePostLoginPath(locale, nextPath);
+    const homePath = await getAuthenticatedHomePath(locale, featureConfig.homePagePath, request.auth);
+    const redirectPath = getSafePostLoginPath(locale, nextPath, homePath);
 
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }
 
-  const featureConfig = await loadCurrentFeatureConfig();
+  if (isAuthenticated && pathname === `/${locale}`) {
+    const homePath = await getAuthenticatedHomePath(locale, featureConfig.homePagePath, request.auth);
+
+    return NextResponse.redirect(new URL(homePath, request.url));
+  }
 
   if (!isRouteEnabled(pathname, locale, featureConfig.state)) {
     const notFoundUrl = request.nextUrl.clone();

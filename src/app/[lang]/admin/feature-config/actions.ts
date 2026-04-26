@@ -9,6 +9,7 @@ import { featureConfig, type FeatureConfigEntry, type FeatureConfigValue, users 
 import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
+import { normalizeHomePagePath } from "@/lib/feature-flags";
 
 export type FeatureConfigState = Record<
   string,
@@ -20,6 +21,7 @@ export type FeatureConfigState = Record<
 
 export type LoadedFeatureConfig = {
   state: FeatureConfigState | null;
+  homePagePath: string | null;
   timestamp: string | null;
   modifyingUsername: string | null;
 };
@@ -250,9 +252,10 @@ const toConfigEntries = (feature: CatalogFeature, state: FeatureConfigState): Fe
 
 const buildInsertValues = (
   state: FeatureConfigState,
+  homePagePath: string | null,
   modifyingUser: string,
 ): FeatureConfigInsert => {
-  const values: FeatureConfigInsert = { modifyingUser };
+  const values: FeatureConfigInsert = { modifyingUser, homePagePath };
 
   for (const feature of catalog.features) {
     if (!isFeatureId(feature.id)) {
@@ -287,6 +290,7 @@ export const getLatestFeatureConfig = async (): Promise<LoadedFeatureConfig> => 
   if (!row) {
     return {
       state: null,
+      homePagePath: null,
       timestamp: null,
       modifyingUsername: null,
     };
@@ -294,6 +298,7 @@ export const getLatestFeatureConfig = async (): Promise<LoadedFeatureConfig> => 
 
   return {
     state: buildStateFromRow(row.config),
+    homePagePath: normalizeHomePagePath(row.config.homePagePath),
     timestamp: row.config.timestamp.toISOString(),
     modifyingUsername: row.username,
   };
@@ -302,6 +307,7 @@ export const getLatestFeatureConfig = async (): Promise<LoadedFeatureConfig> => 
 export const saveFeatureConfig = async (
   lang: unknown,
   state: unknown,
+  homePagePath: unknown,
 ): Promise<SaveFeatureConfigResult> => {
   await requireAdminAccess();
 
@@ -329,7 +335,7 @@ export const saveFeatureConfig = async (
 
   const insertedRows = await db
     .insert(featureConfig)
-    .values(buildInsertValues(normalizedState, currentUser.id))
+    .values(buildInsertValues(normalizedState, normalizeHomePagePath(homePagePath), currentUser.id))
     .returning();
 
   const inserted = insertedRows[0];
@@ -339,11 +345,13 @@ export const saveFeatureConfig = async (
   }
 
   revalidatePath(`/${lang}/admin/feature-config`);
+  revalidatePath(`/${lang}`);
 
   return {
     status: "success",
     entry: {
       state: buildStateFromRow(inserted),
+      homePagePath: normalizeHomePagePath(inserted.homePagePath),
       timestamp: inserted.timestamp.toISOString(),
       modifyingUsername: currentUser.username,
     },

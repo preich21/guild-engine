@@ -123,6 +123,7 @@ export const featureConfig = pgTable(
     minigamesConfig: jsonb("minigames_config").$type<FeatureConfigEntry[]>().notNull().default([]),
     powerupsEnabled: boolean("powerups_enabled").notNull().default(false),
     powerupsConfig: jsonb("powerups_config").$type<FeatureConfigEntry[]>().notNull().default([]),
+    homePagePath: varchar("home_page_path", { length: 1023 }),
   },
   (table) => [
     index("feature_config_timestamp_idx").on(table.timestamp),

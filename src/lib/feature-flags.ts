@@ -184,6 +184,34 @@ export const isProtocolRaffleEnabled = (state: FeatureConfigState) =>
   (isFeatureSettingEnabled(state, "minigames", "protocol-raffle") ||
     isFeatureSettingEnabled(state, "minigames", "one-time-doing-raffle"));
 
+export const normalizeHomePagePath = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().replace(/^\/+/, "");
+
+  return normalized === "" ? null : normalized;
+};
+
+export const getHomePageHref = (
+  lang: string,
+  homePagePath: string | null | undefined,
+  currentUserId: string | null | undefined,
+) => {
+  const normalizedHomePagePath = normalizeHomePagePath(homePagePath);
+
+  if (normalizedHomePagePath) {
+    return `/${lang}/${normalizedHomePagePath}`;
+  }
+
+  if (currentUserId) {
+    return `/${lang}/user/${currentUserId}`;
+  }
+
+  return `/${lang}/login`;
+};
+
 export const getDefaultEnabledUserPath = (lang: string, state: FeatureConfigState) => {
   if (isFeatureEnabled(state, "individual-leaderboard")) {
     return `/${lang}/leaderboard/individual`;

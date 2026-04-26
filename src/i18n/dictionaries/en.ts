@@ -155,6 +155,12 @@ const en = {
       saveError: "Could not save feature configuration. Please check your inputs.",
       selectPlaceholder: "Select option",
       disabledUntilFeatureEnabled: "Enable this feature before changing its settings.",
+      homePageTitle: "Home Page",
+      homePageDescription:
+        "Customize the homepage of your Guild Engine. The homepage is the default page that users will redirected to when entering the page or clicking on the 'Guild Engine' logo in the topbar. Make sure you enter a valid path to a feature page that is enabled, otherwise users will see a 404.",
+      homePageLabel: "Home page path",
+      homePagePrefix: "your.domain/[lang]/",
+      homePagePlaceholder: "user/[currently-logged-in-user]",
     },
     rulesConfig: {
       heading: "Rules Configuration",

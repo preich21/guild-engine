@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 
 import { hasLocale } from "@/i18n/config";
+import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { getDefaultEnabledUserPath } from "@/lib/feature-flags";
+import { getHomePageHref } from "@/lib/feature-flags";
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -11,7 +12,10 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     notFound();
   }
 
-  const featureConfig = await getCurrentFeatureConfig();
+  const [featureConfig, currentUser] = await Promise.all([
+    getCurrentFeatureConfig(),
+    getCurrentUserRecord(),
+  ]);
 
-  redirect(getDefaultEnabledUserPath(lang, featureConfig.state));
+  redirect(getHomePageHref(lang, featureConfig.homePagePath, currentUser?.id));
 }

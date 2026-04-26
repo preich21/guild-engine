@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
-import { applyFeaturePrerequisites } from "@/lib/feature-flags";
+import { applyFeaturePrerequisites, normalizeHomePagePath } from "@/lib/feature-flags";
 
 type LocalizedText = Record<Locale, string>;
 
@@ -93,6 +93,11 @@ type FeatureConfigurationFormProps = {
     saveError: string;
     selectPlaceholder: string;
     disabledUntilFeatureEnabled: string;
+    homePageTitle: string;
+    homePageDescription: string;
+    homePageLabel: string;
+    homePagePrefix: string;
+    homePagePlaceholder: string;
   };
   initialLoadedConfig: LoadedFeatureConfig;
 };
@@ -212,6 +217,8 @@ export function FeatureConfigurationForm({
   );
   const [loadedState, setLoadedState] = useState<FeatureState>(initialState);
   const [featureState, setFeatureState] = useState<FeatureState>(initialState);
+  const [loadedHomePagePath, setLoadedHomePagePath] = useState(initialLoadedConfig.homePagePath ?? "");
+  const [homePagePath, setHomePagePath] = useState(initialLoadedConfig.homePagePath ?? "");
   const [metadata, setMetadata] = useState({
     timestamp: initialLoadedConfig.timestamp,
     modifyingUsername: initialLoadedConfig.modifyingUsername,
@@ -219,7 +226,9 @@ export function FeatureConfigurationForm({
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [isPending, startTransition] = useTransition();
   const serializedLoadedState = useMemo(() => JSON.stringify(loadedState), [loadedState]);
-  const hasChanges = JSON.stringify(featureState) !== serializedLoadedState;
+  const hasChanges =
+    JSON.stringify(featureState) !== serializedLoadedState ||
+    normalizeHomePagePath(homePagePath) !== normalizeHomePagePath(loadedHomePagePath);
 
   const formattedTimestamp = useMemo(() => {
     if (!metadata.timestamp) {
@@ -267,12 +276,15 @@ export function FeatureConfigurationForm({
     setStatus("idle");
 
     startTransition(async () => {
-      const result = await saveFeatureConfig(lang, featureState);
+      const result = await saveFeatureConfig(lang, featureState, homePagePath);
 
       if (result.status === "success") {
         const nextLoadedState = mergeFeatureState(defaultState, result.entry.state);
+        const nextHomePagePath = result.entry.homePagePath ?? "";
         setLoadedState(nextLoadedState);
         setFeatureState(nextLoadedState);
+        setLoadedHomePagePath(nextHomePagePath);
+        setHomePagePath(nextHomePagePath);
         setMetadata({
           timestamp: result.entry.timestamp,
           modifyingUsername: result.entry.modifyingUsername,
@@ -379,6 +391,33 @@ export function FeatureConfigurationForm({
           })}
         </div>
 
+        <Card className="rounded-lg">
+          <CardHeader>
+            <CardTitle>{dictionary.homePageTitle}</CardTitle>
+            <CardDescription>{dictionary.homePageDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="home-page-path">{dictionary.homePageLabel}</Label>
+              <div className="flex min-w-0 flex-col overflow-hidden rounded-md border border-input bg-background sm:flex-row">
+                <div className="flex items-center border-b border-border bg-muted px-3 py-2 text-sm text-muted-foreground sm:border-b-0 sm:border-r">
+                  {dictionary.homePagePrefix}
+                </div>
+                <Input
+                  id="home-page-path"
+                  value={homePagePath}
+                  placeholder={dictionary.homePagePlaceholder}
+                  onChange={(event) => {
+                    setHomePagePath(event.target.value);
+                    setStatus("idle");
+                  }}
+                  className="border-0 shadow-none focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-4">
             <p>
@@ -395,6 +434,7 @@ export function FeatureConfigurationForm({
               disabled={!hasChanges || isPending}
               onClick={() => {
                 setFeatureState(loadedState);
+                setHomePagePath(loadedHomePagePath);
                 setStatus("idle");
               }}
             >

@@ -156,6 +156,12 @@ const de = {
       saveError: "Feature-Konfiguration konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.",
       selectPlaceholder: "Option auswählen",
       disabledUntilFeatureEnabled: "Aktiviere diese Funktion, bevor du ihre Einstellungen änderst.",
+      homePageTitle: "Startseite",
+      homePageDescription:
+        "Passe die Startseite deiner Guild Engine an. Die Startseite ist die Standardseite, zu der Benutzerinnen und Benutzer weitergeleitet werden, wenn sie die Seite öffnen oder in der Topbar auf das Logo 'Guild Engine' klicken. Stelle sicher, dass du einen gültigen Pfad zu einer aktivierten Feature-Seite eingibst, andernfalls sehen Benutzerinnen und Benutzer eine 404-Seite.",
+      homePageLabel: "Startseiten-Pfad",
+      homePagePrefix: "your.domain/[lang]/",
+      homePagePlaceholder: "user/[currently-logged-in-user]",
     },
     rulesConfig: {
       heading: "Regel-Konfiguration",
