@@ -6,7 +6,16 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getPageMetadata } from "@/lib/page-metadata";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/leaderboard/individual">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.leaderboard.individual.heading);
+}
 
 export default async function IndividualLeaderboardPage({
   params,

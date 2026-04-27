@@ -5,6 +5,15 @@ import { FeatureConfigurationForm, type FeatureCatalog } from "@/components/feat
 import featureConfiguration from "@/config/feature-configuration.json";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/feature-config">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.featureConfig.heading);
+}
 
 export default async function AdminFeatureConfigPage({
   params,

@@ -9,6 +9,15 @@ import {
 import { GuildMeetingsTable } from "@/components/guild-meetings-table";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/guild-meetings">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.guildMeetings.heading);
+}
 
 export default async function AdminGuildMeetingsPage({
   params,

@@ -7,6 +7,15 @@ import {
 import { AwardAchievementsTable } from "@/components/award-achievements-table";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/award-achievements">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.awardAchievements.heading);
+}
 
 export default async function AdminAwardAchievementsPage({
   params,

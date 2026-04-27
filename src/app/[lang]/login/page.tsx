@@ -5,8 +5,17 @@ import { LoginForm } from "@/components/login-form";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { getPageMetadata } from "@/lib/page-metadata";
 
 import { loginWithCredentials } from "./actions";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/login">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.login.heading);
+}
 
 export default async function LoginPage({
   params,
@@ -43,6 +52,5 @@ export default async function LoginPage({
     </main>
   );
 }
-
 
 

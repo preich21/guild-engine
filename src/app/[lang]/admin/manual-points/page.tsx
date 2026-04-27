@@ -7,6 +7,15 @@ import {
 import { ManualPointsForm } from "@/components/manual-points-form";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/manual-points">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.manualPoints.heading);
+}
 
 export default async function AdminManualPointsPage({
   params,

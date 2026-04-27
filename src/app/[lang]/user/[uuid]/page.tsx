@@ -9,6 +9,29 @@ import { isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
 import { getProfileEditTeams, saveProfile } from "./actions";
 
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/user/[uuid]">) {
+  const { lang, uuid } = await params;
+
+  if (!hasLocale(lang)) {
+    notFound();
+  }
+
+  const [dictionary, profile] = await Promise.all([
+    getDictionary(lang),
+    getUserProfileData(uuid),
+  ]);
+
+  if (!profile) {
+    notFound();
+  }
+
+  return {
+    title: dictionary.profile.heading.replace("{username}", profile.username),
+  };
+}
+
 export default async function UserProfilePage({
   params,
 }: PageProps<"/[lang]/user/[uuid]">) {

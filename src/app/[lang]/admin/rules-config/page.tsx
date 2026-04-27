@@ -3,6 +3,15 @@ import { notFound } from "next/navigation";
 import { RulesConfigForm } from "@/components/rules-config-form";
 import { hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/rules-config">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.rulesConfig.heading);
+}
 
 export default async function AdminRulesConfigPage({
   params,

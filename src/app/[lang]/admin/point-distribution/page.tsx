@@ -8,6 +8,15 @@ import {
 import { PointDistributionTable } from "@/components/point-distribution-table";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/admin/point-distribution">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.admin.pointDistribution.heading);
+}
 
 export default async function AdminPointDistributionPage({
   params,

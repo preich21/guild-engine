@@ -4,6 +4,15 @@ import { GetPointsForm } from "@/components/get-points-form";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getGetPointsPageData, saveGetPoints } from "@/app/[lang]/get-points/actions";
+import { getPageMetadata } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/get-points">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.getPoints.heading);
+}
 
 export default async function GetPointsPage({
   params,
@@ -79,4 +88,3 @@ export default async function GetPointsPage({
     </main>
   );
 }
-

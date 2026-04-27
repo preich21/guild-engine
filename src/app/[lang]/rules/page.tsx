@@ -3,7 +3,16 @@ import { notFound } from "next/navigation";
 import { MarkdownContent } from "@/components/markdown-content";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getPageMetadata } from "@/lib/page-metadata";
 import { getDisplayRules } from "@/lib/rules";
+
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/rules">) {
+  const { lang } = await params;
+
+  return getPageMetadata(lang, (dictionary) => dictionary.rules.heading);
+}
 
 export default async function RulesPage({ params }: PageProps<"/[lang]/rules">) {
   const { lang } = await params;
