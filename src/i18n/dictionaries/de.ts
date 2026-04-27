@@ -55,6 +55,8 @@ const de = {
     allAchievementsTitle: "Alle Erfolge",
     allAchievementsDescription:
       "Freigeschaltete Erfolge bleiben farbig. Noch nicht freigeschaltete Erfolge werden ausgegraut angezeigt.",
+    allAchievementsEmpty:
+      "Derzeit sind keine Erfolge konfiguriert. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",
     edit: {

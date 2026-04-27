@@ -50,6 +50,7 @@ export type UserProfileDictionary = {
   showAllAchievementsButton: string;
   allAchievementsTitle: string;
   allAchievementsDescription: string;
+  allAchievementsEmpty: string;
   openProfileButton: string;
   openProfilePage: string;
   edit: UserProfileEditDictionary;
@@ -239,47 +240,53 @@ export function UserProfileCard({
                     <DialogDescription>{dictionary.allAchievementsDescription}</DialogDescription>
                   </DialogHeader>
 
-                  <ScrollArea className="max-h-[60vh]">
-                    <ScrollAreaViewport>
-                      <ScrollAreaContent className="space-y-3 pr-4">
-                        {profile.allAchievements.map((achievement) => {
-                          const isEarned = earnedAchievementIds.has(achievement.id);
+                  {profile.allAchievements.length === 0 ? (
+                    <p className="rounded-lg border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
+                      {dictionary.allAchievementsEmpty}
+                    </p>
+                  ) : (
+                    <ScrollArea className="max-h-[60vh]">
+                      <ScrollAreaViewport>
+                        <ScrollAreaContent className="space-y-3 pr-4">
+                          {profile.allAchievements.map((achievement) => {
+                            const isEarned = earnedAchievementIds.has(achievement.id);
 
-                          return (
-                            <div
-                              key={achievement.id}
-                              className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3"
-                            >
+                            return (
                               <div
-                                className={cn(
-                                  "relative size-14 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm",
-                                  !isEarned && "grayscale opacity-50",
-                                )}
+                                key={achievement.id}
+                                className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/30 p-3"
                               >
-                                <Image
-                                  src={achievement.image}
-                                  alt=""
-                                  fill
-                                  sizes="56px"
-                                  unoptimized
-                                  className="object-cover"
-                                />
+                                <div
+                                  className={cn(
+                                    "relative size-14 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm",
+                                    !isEarned && "grayscale opacity-50",
+                                  )}
+                                >
+                                  <Image
+                                    src={achievement.image}
+                                    alt=""
+                                    fill
+                                    sizes="56px"
+                                    unoptimized
+                                    className="object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0 space-y-1">
+                                  <p className="font-medium text-foreground">{achievement.title}</p>
+                                  {achievement.description ? (
+                                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                                      {achievement.description}
+                                    </p>
+                                  ) : null}
+                                </div>
                               </div>
-                              <div className="min-w-0 space-y-1">
-                                <p className="font-medium text-foreground">{achievement.title}</p>
-                                {achievement.description ? (
-                                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                                    {achievement.description}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </ScrollAreaContent>
-                    </ScrollAreaViewport>
-                    <ScrollBar orientation="vertical" />
-                  </ScrollArea>
+                            );
+                          })}
+                        </ScrollAreaContent>
+                      </ScrollAreaViewport>
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+                  )}
                 </DialogContent>
               </Dialog>
             </CardAction>

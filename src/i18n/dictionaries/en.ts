@@ -55,6 +55,8 @@ const en = {
     allAchievementsTitle: "All achievements",
     allAchievementsDescription:
       "Unlocked achievements stay colorful. Locked achievements are shown greyed out.",
+    allAchievementsEmpty:
+      "There are currently no achievements configured. Please contact your administrator.",
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",
     edit: {
