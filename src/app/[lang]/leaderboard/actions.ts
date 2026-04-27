@@ -47,6 +47,11 @@ export type TeamLeaderboardEntry = {
   members: TeamMemberEntry[];
 };
 
+export type IndividualLeaderboardConfig = {
+  startDate?: unknown;
+  showDashboard?: unknown;
+};
+
 type RawLeaderboardEntry = {
   userId: string;
   username: string;
@@ -66,7 +71,40 @@ type RawTeamLeaderboardEntry = {
   members: string;
 };
 
-export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
+const parseLeaderboardStartDate = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const [year, month, day] = trimmedValue.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return trimmedValue;
+};
+
+export const getLeaderboard = async (
+  config: IndividualLeaderboardConfig = {},
+): Promise<LeaderboardEntry[]> => {
+  const startDate = parseLeaderboardStartDate(config.startDate);
+  const pointStartDateCondition =
+    startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
+  const manualPointStartDateCondition =
+    startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
+
   const result = await db.execute(sql<RawLeaderboardEntry>`
     select
       u.id as "userId",
@@ -122,7 +160,10 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
       )::text as achievements
     from ${users} u
     left join ${userPointSubmissions} ups on ups.user_id = u.id
-    left join ${guildMeetings} gm on gm.id = ups.guild_meeting_id and gm.timestamp <= now()
+    left join ${guildMeetings} gm
+      on gm.id = ups.guild_meeting_id
+      and gm.timestamp <= now()
+      ${pointStartDateCondition}
     left join lateral (
       select
         attendance_virtual,
@@ -143,6 +184,7 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
         coalesce(sum(mp.points), 0)::integer as total_points
       from ${manualPoints} mp
       where mp.user_id = u.id
+        ${manualPointStartDateCondition}
     ) mp on true
     left join lateral (
       with meeting_rows as (

@@ -5,7 +5,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getPageMetadata } from "@/lib/page-metadata";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
 
@@ -31,10 +31,18 @@ export default async function IndividualLeaderboardPage({
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const individualLeaderboardConfig = {
+    startDate: getFeatureSettingValue(featureConfig.state, "individual-leaderboard", "start-date"),
+    showDashboard: getFeatureSettingValue(
+      featureConfig.state,
+      "individual-leaderboard",
+      "show-dashboard",
+    ),
+  };
 
   const [dictionary, entries, allAchievements] = await Promise.all([
     getDictionary(lang),
-    getLeaderboard(),
+    getLeaderboard(individualLeaderboardConfig),
     areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
   ]);
 
