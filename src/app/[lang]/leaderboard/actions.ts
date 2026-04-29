@@ -52,6 +52,11 @@ export type IndividualLeaderboardConfig = {
   showDashboard?: unknown;
 };
 
+export type TeamLeaderboardConfig = {
+  "start-date"?: unknown;
+  aggregation?: unknown;
+};
+
 type RawLeaderboardEntry = {
   userId: string;
   username: string;
@@ -95,6 +100,10 @@ const parseLeaderboardStartDate = (value: unknown): string | null => {
 
   return trimmedValue;
 };
+
+const parseTeamLeaderboardAggregation = (
+  value: unknown,
+): "average" | "sum" => (value === "sum" ? "sum" : "average");
 
 export const getLeaderboard = async (
   config: IndividualLeaderboardConfig = {},
@@ -280,7 +289,28 @@ export const getLeaderboard = async (
   }));
 };
 
-export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
+export const getTeamLeaderboard = async (
+  config: TeamLeaderboardConfig = {},
+): Promise<TeamLeaderboardEntry[]> => {
+  const startDate = parseLeaderboardStartDate(config["start-date"]);
+  const aggregation = parseTeamLeaderboardAggregation(config.aggregation);
+  const pointStartDateCondition =
+    startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
+  const manualPointStartDateCondition =
+    startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
+  const teamTotalPointsExpression =
+    aggregation === "sum"
+      ? sql`coalesce(sum(ut.total_points), 0)::integer`
+      : sql`
+        coalesce(
+          ceil(
+            coalesce(sum(ut.total_points), 0)::numeric
+            / nullif(count(ut.user_id), 0)
+          ),
+          0
+        )::integer
+      `;
+
   const result = await db.execute(sql<RawTeamLeaderboardEntry>`
     with user_totals as (
       select
@@ -318,7 +348,10 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
         )::integer as total_points
       from ${users} u
       left join ${userPointSubmissions} ups on ups.user_id = u.id
-      left join ${guildMeetings} gm on gm.id = ups.guild_meeting_id and gm.timestamp <= now()
+      left join ${guildMeetings} gm
+        on gm.id = ups.guild_meeting_id
+        and gm.timestamp <= now()
+        ${pointStartDateCondition}
       left join lateral (
         select
           attendance_virtual,
@@ -339,19 +372,14 @@ export const getTeamLeaderboard = async (): Promise<TeamLeaderboardEntry[]> => {
           coalesce(sum(mp.points), 0)::integer as total_points
         from ${manualPoints} mp
         where mp.user_id = u.id
+          ${manualPointStartDateCondition}
       ) mp on true
       group by u.id, u.team_id, u.username, u.profile_picture
     )
     select
       t.id as "teamId",
       t.name as "teamName",
-      coalesce(
-        ceil(
-          coalesce(sum(ut.total_points), 0)::numeric
-          / nullif(count(ut.user_id), 0)
-        ),
-        0
-      )::integer as "totalPoints",
+      ${teamTotalPointsExpression} as "totalPoints",
       coalesce(
         json_agg(
           json_build_object(

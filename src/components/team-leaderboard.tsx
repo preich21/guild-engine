@@ -1,4 +1,7 @@
-import type { TeamLeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
+import type {
+  TeamLeaderboardConfig,
+  TeamLeaderboardEntry,
+} from "@/app/[lang]/leaderboard/actions";
 import { getPlaceClassName } from "@/components/leaderboard";
 import { UserProfilePopover } from "@/components/user-profile-popover";
 import type { UserProfileDictionary } from "@/components/user-profile-card";
@@ -10,6 +13,7 @@ import type { UserProfileData } from "@/lib/user-profile";
 
 type TeamLeaderboardProps = {
   lang: Locale;
+  config: TeamLeaderboardConfig;
   entries: TeamLeaderboardEntry[];
   profileDataByUserId: Record<string, UserProfileData>;
   showLeaderboardPlacement: boolean;

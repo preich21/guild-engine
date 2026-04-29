@@ -5,7 +5,7 @@ import { TeamLeaderboard } from "@/components/team-leaderboard";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getPageMetadata } from "@/lib/page-metadata";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
 
@@ -29,10 +29,14 @@ export default async function TeamLeaderboardPage({
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const teamLeaderboardConfig = {
+    "start-date": getFeatureSettingValue(featureConfig.state, "team-leaderboard", "start-date"),
+    aggregation: getFeatureSettingValue(featureConfig.state, "team-leaderboard", "aggregation"),
+  };
 
   const [dictionary, entries, individualEntries, allAchievements] = await Promise.all([
     getDictionary(lang),
-    getTeamLeaderboard(),
+    getTeamLeaderboard(teamLeaderboardConfig),
     getLeaderboard(),
     areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
   ]);
@@ -40,6 +44,7 @@ export default async function TeamLeaderboardPage({
   return (
     <TeamLeaderboard
       lang={lang}
+      config={teamLeaderboardConfig}
       entries={entries}
       profileDataByUserId={createUserProfileDataMap(individualEntries, allAchievements)}
       showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
