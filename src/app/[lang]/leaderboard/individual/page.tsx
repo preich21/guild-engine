@@ -6,6 +6,7 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
+import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
 
@@ -31,6 +32,7 @@ export default async function IndividualLeaderboardPage({
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const individualLeaderboardConfig = {
     startDate: getFeatureSettingValue(featureConfig.state, "individual-leaderboard", "start-date"),
     showDashboard: getFeatureSettingValue(
@@ -45,6 +47,9 @@ export default async function IndividualLeaderboardPage({
     getLeaderboard(individualLeaderboardConfig),
     areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
   ]);
+  const levelProgressByUserId = areLevelsEnabled
+    ? await getUserLevelProgressMap(entries.map((entry) => entry.userId))
+    : {};
 
   const highlightedUserId = typeof highlight === "string" ? highlight : undefined;
 
@@ -53,7 +58,7 @@ export default async function IndividualLeaderboardPage({
       lang={lang}
       entries={entries}
       highlightedUserId={highlightedUserId}
-      profileDataByUserId={createUserProfileDataMap(entries, allAchievements)}
+      profileDataByUserId={createUserProfileDataMap(entries, allAchievements, levelProgressByUserId)}
       showAchievements={areBadgesEnabled}
       showStreaks={areStreaksEnabled}
       dictionary={{

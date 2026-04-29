@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/user";
 import { db } from "@/lib/db";
 import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
+import { getUserLevelProgress, type UserLevelProgress } from "@/lib/level-system";
 
 export type UserProfileAchievementCatalogEntry = {
   id: string;
@@ -31,6 +32,7 @@ export type UserProfileData = {
   totalPoints: number;
   rank: number;
   attendanceStreak: UserAttendanceStreak;
+  levelProgress: UserLevelProgress | null;
   achievements: LeaderboardEntry["achievements"];
   allAchievements: UserProfileAchievementCatalogEntry[];
 };
@@ -56,6 +58,7 @@ export const toUserProfileData = (
   entry: RankedLeaderboardEntry,
   allAchievements: UserProfileAchievementCatalogEntry[],
   attendanceStreak: UserAttendanceStreak = entry.attendanceStreak,
+  levelProgress: UserLevelProgress | null = null,
 ): UserProfileData => ({
   userId: entry.userId,
   username: entry.username,
@@ -65,6 +68,7 @@ export const toUserProfileData = (
   totalPoints: entry.totalPoints,
   rank: entry.rank,
   attendanceStreak,
+  levelProgress,
   achievements: entry.achievements,
   allAchievements,
 });
@@ -72,20 +76,25 @@ export const toUserProfileData = (
 export const createUserProfileDataMap = (
   entries: LeaderboardEntry[],
   allAchievements: UserProfileAchievementCatalogEntry[],
+  levelProgressByUserId: Record<string, UserLevelProgress> = {},
 ) =>
   Object.fromEntries(
     rankLeaderboardEntries(entries).map((entry) => [
       entry.userId,
-      toUserProfileData(entry, allAchievements),
+      toUserProfileData(entry, allAchievements, entry.attendanceStreak, levelProgressByUserId[entry.userId] ?? null),
     ]),
   ) satisfies Record<string, UserProfileData>;
 
-export const getUserProfileData = async (userId: string): Promise<UserProfileData | null> => {
-  const [entries, allAchievements, attendanceStreak, placement] = await Promise.all([
+export const getUserProfileData = async (
+  userId: string,
+  options: { includeLevelProgress?: boolean } = {},
+): Promise<UserProfileData | null> => {
+  const [entries, allAchievements, attendanceStreak, placement, levelProgress] = await Promise.all([
     getLeaderboard(),
     getUserProfileAchievementCatalog(),
     getUserGuildMeetingAttendanceStreak(userId),
     getIndividualLeaderboardPlacement(userId),
+    options.includeLevelProgress ? getUserLevelProgress(userId) : Promise.resolve(null),
   ]);
 
   if (placement == null) {
@@ -105,5 +114,6 @@ export const getUserProfileData = async (userId: string): Promise<UserProfileDat
     },
     allAchievements,
     attendanceStreak,
+    levelProgress,
   );
 };

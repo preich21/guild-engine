@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ExternalLink, Flame } from "lucide-react";
 
 import { AchievementStack } from "@/components/achievement-stack";
+import { LevelBar } from "@/components/level-bar";
 import {
   UserProfileEditDialog,
   type UserProfileEditDictionary,
@@ -44,6 +45,8 @@ export type UserProfileDictionary = {
   placementLabel: string;
   placementTooltip: string;
   placementLinkLabel: string;
+  levelLabel: string;
+  levelProgressTooltip: string;
   streakLabel: string;
   achievementsHeading: string;
   achievementsEmpty: string;
@@ -119,7 +122,7 @@ export function UserProfileCard({
     <section className={cn("space-y-6 p-4 sm:p-6", mode === "page" && "px-0 py-0")}>
       <h1 className="sr-only">{dictionary.heading.replace("{username}", profile.username)}</h1>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <Avatar className="size-20 border border-border bg-background shadow-sm sm:size-24">
             {profile.profilePicture ? (
@@ -130,37 +133,53 @@ export function UserProfileCard({
             </AvatarFallback>
           </Avatar>
 
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
             <p className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               {profile.username}
             </p>
+            {profile.levelProgress ? (
+              <LevelBar
+                lang={lang}
+                progress={profile.levelProgress}
+                dictionary={{
+                  levelLabel: dictionary.levelLabel,
+                  progressTooltip: dictionary.levelProgressTooltip,
+                }}
+                className="w-full max-w-xs sm:w-56"
+              />
+            ) : null}
           </div>
         </div>
 
-        {mode === "popover" ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            nativeButton={false}
-            render={<Link href={fullProfileHref} />}
-            aria-label={dictionary.openProfilePage}
-            title={dictionary.openProfilePage}
-          >
-            <ExternalLink aria-hidden="true" />
-          </Button>
-        ) : edit ? (
-          <UserProfileEditDialog
-            lang={lang}
-            userId={profile.userId}
-            username={profile.username}
-            profilePicture={profile.profilePicture}
-            description={profile.description}
-            teamId={profile.teamId}
-            teams={edit.teams}
-            dictionary={dictionary.edit}
-            action={edit.action}
-          />
-        ) : null}
+        <div className="flex w-full min-w-0 items-start justify-end gap-3 sm:w-auto">
+          {mode === "popover" ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              nativeButton={false}
+              render={<Link href={fullProfileHref} />}
+              aria-label={dictionary.openProfilePage}
+              title={dictionary.openProfilePage}
+              className="shrink-0"
+            >
+              <ExternalLink aria-hidden="true" />
+            </Button>
+          ) : edit ? (
+            <div className="shrink-0">
+              <UserProfileEditDialog
+                lang={lang}
+                userId={profile.userId}
+                username={profile.username}
+                profilePicture={profile.profilePicture}
+                description={profile.description}
+                teamId={profile.teamId}
+                teams={edit.teams}
+                dictionary={dictionary.edit}
+                action={edit.action}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {profile.description ? (

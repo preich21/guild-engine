@@ -6,6 +6,7 @@ import { AttendanceStreakIndicator } from "@/components/attendance-streak-indica
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LeaderboardNavLink } from "@/components/leaderboard-nav-link";
+import { LevelBar } from "@/components/level-bar";
 import { TopbarNavLink } from "@/components/topbar-nav-link";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +17,7 @@ import {
   isProtocolRaffleEnabled,
   type FeatureConfigState,
 } from "@/lib/feature-flags";
+import type { UserLevelProgress } from "@/lib/level-system";
 import { CircleHelp, LogOut, User } from "lucide-react";
 
 type TopbarProps = {
@@ -42,6 +44,8 @@ type TopbarProps = {
     toggleToLight: string;
     toggleToDark: string;
     attendanceStreakLabel: string;
+    levelLabel: string;
+    levelProgressTooltip: string;
     logoutButton: string;
     profileButton: string;
   };
@@ -51,6 +55,7 @@ type TopbarProps = {
     hasPendingRecentMeeting: boolean;
   };
   featureConfig: FeatureConfigState;
+  levelProgress?: UserLevelProgress | null;
   homeHref: string;
   currentUser?: {
     id: string;
@@ -65,6 +70,7 @@ export function Topbar({
   showAdminLink = false,
   attendanceStreak,
   featureConfig,
+  levelProgress,
   homeHref,
   currentUser,
 }: TopbarProps) {
@@ -123,6 +129,18 @@ export function Topbar({
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {levelProgress ? (
+            <LevelBar
+              lang={lang}
+              progress={levelProgress}
+              variant="topbar"
+              dictionary={{
+                levelLabel: dictionary.levelLabel,
+                progressTooltip: dictionary.levelProgressTooltip,
+              }}
+              className="hidden sm:flex"
+            />
+          ) : null}
           {areStreaksEnabled ? (
             <AttendanceStreakIndicator
               initialCount={attendanceStreak.count}

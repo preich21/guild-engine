@@ -41,12 +41,14 @@ export default async function UserProfilePage({
     notFound();
   }
 
-  const [dictionary, profile, currentUser, featureConfig] = await Promise.all([
+  const [dictionary, currentUser, featureConfig] = await Promise.all([
     getDictionary(lang),
-    getUserProfileData(uuid),
     getCurrentUserRecord(),
     getCurrentFeatureConfig(),
   ]);
+  const profile = await getUserProfileData(uuid, {
+    includeLevelProgress: isFeatureEnabled(featureConfig.state, "level-system"),
+  });
 
   if (!profile) {
     notFound();

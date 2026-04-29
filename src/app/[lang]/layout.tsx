@@ -9,6 +9,7 @@ import { evaluateAchievementsForUser } from "@/lib/achievement-evaluation";
 import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref, isFeatureEnabled } from "@/lib/feature-flags";
+import { getUserLevelProgress } from "@/lib/level-system";
 
 export const generateStaticParams = async () =>
   locales.map((lang) => ({ lang }));
@@ -47,23 +48,23 @@ export default async function RootLayout({
 
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const homeHref = getHomePageHref(lang, featureConfig.homePagePath, currentUser?.id);
 
-  const attendanceStreak = currentUser
-    ? (
-        await Promise.all([
-          areBadgesEnabled
-            ? evaluateAchievementsForUser({
-                id: currentUser.id,
-                teamId: currentUser.teamId,
-              })
-            : Promise.resolve(null),
-          areStreaksEnabled
-            ? getUserGuildMeetingAttendanceStreak(currentUser.id)
-            : Promise.resolve({ count: 0, hasPendingRecentMeeting: false }),
-        ])
-      )[1]
-    : { count: 0, hasPendingRecentMeeting: false };
+  const [attendanceStreak, levelProgress] = currentUser
+    ? await Promise.all([
+        areBadgesEnabled
+          ? evaluateAchievementsForUser({
+              id: currentUser.id,
+              teamId: currentUser.teamId,
+            })
+          : Promise.resolve(null),
+        areStreaksEnabled
+          ? getUserGuildMeetingAttendanceStreak(currentUser.id)
+          : Promise.resolve({ count: 0, hasPendingRecentMeeting: false }),
+        areLevelsEnabled ? getUserLevelProgress(currentUser.id) : Promise.resolve(null),
+      ]).then(([, streak, level]) => [streak, level] as const)
+    : ([{ count: 0, hasPendingRecentMeeting: false }, null] as const);
 
   return (
     <FeatureConfigProvider initialState={featureConfig.state}>
@@ -73,6 +74,7 @@ export default async function RootLayout({
         showAdminLink={Boolean(currentUser?.admin)}
         attendanceStreak={attendanceStreak}
         featureConfig={featureConfig.state}
+        levelProgress={levelProgress}
         homeHref={homeHref}
         currentUser={
           currentUser

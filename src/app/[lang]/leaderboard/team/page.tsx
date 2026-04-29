@@ -6,6 +6,7 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
+import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
 import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
 
@@ -29,6 +30,7 @@ export default async function TeamLeaderboardPage({
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
+  const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const teamLeaderboardConfig = {
     "start-date": getFeatureSettingValue(featureConfig.state, "team-leaderboard", "start-date"),
     aggregation: getFeatureSettingValue(featureConfig.state, "team-leaderboard", "aggregation"),
@@ -40,13 +42,20 @@ export default async function TeamLeaderboardPage({
     getLeaderboard(),
     areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
   ]);
+  const levelProgressByUserId = areLevelsEnabled
+    ? await getUserLevelProgressMap(individualEntries.map((entry) => entry.userId))
+    : {};
 
   return (
     <TeamLeaderboard
       lang={lang}
       config={teamLeaderboardConfig}
       entries={entries}
-      profileDataByUserId={createUserProfileDataMap(individualEntries, allAchievements)}
+      profileDataByUserId={createUserProfileDataMap(
+        individualEntries,
+        allAchievements,
+        levelProgressByUserId,
+      )}
       showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
       showStreaks={areStreaksEnabled}
       showAchievements={areBadgesEnabled}

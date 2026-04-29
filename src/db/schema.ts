@@ -2,6 +2,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   pgTable,
   smallint,
@@ -149,6 +150,15 @@ export const userAchievements = pgTable(
     uniqueIndex("user_achievements_user_achievement_idx").on(table.userId, table.achievementId),
   ],
 );
+
+export const userLevels = pgTable("user_levels", {
+  userId: uuid("user_id")
+    .notNull()
+    .primaryKey()
+    .references(() => users.id),
+  currentLevel: integer("current_level").notNull().default(0),
+  lastLevelUp: timestamp("last_level_up", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const manualPoints = pgTable(
   "manual_points",
