@@ -4,6 +4,7 @@ import { AchievementStack } from "@/components/achievement-stack";
 import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
 import { UserProfilePopover } from "@/components/user-profile-popover";
 import type { UserProfileDictionary } from "@/components/user-profile-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { Locale } from "@/i18n/config";
@@ -41,6 +42,8 @@ export const getPlaceClassName = (place: number) => {
 
   return "text-foreground/80";
 };
+
+const getUserInitials = (username: string) => username.slice(0, 2).toUpperCase();
 
 export function Leaderboard({
   lang,
@@ -84,17 +87,25 @@ export function Leaderboard({
                         {entry.rank}
                       </TableCell>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <UserProfilePopover
-                            lang={lang}
-                            profile={entry}
-                            dictionary={dictionary.profile}
-                            showLeaderboardPlacement
-                            showStreak={showStreaks}
-                            showAchievements={showAchievements}
-                          />
-                          <span>{entry.username}</span>
-                        </div>
+                        <UserProfilePopover
+                          lang={lang}
+                          profile={entry}
+                          dictionary={dictionary.profile}
+                          showLeaderboardPlacement
+                          showStreak={showStreaks}
+                          showAchievements={showAchievements}
+                          triggerClassName="h-auto max-w-full gap-3 rounded-lg p-1 pr-2"
+                        >
+                          <Avatar className="size-8 border border-border bg-background">
+                            {entry.profilePicture ? (
+                              <AvatarImage src={entry.profilePicture} alt={entry.username} />
+                            ) : null}
+                            <AvatarFallback aria-hidden>
+                              {getUserInitials(entry.username)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0 truncate">{entry.username}</span>
+                        </UserProfilePopover>
                       </TableCell>
                       {showAchievements ? (
                         <TableCell className="hidden w-40 sm:table-cell">
