@@ -53,16 +53,18 @@ export function LevelBar({
             <span className="shrink-0 font-black leading-none tabular-nums">
               {numberFormatter.format(progress.currentLevel)}
             </span>
-            <Progress
-              value={progress.progressPercent}
-              aria-label={label}
-              className={cn(
-                "min-w-0 flex-nowrap gap-0",
-                variant === "topbar"
-                  ? "w-14 shrink-0 [&_[data-slot=progress-track]]:h-1.5"
-                  : "flex-1 [&_[data-slot=progress-track]]:h-3",
-              )}
-            />
+            <div className="w-full">
+              <Progress
+                value={progress.progressPercent}
+                aria-label={label}
+                className={cn(
+                  "min-w-0 flex-nowrap gap-0",
+                  variant === "topbar"
+                    ? "w-full shrink-0 **:data-[slot=progress-track]:h-1.5"
+                    : "flex-1 **:data-[slot=progress-track]:h-3",
+                )}
+              />
+            </div>
           </TooltipTrigger>
         </div>
         <TooltipContent>{tooltip}</TooltipContent>
