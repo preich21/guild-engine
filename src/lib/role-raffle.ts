@@ -5,12 +5,12 @@ import { asc } from "drizzle-orm";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 
-export type ProtocolRaffleUser = {
+export type RoleRaffleUser = {
   id: string;
   username: string;
 };
 
-export const getProtocolRaffleUsers = async (): Promise<ProtocolRaffleUser[]> =>
+export const getRoleRaffleUsers = async (): Promise<RoleRaffleUser[]> =>
   db
     .select({
       id: users.id,

@@ -16,7 +16,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
 import {
   isFeatureEnabled,
-  isProtocolRaffleEnabled,
+  isRoleRaffleEnabled,
   type FeatureConfigState,
 } from "@/lib/feature-flags";
 import type { UserLevelProgress } from "@/lib/level-system";
@@ -30,7 +30,7 @@ type TopbarProps = {
     individualLeaderboardLink: string;
     teamLeaderboardLink: string;
     getPointsLink: string;
-    protocolRaffleLink: string;
+    roleRaffleLink: string;
     rulesLink: string;
     adminLink: string;
     featureConfigLink: string;
@@ -91,7 +91,7 @@ export function Topbar({
   const isTeamLeaderboardEnabled = isFeatureEnabled(featureConfig, "team-leaderboard");
   const areBadgesEnabled = isFeatureEnabled(featureConfig, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig, "streaks");
-  const shouldShowProtocolRaffle = isProtocolRaffleEnabled(featureConfig);
+  const shouldShowRoleRaffle = isRoleRaffleEnabled(featureConfig);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
@@ -113,8 +113,8 @@ export function Topbar({
           {isPointSystemEnabled ? (
             <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
           ) : null}
-          {shouldShowProtocolRaffle ? (
-            <TopbarNavLink href={`/${lang}/protocol-raffle`} label={dictionary.protocolRaffleLink} />
+          {shouldShowRoleRaffle ? (
+            <TopbarNavLink href={`/${lang}/role-raffle`} label={dictionary.roleRaffleLink} />
           ) : null}
           {showAdminLink ? (
             <AdminNavLink

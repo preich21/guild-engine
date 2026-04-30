@@ -179,9 +179,9 @@ export const isFeatureSettingEnabled = (
   settingId: string,
 ) => getFeatureSettingValue(state, featureId, settingId) === true;
 
-export const isProtocolRaffleEnabled = (state: FeatureConfigState) =>
+export const isRoleRaffleEnabled = (state: FeatureConfigState) =>
   isFeatureEnabled(state, "minigames") &&
-  (isFeatureSettingEnabled(state, "minigames", "protocol-raffle") ||
+  (isFeatureSettingEnabled(state, "minigames", "role-raffle") ||
     isFeatureSettingEnabled(state, "minigames", "one-time-doing-raffle"));
 
 export const normalizeHomePagePath = (value: unknown): string | null => {
@@ -225,8 +225,8 @@ export const getDefaultEnabledUserPath = (lang: string, state: FeatureConfigStat
     return `/${lang}/get-points`;
   }
 
-  if (isProtocolRaffleEnabled(state)) {
-    return `/${lang}/protocol-raffle`;
+  if (isRoleRaffleEnabled(state)) {
+    return `/${lang}/role-raffle`;
   }
 
   return `/${lang}/rules`;
@@ -259,8 +259,8 @@ export const isRouteEnabled = (
     return isFeatureEnabled(state, "point-system");
   }
 
-  if (isPathOrChild(pathname, `/${lang}/protocol-raffle`)) {
-    return isProtocolRaffleEnabled(state);
+  if (isPathOrChild(pathname, `/${lang}/role-raffle`)) {
+    return isRoleRaffleEnabled(state);
   }
 
   if (isPathOrChild(pathname, `/${lang}/cooperative-progress`)) {

@@ -32,7 +32,7 @@ const de = {
     individualLeaderboardLink: "Individuelle Rangliste",
     teamLeaderboardLink: "Team-Rangliste",
     getPointsLink: "Punkte Erfassen",
-    protocolRaffleLink: "Protokoll-Verlosung",
+    roleRaffleLink: "Rollen-Verlosung",
     rulesLink: "Regeln",
     adminLink: "Admin",
     featureConfigLink: "Feature-Konfiguration",
@@ -105,7 +105,7 @@ const de = {
   getPoints: {
     heading: "Punkte erfassen",
     attendanceLabel:
-      "Hast du am Gildentreff am {date} teilgenommen (zählt nur, wenn du vor der Protokollverlosung da warst)?",
+      "Hast du am Gildentreff am {date} teilgenommen (zählt nur, wenn du vor der Rollenverlosung da warst)?",
     attendanceNo: "Nein",
     attendanceVirtually: "Ja, virtuell",
     attendanceOnSite: "Ja, vor Ort",
@@ -134,13 +134,13 @@ const de = {
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
   },
-  protocolRaffle: {
-    heading: "Protokoll-Verlosung",
-    selectVictimsButton: "Opfer auswählen",
+  roleRaffle: {
+    heading: "Rollen-Verlosung",
+    selectUsersButton: "Benutzer auswählen",
     spinButton: "Drehen!",
-    selectVictimsTitle: "Opfer auswählen",
-    selectVictimsDescription:
-      "Wähle alle Benutzer aus, die aktuell am Gildentreffen teilnehmen und heute nicht bereits moderieren. Diese kommen in die Protokoll-Verlosung.",
+    selectUsersTitle: "Benutzer auswählen",
+    selectUsersDescription:
+      "Wähle alle Benutzer aus, die dieses Mal für die Rolle infrage kommen. Sie nehmen an der Rollen-Verlosung teil.",
     selectAllButton: "Alle auswählen",
     deselectAllButton: "Alle abwählen",
     cancelButton: "Abbrechen",
@@ -148,8 +148,9 @@ const de = {
     emptyState:
       "Noch keine Einträge in der Verlosung. Wähle mindestens zwei Benutzer aus, um das Glücksrad zu füllen.",
     winnerTitle: "Glückwunsch {username}!",
-    winnerDescription:
-      'Du darfst während des heutigen Gildentreffens das Protokoll schreiben!\nDu kannst in deinem Punkteformular für das heutige Gildentreffen "Protokoll - Verpflichtet" eintragen. Viel Spaß mit deinen Extrapunkten :wink:',
+    winnerDescription: "Du hast die große Ehre, dieses Mal die Rolle zu übernehmen.",
+    winnerPointSystemDescription:
+      'Du kannst die erzwungene Rollenübernahme im Formular "Punkte Erfassen" eintragen.',
     dismissButton: "Schließen",
   },
   rules: {

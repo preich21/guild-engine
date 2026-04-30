@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import type { ProtocolRaffleUser } from "@/lib/protocol-raffle";
+import { useFeatureEnabled } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,15 +15,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollAreaContent, ScrollAreaViewport, ScrollBar } from "@/components/ui/scroll-area";
+import type { RoleRaffleUser } from "@/lib/role-raffle";
 
-type ProtocolRaffleProps = {
-  users: ProtocolRaffleUser[];
+type RoleRaffleProps = {
+  users: RoleRaffleUser[];
   dictionary: {
     heading: string;
-    selectVictimsButton: string;
+    selectUsersButton: string;
     spinButton: string;
-    selectVictimsTitle: string;
-    selectVictimsDescription: string;
+    selectUsersTitle: string;
+    selectUsersDescription: string;
     selectAllButton: string;
     deselectAllButton: string;
     cancelButton: string;
@@ -31,6 +32,7 @@ type ProtocolRaffleProps = {
     emptyState: string;
     winnerTitle: string;
     winnerDescription: string;
+    winnerPointSystemDescription: string;
     dismissButton: string;
   };
 };
@@ -74,7 +76,7 @@ const getSegmentPath = (startAngle: number, endAngle: number) => {
 
 const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
 
-export function ProtocolRaffle({ users, dictionary }: ProtocolRaffleProps) {
+export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
   const [isWinnerOpen, setIsWinnerOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -85,6 +87,7 @@ export function ProtocolRaffle({ users, dictionary }: ProtocolRaffleProps) {
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingWinnerNameRef = useRef<string | null>(null);
   const checkboxBaseId = useId();
+  const isPointSystemEnabled = useFeatureEnabled("point-system");
 
   const selectedUsers = useMemo(() => {
     const selectedIdSet = new Set(selectedUserIds);
@@ -274,7 +277,7 @@ export function ProtocolRaffle({ users, dictionary }: ProtocolRaffleProps) {
                 className="w-full sm:min-w-44 sm:w-auto"
                 onClick={() => handleSelectionOpenChange(true)}
               >
-                {dictionary.selectVictimsButton}
+                {dictionary.selectUsersButton}
               </Button>
               <Button
                 type="button"
@@ -292,8 +295,8 @@ export function ProtocolRaffle({ users, dictionary }: ProtocolRaffleProps) {
       <Dialog open={isSelectionOpen} onOpenChange={handleSelectionOpenChange}>
         <DialogContent className="w-[min(95vw,42rem)]">
           <DialogHeader>
-            <DialogTitle>{dictionary.selectVictimsTitle}</DialogTitle>
-            <DialogDescription className="pb-2">{dictionary.selectVictimsDescription}</DialogDescription>
+            <DialogTitle>{dictionary.selectUsersTitle}</DialogTitle>
+            <DialogDescription className="pb-2">{dictionary.selectUsersDescription}</DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="max-h-[55vh] rounded-lg border border-border bg-background">
@@ -351,6 +354,7 @@ export function ProtocolRaffle({ users, dictionary }: ProtocolRaffleProps) {
             <DialogTitle>{dictionary.winnerTitle.replace("{username}", winnerName)}</DialogTitle>
             <DialogDescription className="whitespace-pre-line">
               {dictionary.winnerDescription.replace("{username}", winnerName)}
+              {isPointSystemEnabled ? `\n${dictionary.winnerPointSystemDescription}` : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

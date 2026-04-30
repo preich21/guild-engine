@@ -1,22 +1,22 @@
 import { notFound } from "next/navigation";
 
-import { ProtocolRaffle } from "@/components/protocol-raffle";
+import { RoleRaffle } from "@/components/role-raffle";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPageMetadata } from "@/lib/page-metadata";
-import { getProtocolRaffleUsers } from "@/lib/protocol-raffle";
+import { getRoleRaffleUsers } from "@/lib/role-raffle";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/[lang]/protocol-raffle">) {
+}: PageProps<"/[lang]/role-raffle">) {
   const { lang } = await params;
 
-  return getPageMetadata(lang, (dictionary) => dictionary.protocolRaffle.heading);
+  return getPageMetadata(lang, (dictionary) => dictionary.roleRaffle.heading);
 }
 
-export default async function ProtocolRafflePage({
+export default async function RoleRafflePage({
   params,
-}: PageProps<"/[lang]/protocol-raffle">) {
+}: PageProps<"/[lang]/role-raffle">) {
   const { lang } = await params;
 
   if (!hasLocale(lang)) {
@@ -25,8 +25,8 @@ export default async function ProtocolRafflePage({
 
   const [dictionary, users] = await Promise.all([
     getDictionary(lang),
-    getProtocolRaffleUsers(),
+    getRoleRaffleUsers(),
   ]);
 
-  return <ProtocolRaffle users={users} dictionary={dictionary.protocolRaffle} />;
+  return <RoleRaffle users={users} dictionary={dictionary.roleRaffle} />;
 }

@@ -87,6 +87,13 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
   const isLoginPath = pathname === `/${locale}/login`;
   const isAuthenticated = Boolean(request.auth);
 
+  if (pathname === `/${locale}/protocol-raffle`) {
+    const roleRaffleUrl = request.nextUrl.clone();
+    roleRaffleUrl.pathname = `/${locale}/role-raffle`;
+
+    return NextResponse.redirect(roleRaffleUrl);
+  }
+
   if (!isAuthenticated && !isLoginPath) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = `/${locale}/login`;

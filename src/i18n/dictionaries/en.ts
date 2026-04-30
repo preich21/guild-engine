@@ -32,7 +32,7 @@ const en = {
     individualLeaderboardLink: "Individual Leaderboard",
     teamLeaderboardLink: "Team Leaderboard",
     getPointsLink: "Get Points",
-    protocolRaffleLink: "Protocol Raffle",
+    roleRaffleLink: "Role Raffle",
     rulesLink: "Rules",
     adminLink: "Admin",
     featureConfigLink: "Feature Configuration",
@@ -104,7 +104,7 @@ const en = {
   getPoints: {
     heading: "Get points",
     attendanceLabel:
-      "Did you attend the guild meeting on {date} (only counts if you arrived before the protocol raffle)?",
+      "Did you attend the guild meeting on {date} (only counts if you arrived before the role raffle)?",
     attendanceNo: "No",
     attendanceVirtually: "Yes, virtually",
     attendanceOnSite: "Yes, on site",
@@ -133,21 +133,21 @@ const en = {
     saveSuccess: "Saved successfully.",
     saveError: "Could not save your submission. Please try again.",
   },
-  protocolRaffle: {
-    heading: "Protocol Raffle",
-    selectVictimsButton: "Select Victims",
+  roleRaffle: {
+    heading: "Role Raffle",
+    selectUsersButton: "Select Users",
     spinButton: "Spin!",
-    selectVictimsTitle: "Select Victims",
-    selectVictimsDescription:
-      "Select all users that are currently attending the guild meeting, and that are not already moderating todays guild meeting. Those will enter the protocol raffle.",
+    selectUsersTitle: "Select Users",
+    selectUsersDescription:
+      "Select all users that are eligible to take over the role this time. Those will take part in the role raffle.",
     selectAllButton: "Select All",
     deselectAllButton: "Deselect All",
     cancelButton: "Cancel",
     selectButton: "Select",
     emptyState: "No raffle entries yet. Select at least two users to populate the wheel of fortune.",
     winnerTitle: "Congratulations {username}!",
-    winnerDescription:
-      'You may write the protocol during todays guild meeting!\nYou may enter "Protocol - Forced" in your Get Points form for todays guild meeting. Enjoy your extra points :wink:',
+    winnerDescription: "You have the great honor to take over the role this time.",
+    winnerPointSystemDescription: 'You may enter taking over the role forcedly in the "Get Points" form.',
     dismissButton: "Dismiss",
   },
   rules: {
