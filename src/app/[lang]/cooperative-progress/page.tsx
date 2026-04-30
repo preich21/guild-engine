@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getCooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
+import { getLeaderboard } from "@/app/[lang]/leaderboard/actions";
 import { CooperativeProgressPage } from "@/components/cooperative-progress-page";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -36,6 +37,10 @@ export default async function CooperativeProgressRoutePage({
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
+  const isIndividualLeaderboardEnabled = isFeatureEnabled(
+    featureConfig.state,
+    "individual-leaderboard",
+  );
   const cooperativeProgressConfig = {
     "start-date": getFeatureSettingValue(
       featureConfig.state,
@@ -53,26 +58,38 @@ export default async function CooperativeProgressRoutePage({
       "goal-points",
     ),
   };
+  const individualLeaderboardConfig = {
+    startDate: getFeatureSettingValue(featureConfig.state, "individual-leaderboard", "start-date"),
+    showDashboard: getFeatureSettingValue(
+      featureConfig.state,
+      "individual-leaderboard",
+      "show-dashboard",
+    ),
+  };
 
-  const [dictionary, progress, allAchievements] = await Promise.all([
+  const [dictionary, progress, allAchievements, individualLeaderboardEntries] = await Promise.all([
     getDictionary(lang),
     getCooperativeProgress(cooperativeProgressConfig),
     areBadgesEnabled ? getUserProfileAchievementCatalog() : Promise.resolve([]),
+    isIndividualLeaderboardEnabled
+      ? getLeaderboard(individualLeaderboardConfig)
+      : Promise.resolve(null),
   ]);
   const levelProgressByUserId = areLevelsEnabled
     ? await getUserLevelProgressMap(progress.topContributors.map((entry) => entry.userId))
     : {};
+  const profileEntries = individualLeaderboardEntries ?? progress.topContributors;
 
   return (
     <CooperativeProgressPage
       lang={lang}
       progress={progress}
       profileDataByUserId={createUserProfileDataMap(
-        progress.topContributors,
+        profileEntries,
         allAchievements,
         levelProgressByUserId,
       )}
-      showLeaderboardPlacement={false}
+      showLeaderboardPlacement={isIndividualLeaderboardEnabled}
       showStreaks={areStreaksEnabled}
       showAchievements={areBadgesEnabled}
       dictionary={{
