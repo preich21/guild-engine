@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { getCooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { FeatureConfigProvider } from "@/components/feature-config-provider";
@@ -8,7 +9,7 @@ import { Topbar } from "@/components/topbar";
 import { evaluateAchievementsForUser } from "@/lib/achievement-evaluation";
 import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { getHomePageHref, isFeatureEnabled } from "@/lib/feature-flags";
+import { getFeatureSettingValue, getHomePageHref, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserLevelProgress } from "@/lib/level-system";
 
 export const generateStaticParams = async () =>
@@ -49,9 +50,30 @@ export default async function RootLayout({
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
+  const isCooperativeProgressEnabled = isFeatureEnabled(
+    featureConfig.state,
+    "cooperative-progress-bar",
+  );
   const homeHref = getHomePageHref(lang, featureConfig.homePagePath, currentUser?.id);
+  const cooperativeProgressConfig = {
+    "start-date": getFeatureSettingValue(
+      featureConfig.state,
+      "cooperative-progress-bar",
+      "start-date",
+    ),
+    aggregation: getFeatureSettingValue(
+      featureConfig.state,
+      "cooperative-progress-bar",
+      "aggregation",
+    ),
+    "goal-points": getFeatureSettingValue(
+      featureConfig.state,
+      "cooperative-progress-bar",
+      "goal-points",
+    ),
+  };
 
-  const [attendanceStreak, levelProgress] = currentUser
+  const [attendanceStreak, levelProgress, cooperativeProgress] = currentUser
     ? await Promise.all([
         areBadgesEnabled
           ? evaluateAchievementsForUser({
@@ -63,8 +85,11 @@ export default async function RootLayout({
           ? getUserGuildMeetingAttendanceStreak(currentUser.id)
           : Promise.resolve({ count: 0, hasPendingRecentMeeting: false }),
         areLevelsEnabled ? getUserLevelProgress(currentUser.id) : Promise.resolve(null),
-      ]).then(([, streak, level]) => [streak, level] as const)
-    : ([{ count: 0, hasPendingRecentMeeting: false }, null] as const);
+        isCooperativeProgressEnabled
+          ? getCooperativeProgress(cooperativeProgressConfig)
+          : Promise.resolve(null),
+      ]).then(([, streak, level, cooperative]) => [streak, level, cooperative] as const)
+    : ([{ count: 0, hasPendingRecentMeeting: false }, null, null] as const);
 
   return (
     <FeatureConfigProvider initialState={featureConfig.state}>
@@ -75,6 +100,7 @@ export default async function RootLayout({
         attendanceStreak={attendanceStreak}
         featureConfig={featureConfig.state}
         levelProgress={levelProgress}
+        cooperativeProgress={cooperativeProgress}
         homeHref={homeHref}
         currentUser={
           currentUser

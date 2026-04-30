@@ -18,6 +18,14 @@ const en = {
       empty: "No teams available.",
     },
   },
+  cooperativeProgress: {
+    heading: "Cooperative Progress",
+    topContributorsHeading: "Top contributors",
+    emptyContributors: "No contributors yet.",
+    rankColumn: "Rank",
+    userColumn: "User",
+    pointsColumn: "Points",
+  },
   topbar: {
     brand: "Guild Engine",
     leaderboardLink: "Leaderboard",
@@ -42,6 +50,8 @@ const en = {
     attendanceStreakLabel: "Meeting attendance streak",
     levelLabel: "Level {level}",
     levelProgressTooltip: "{current} of {required} points to level {level}",
+    cooperativeProgressInProgressTooltip: "Cooperative progress: {current} of {goal} points",
+    cooperativeProgressOverGoalTooltip: "Cooperative progress: {current} points over the goal of {goal}",
     profileButton: "Profile",
     logoutButton: "Log out",
   },

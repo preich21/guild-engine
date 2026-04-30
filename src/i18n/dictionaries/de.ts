@@ -18,6 +18,14 @@ const de = {
       empty: "Keine Teams verfügbar.",
     },
   },
+  cooperativeProgress: {
+    heading: "Kooperativer Fortschritt",
+    topContributorsHeading: "Top-Beitragende",
+    emptyContributors: "Noch keine Beitragenden.",
+    rankColumn: "Rang",
+    userColumn: "Benutzer",
+    pointsColumn: "Punkte",
+  },
   topbar: {
     brand: "Guild Engine",
     leaderboardLink: "Rangliste",
@@ -42,6 +50,9 @@ const de = {
     attendanceStreakLabel: "Teilnahme-Serie bei Gildentreffen",
     levelLabel: "Level {level}",
     levelProgressTooltip: "{current} von {required} Punkten bis Level {level}",
+    cooperativeProgressInProgressTooltip: "Kooperativer Fortschritt: {current} von {goal} Punkten",
+    cooperativeProgressOverGoalTooltip:
+      "Kooperativer Fortschritt: {current} Punkte über dem Ziel von {goal}",
     profileButton: "Profil",
     logoutButton: "Abmelden",
   },

@@ -263,6 +263,10 @@ export const isRouteEnabled = (
     return isProtocolRaffleEnabled(state);
   }
 
+  if (isPathOrChild(pathname, `/${lang}/cooperative-progress`)) {
+    return isFeatureEnabled(state, "cooperative-progress-bar");
+  }
+
   if (isPathOrChild(pathname, `/${lang}/admin/point-distribution`)) {
     return isFeatureEnabled(state, "point-system");
   }

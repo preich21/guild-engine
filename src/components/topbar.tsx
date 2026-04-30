@@ -1,8 +1,10 @@
 import Link from "next/link";
 
+import type { CooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
 import { signOut } from "@/auth";
 import { AdminNavLink } from "@/components/admin-nav-link";
 import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
+import { CooperativeProgressBar } from "@/components/cooperative-progress-bar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { LeaderboardNavLink } from "@/components/leaderboard-nav-link";
@@ -46,6 +48,8 @@ type TopbarProps = {
     attendanceStreakLabel: string;
     levelLabel: string;
     levelProgressTooltip: string;
+    cooperativeProgressInProgressTooltip: string;
+    cooperativeProgressOverGoalTooltip: string;
     logoutButton: string;
     profileButton: string;
   };
@@ -56,6 +60,7 @@ type TopbarProps = {
   };
   featureConfig: FeatureConfigState;
   levelProgress?: UserLevelProgress | null;
+  cooperativeProgress?: CooperativeProgress | null;
   homeHref: string;
   currentUser?: {
     id: string;
@@ -71,6 +76,7 @@ export function Topbar({
   attendanceStreak,
   featureConfig,
   levelProgress,
+  cooperativeProgress,
   homeHref,
   currentUser,
 }: TopbarProps) {
@@ -89,8 +95,8 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-wrap items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
           <Link href={homeHref} className="text-lg font-semibold tracking-tight">
             {dictionary.brand}
           </Link>
@@ -128,7 +134,21 @@ export function Topbar({
             />
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        {cooperativeProgress ? (
+          <div className="order-last flex w-full min-w-20 justify-center sm:order-0 sm:w-auto sm:flex-[0_1_12.5rem]">
+            <CooperativeProgressBar
+              lang={lang}
+              progress={cooperativeProgress}
+              href={`/${lang}/cooperative-progress`}
+              variant="topbar"
+              dictionary={{
+                inProgressTooltip: dictionary.cooperativeProgressInProgressTooltip,
+                overGoalTooltip: dictionary.cooperativeProgressOverGoalTooltip,
+              }}
+            />
+          </div>
+        ) : null}
+        <div className="ml-auto flex flex-1 items-center justify-end gap-2">
           {levelProgress ? (
             <LevelBar
               lang={lang}

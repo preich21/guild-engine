@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/config";
 import { UserProfileCard, type UserProfileDictionary } from "@/components/user-profile-card";
 import type { UserProfileData } from "@/lib/user-profile";
+import type { ReactNode } from "react";
 
 type UserProfilePopoverProps = {
   lang: Locale;
@@ -15,6 +16,7 @@ type UserProfilePopoverProps = {
   showAchievements: boolean;
   avatarClassName?: string;
   triggerClassName?: string;
+  children?: ReactNode;
 };
 
 const getUserInitials = (username: string) => username.slice(0, 2).toUpperCase();
@@ -28,6 +30,7 @@ export function UserProfilePopover({
   showAchievements,
   avatarClassName,
   triggerClassName,
+  children,
 }: UserProfilePopoverProps) {
   const triggerLabel = dictionary.openProfileButton.replace("{username}", profile.username);
 
@@ -38,17 +41,19 @@ export function UserProfilePopover({
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className={cn("rounded-full p-0", triggerClassName)}
+            size={children ? "sm" : "icon"}
+            className={cn(children ? "justify-start" : "rounded-full p-0", triggerClassName)}
             aria-label={triggerLabel}
             title={triggerLabel}
           >
-            <Avatar className={cn("size-8 border border-border bg-background", avatarClassName)}>
-              {profile.profilePicture ? (
-                <AvatarImage src={profile.profilePicture} alt={profile.username} />
-              ) : null}
-              <AvatarFallback aria-hidden>{getUserInitials(profile.username)}</AvatarFallback>
-            </Avatar>
+            {children ?? (
+              <Avatar className={cn("size-8 border border-border bg-background", avatarClassName)}>
+                {profile.profilePicture ? (
+                  <AvatarImage src={profile.profilePicture} alt={profile.username} />
+                ) : null}
+                <AvatarFallback aria-hidden>{getUserInitials(profile.username)}</AvatarFallback>
+              </Avatar>
+            )}
           </Button>
         }
       />
