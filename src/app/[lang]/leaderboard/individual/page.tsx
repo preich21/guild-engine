@@ -5,7 +5,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
+import { getEnabledPowerupIds, getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
 import {
@@ -36,6 +36,7 @@ export default async function IndividualLeaderboardPage({
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
+  const enabledPowerupIds = getEnabledPowerupIds(featureConfig.state);
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const individualLeaderboardConfig = {
@@ -74,6 +75,7 @@ export default async function IndividualLeaderboardPage({
       )}
       showAchievements={areBadgesEnabled}
       showPowerups={arePowerupsEnabled}
+      enabledPowerupIds={enabledPowerupIds}
       showStreaks={areStreaksEnabled}
       dictionary={{
         heading: dictionary.leaderboard.individual.heading,

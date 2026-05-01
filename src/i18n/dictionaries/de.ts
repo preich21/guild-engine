@@ -74,6 +74,7 @@ const de = {
       "Derzeit sind keine Erfolge konfiguriert. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
     powerupsHeading: "Powerups",
     lootboxLabel: "Lootbox",
+    lootboxDescription: "Enthält ein zufällig freigeschaltetes Powerup.",
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",
     edit: {

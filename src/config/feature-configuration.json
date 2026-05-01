@@ -426,8 +426,8 @@
             "de": "Kleiner Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points for a meeting.",
-            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
+            "en": "Allows a user to multiply their received points by a small factor for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem kleinen Faktor zu multiplizieren."
           },
           "defaultValue": true,
           "prerequisites": [
@@ -474,8 +474,8 @@
             "de": "Mittlerer Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points for a meeting.",
-            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
+            "en": "Allows a user to multiply their received points by a medium factor for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem mittleren Faktor zu multiplizieren."
           },
           "defaultValue": true,
           "prerequisites": [
@@ -522,8 +522,8 @@
             "de": "Großer Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points for a meeting.",
-            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
+            "en": "Allows a user to multiply their received points by a large factor for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem großen Faktor zu multiplizieren."
           },
           "defaultValue": true,
           "prerequisites": [

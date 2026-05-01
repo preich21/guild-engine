@@ -15,6 +15,7 @@ type UserProfilePopoverProps = {
   showStreak: boolean;
   showAchievements: boolean;
   showPowerups: boolean;
+  enabledPowerupIds: string[];
   avatarClassName?: string;
   triggerClassName?: string;
   children?: ReactNode;
@@ -30,6 +31,7 @@ export function UserProfilePopover({
   showStreak,
   showAchievements,
   showPowerups,
+  enabledPowerupIds,
   avatarClassName,
   triggerClassName,
   children,
@@ -69,6 +71,7 @@ export function UserProfilePopover({
           showStreak={showStreak}
           showAchievements={showAchievements}
           showPowerups={showPowerups}
+          enabledPowerupIds={enabledPowerupIds}
         />
       </PopoverContent>
     </Popover>

@@ -73,6 +73,7 @@ const en = {
       "There are currently no achievements configured. Please contact your administrator.",
     powerupsHeading: "Powerups",
     lootboxLabel: "Lootbox",
+    lootboxDescription: "Contains one randomly unlocked powerup.",
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",
     edit: {

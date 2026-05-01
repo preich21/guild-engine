@@ -179,6 +179,16 @@ export const isFeatureSettingEnabled = (
   settingId: string,
 ) => getFeatureSettingValue(state, featureId, settingId) === true;
 
+export const getEnabledPowerupIds = (state: FeatureConfigState) =>
+  [
+    "streak-freeze",
+    "small-point-multiplicator",
+    "medium-point-multiplicator",
+    "large-point-multiplicator",
+    "role-shield",
+    "role-present",
+  ].filter((powerupId) => isFeatureSettingEnabled(state, "powerups", powerupId));
+
 export const isRoleRaffleEnabled = (state: FeatureConfigState) =>
   isFeatureEnabled(state, "minigames") &&
   (isFeatureSettingEnabled(state, "minigames", "role-raffle") ||

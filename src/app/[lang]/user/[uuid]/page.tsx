@@ -5,7 +5,7 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { isFeatureEnabled } from "@/lib/feature-flags";
+import { getEnabledPowerupIds, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
 import { getProfileEditTeams, saveProfile } from "./actions";
 
@@ -47,6 +47,7 @@ export default async function UserProfilePage({
     getCurrentFeatureConfig(),
   ]);
   const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
+  const enabledPowerupIds = getEnabledPowerupIds(featureConfig.state);
   const profile = await getUserProfileData(uuid, {
     includeLevelProgress: isFeatureEnabled(featureConfig.state, "level-system"),
     includePowerups: arePowerupsEnabled,
@@ -70,6 +71,7 @@ export default async function UserProfilePage({
           showStreak={isFeatureEnabled(featureConfig.state, "streaks")}
           showAchievements={isFeatureEnabled(featureConfig.state, "badges")}
           showPowerups={arePowerupsEnabled}
+          enabledPowerupIds={enabledPowerupIds}
           edit={editTeams ? { teams: editTeams, action: saveProfile } : undefined}
         />
       </div>

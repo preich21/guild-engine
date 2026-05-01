@@ -20,6 +20,7 @@ type TeamLeaderboardProps = {
   showStreaks: boolean;
   showAchievements: boolean;
   showPowerups: boolean;
+  enabledPowerupIds: string[];
   dictionary: {
     heading: string;
     empty: string;
@@ -35,6 +36,7 @@ export function TeamLeaderboard({
   showStreaks,
   showAchievements,
   showPowerups,
+  enabledPowerupIds,
   dictionary,
 }: TeamLeaderboardProps) {
   const rankedEntries = rankLeaderboardEntries(entries);
@@ -73,6 +75,7 @@ export function TeamLeaderboard({
                                   showStreak={showStreaks}
                                   showAchievements={showAchievements}
                                   showPowerups={showPowerups}
+                                  enabledPowerupIds={enabledPowerupIds}
                                   triggerClassName="-ml-2 first:ml-0 size-8 rounded-full"
                                   avatarClassName="size-8"
                                 />

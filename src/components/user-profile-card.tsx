@@ -57,6 +57,7 @@ export type UserProfileDictionary = {
   allAchievementsEmpty: string;
   powerupsHeading: string;
   lootboxLabel: string;
+  lootboxDescription: string;
   openProfileButton: string;
   openProfilePage: string;
   edit: UserProfileEditDictionary;
@@ -79,18 +80,21 @@ type UserProfileCardProps = {
   showStreak: boolean;
   showAchievements: boolean;
   showPowerups: boolean;
+  enabledPowerupIds: string[];
   edit?: UserProfileEditProps;
 };
 
 type PowerupConfigurationEntry = {
   id: string;
   label?: Partial<Record<Locale, string>>;
+  description?: Partial<Record<Locale, string>>;
 };
 
 type PowerupItem = {
   key: keyof UserProfilePowerups;
   imageId: string;
   label: string;
+  description: string | null;
   count: number;
 };
 
@@ -101,54 +105,71 @@ const powerupConfiguration = featureConfiguration.features.find(
 const getPowerupDisplayName = (powerupId: string, lang: Locale) =>
   powerupConfiguration?.find((entry) => entry.id === powerupId)?.label?.[lang] ?? powerupId;
 
+const getPowerupDescription = (powerupId: string, lang: Locale) =>
+  powerupConfiguration?.find((entry) => entry.id === powerupId)?.description?.[lang] ?? null;
+
 const getPowerupItems = (
   powerups: UserProfilePowerups,
   lang: Locale,
   dictionary: UserProfileDictionary,
-): PowerupItem[] => [
-  {
-    key: "lootboxes",
-    imageId: "lootbox",
-    label: dictionary.lootboxLabel,
-    count: powerups.lootboxes,
-  },
-  {
-    key: "streakFreezes",
-    imageId: "streak-freeze",
-    label: getPowerupDisplayName("streak-freeze", lang),
-    count: powerups.streakFreezes,
-  },
-  {
-    key: "smallPointMultiplicators",
-    imageId: "small-point-multiplicator",
-    label: getPowerupDisplayName("small-point-multiplicator", lang),
-    count: powerups.smallPointMultiplicators,
-  },
-  {
-    key: "mediumPointMultiplicators",
-    imageId: "medium-point-multiplicator",
-    label: getPowerupDisplayName("medium-point-multiplicator", lang),
-    count: powerups.mediumPointMultiplicators,
-  },
-  {
-    key: "largePointMultiplicators",
-    imageId: "large-point-multiplicator",
-    label: getPowerupDisplayName("large-point-multiplicator", lang),
-    count: powerups.largePointMultiplicators,
-  },
-  {
-    key: "roleShields",
-    imageId: "role-shield",
-    label: getPowerupDisplayName("role-shield", lang),
-    count: powerups.roleShields,
-  },
-  {
-    key: "rolePresents",
-    imageId: "role-present",
-    label: getPowerupDisplayName("role-present", lang),
-    count: powerups.rolePresents,
-  },
-];
+  enabledPowerupIds: string[],
+) => {
+  const orderedPowerups: PowerupItem[] = [
+    {
+      key: "lootboxes",
+      imageId: "lootbox",
+      label: dictionary.lootboxLabel,
+      description: dictionary.lootboxDescription,
+      count: powerups.lootboxes,
+    },
+    {
+      key: "streakFreezes",
+      imageId: "streak-freeze",
+      label: getPowerupDisplayName("streak-freeze", lang),
+      description: getPowerupDescription("streak-freeze", lang),
+      count: powerups.streakFreezes,
+    },
+    {
+      key: "smallPointMultiplicators",
+      imageId: "small-point-multiplicator",
+      label: getPowerupDisplayName("small-point-multiplicator", lang),
+      description: getPowerupDescription("small-point-multiplicator", lang),
+      count: powerups.smallPointMultiplicators,
+    },
+    {
+      key: "mediumPointMultiplicators",
+      imageId: "medium-point-multiplicator",
+      label: getPowerupDisplayName("medium-point-multiplicator", lang),
+      description: getPowerupDescription("medium-point-multiplicator", lang),
+      count: powerups.mediumPointMultiplicators,
+    },
+    {
+      key: "largePointMultiplicators",
+      imageId: "large-point-multiplicator",
+      label: getPowerupDisplayName("large-point-multiplicator", lang),
+      description: getPowerupDescription("large-point-multiplicator", lang),
+      count: powerups.largePointMultiplicators,
+    },
+    {
+      key: "roleShields",
+      imageId: "role-shield",
+      label: getPowerupDisplayName("role-shield", lang),
+      description: getPowerupDescription("role-shield", lang),
+      count: powerups.roleShields,
+    },
+    {
+      key: "rolePresents",
+      imageId: "role-present",
+      label: getPowerupDisplayName("role-present", lang),
+      description: getPowerupDescription("role-present", lang),
+      count: powerups.rolePresents,
+    },
+  ];
+
+  return orderedPowerups
+    .filter((powerup) => powerup.imageId === "lootbox" || enabledPowerupIds.includes(powerup.imageId))
+    .sort((first, second) => Number(second.count > 0) - Number(first.count > 0));
+};
 
 const getPlacementCardClassName = (rank: number) => {
   if (rank === 1) {
@@ -185,12 +206,13 @@ export function UserProfileCard({
   showStreak,
   showAchievements,
   showPowerups,
+  enabledPowerupIds,
   edit,
 }: UserProfileCardProps) {
   const earnedAchievementIds = new Set(profile.achievements.map((achievement) => achievement.id));
   const leaderboardHref = `/${lang}/leaderboard/individual?highlight=${profile.userId}#leaderboard-user-${profile.userId}`;
   const fullProfileHref = `/${lang}/user/${profile.userId}`;
-  const powerupItems = getPowerupItems(profile.powerups, lang, dictionary);
+  const powerupItems = getPowerupItems(profile.powerups, lang, dictionary, enabledPowerupIds);
 
   return (
     <section className={cn("space-y-6 p-4 sm:p-6", mode === "page" && "px-0 py-0")}>
@@ -435,7 +457,14 @@ export function UserProfileCard({
                               </div>
                             }
                           />
-                          <TooltipContent>{powerup.label}</TooltipContent>
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <p className="font-medium">{powerup.label}</p>
+                              {powerup.description ? (
+                                <p className="text-background/80">{powerup.description}</p>
+                              ) : null}
+                            </div>
+                          </TooltipContent>
                         </Tooltip>
                       );
                     })}

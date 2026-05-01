@@ -19,6 +19,7 @@ type LeaderboardProps = {
   profileDataByUserId: Record<string, UserProfileData>;
   showAchievements: boolean;
   showPowerups: boolean;
+  enabledPowerupIds: string[];
   showStreaks: boolean;
   dictionary: {
     heading: string;
@@ -53,6 +54,7 @@ export function Leaderboard({
   profileDataByUserId,
   showAchievements,
   showPowerups,
+  enabledPowerupIds,
   showStreaks,
   dictionary,
 }: LeaderboardProps) {
@@ -97,6 +99,7 @@ export function Leaderboard({
                           showStreak={showStreaks}
                           showAchievements={showAchievements}
                           showPowerups={showPowerups}
+                          enabledPowerupIds={enabledPowerupIds}
                           triggerClassName="h-auto max-w-full gap-3 rounded-lg p-1 pr-2"
                         >
                           <Avatar className="size-8 border border-border bg-background">
