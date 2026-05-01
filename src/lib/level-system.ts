@@ -4,17 +4,13 @@ import {cache} from "react";
 import {sql} from "drizzle-orm";
 
 import {
-  guildMeetings,
-  manualPoints,
-  pointDistribution,
   userLevels,
-  userPointSubmissions,
   userPowerups,
-  users,
 } from "@/db/schema";
 import {db} from "@/lib/db";
 import {getCurrentFeatureConfig} from "@/lib/feature-config-server";
 import {getFeatureSettingValue, isFeatureEnabled} from "@/lib/feature-flags";
+import {loadUserPointTotals} from "@/lib/point-calculation";
 
 export type LevelSystemConfig = {
   firstLevelPoints: number;
@@ -153,86 +149,32 @@ const loadRawUserLevelRows = async (userIds: string[]) => {
     return [];
   }
 
-  const selectedUserIds = sql.join(userIds.map((userId) => sql`${userId}`), sql`, `);
+  const pointRows = await loadUserPointTotals({userIds});
 
-  const result = await db.execute(sql<RawUserLevelRow>`
-    with selected_users as (
-      select u.id
-      from ${users} u
-      where u.id in (${selectedUserIds})
-    ),
-    submission_points as (
-      select
-        su.id as user_id,
-        coalesce(
-          sum(
-            case ups.attendance
-              when 1 then coalesce(pd.attendance_virtual, 0)
-              when 2 then coalesce(pd.attendance_on_site, 0)
-              else 0
-            end
-            + case ups.protocol
-                when 1 then coalesce(pd.protocol_forced, 0)
-                when 2 then coalesce(pd.protocol_voluntarily, 0)
-                else 0
-              end
-            + case
-                when ups.moderation then coalesce(pd.moderation, 0)
-                else 0
-              end
-            + case
-                when ups.working_group then coalesce(pd.working_group, 0)
-                else 0
-              end
-            + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-            + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-          ),
-          0
-        )::integer as total_points
-      from selected_users su
-      left join ${userPointSubmissions} ups on ups.user_id = su.id
-      left join ${guildMeetings} gm
-        on gm.id = ups.guild_meeting_id
-        and gm.timestamp <= now()
-      left join lateral (
-        select
-          attendance_virtual,
-          attendance_on_site,
-          protocol_forced,
-          protocol_voluntarily,
-          moderation,
-          working_group,
-          twl,
-          presentation
-        from ${pointDistribution} pd
-        where pd.active_from <= gm.timestamp
-        order by pd.active_from desc
-        limit 1
-      ) pd on true
-      group by su.id
-    ),
-    manual_points_totals as (
-      select
-        su.id as user_id,
-        coalesce(sum(mp.points), 0)::integer as total_points
-      from selected_users su
-      left join ${manualPoints} mp on mp.user_id = su.id
-      group by su.id
-    )
+  if (pointRows.length === 0) {
+    return [];
+  }
+
+  const selectedUserIds = sql.join(pointRows.map((row) => sql`${row.userId}`), sql`, `);
+  const levelRows = await db.execute<{
+    userId: string;
+    storedLevel: number | string | null;
+  }>(sql`
     select
-      su.id as "userId",
-      (
-        coalesce(sp.total_points, 0)
-        + coalesce(mpt.total_points, 0)
-      )::integer as "totalPoints",
+      ul.user_id as "userId",
       ul.current_level as "storedLevel"
-    from selected_users su
-    left join submission_points sp on sp.user_id = su.id
-    left join manual_points_totals mpt on mpt.user_id = su.id
-    left join ${userLevels} ul on ul.user_id = su.id
+    from ${userLevels} ul
+    where ul.user_id in (${selectedUserIds})
   `);
+  const storedLevelByUserId = new Map(
+    levelRows.rows.map((row) => [String(row.userId), row.storedLevel]),
+  );
 
-  return result.rows as RawUserLevelRow[];
+  return pointRows.map((row) => ({
+    userId: row.userId,
+    totalPoints: row.totalPoints,
+    storedLevel: storedLevelByUserId.get(row.userId) ?? null,
+  })) satisfies RawUserLevelRow[];
 };
 
 export const getUserLevelProgressMap = cache(

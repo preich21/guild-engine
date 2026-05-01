@@ -7,16 +7,15 @@ import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 import {
   achievements,
   guildMeetings,
-  manualPoints,
-  pointDistribution,
-  powerupUtilization,
   teams,
   userAchievements,
   userPointSubmissions,
   users,
 } from "@/db/schema";
-import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
-import { getFeatureSettingValue } from "@/lib/feature-flags";
+import {
+  loadUserPointTotals,
+  parsePointCalculationStartDate,
+} from "@/lib/point-calculation";
 
 export type LeaderboardEntry = {
   userId: string;
@@ -66,71 +65,17 @@ type RawLeaderboardEntry = {
   profilePicture: string | null;
   description: string | null;
   teamId: string;
-  totalPoints: number | string;
   attendanceStreakCount: number | string;
   attendanceStreakHasPendingRecentMeeting: boolean;
   achievements: string;
 };
 
-type RawTeamLeaderboardEntry = {
+type RawTeamMemberEntry = {
+  userId: string | null;
+  username: string | null;
+  profilePicture: string | null;
   teamId: string;
   teamName: string;
-  totalPoints: number | string;
-  members: string;
-};
-
-const pointMultiplicatorPowerupIds = [
-  "small-point-multiplicator",
-  "medium-point-multiplicator",
-  "large-point-multiplicator",
-] as const;
-
-type PointMultiplicatorPowerupId = (typeof pointMultiplicatorPowerupIds)[number];
-
-type PointMultiplicatorFactors = Record<PointMultiplicatorPowerupId, number>;
-
-const parsePointMultiplicatorFactor = (value: unknown): number => {
-  const factor = typeof value === "number" ? value : Number(value);
-
-  return Number.isFinite(factor) && factor >= 1 ? factor : 1;
-};
-
-const getPointMultiplicatorFactors = async (): Promise<PointMultiplicatorFactors> => {
-  const featureConfig = await loadCurrentFeatureConfig();
-
-  return Object.fromEntries(
-    pointMultiplicatorPowerupIds.map((powerupId) => [
-      powerupId,
-      parsePointMultiplicatorFactor(
-        getFeatureSettingValue(featureConfig.state, "powerups", `${powerupId}-multiplicator`),
-      ),
-    ]),
-  ) as PointMultiplicatorFactors;
-};
-
-const parseLeaderboardStartDate = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
-    return null;
-  }
-
-  const [year, month, day] = trimmedValue.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-
-  return trimmedValue;
 };
 
 const parseTeamLeaderboardAggregation = (
@@ -140,12 +85,11 @@ const parseTeamLeaderboardAggregation = (
 export const getLeaderboard = async (
   config: IndividualLeaderboardConfig = {},
 ): Promise<LeaderboardEntry[]> => {
-  const pointMultiplicatorFactors = await getPointMultiplicatorFactors();
-  const startDate = parseLeaderboardStartDate(config.startDate);
-  const pointStartDateCondition =
-    startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
-  const manualPointStartDateCondition =
-    startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
+  const startDate = parsePointCalculationStartDate(config.startDate);
+  const pointTotals = await loadUserPointTotals({ startDate });
+  const totalPointsByUserId = new Map(
+    pointTotals.map((entry) => [entry.userId, entry.totalPoints]),
+  );
 
   const result = await db.execute(sql<RawLeaderboardEntry>`
     select
@@ -154,39 +98,8 @@ export const getLeaderboard = async (
       u.profile_picture as "profilePicture",
       u.description,
       u.team_id as "teamId",
-      (
-        coalesce(
-          sum(
-            (
-              case ups.attendance
-                when 1 then coalesce(pd.attendance_virtual, 0)
-                when 2 then coalesce(pd.attendance_on_site, 0)
-                else 0
-              end
-              + case ups.protocol
-                  when 1 then coalesce(pd.protocol_forced, 0)
-                  when 2 then coalesce(pd.protocol_voluntarily, 0)
-                  else 0
-                end
-              + case
-                  when ups.moderation then coalesce(pd.moderation, 0)
-                  else 0
-                end
-              + case
-                  when ups.working_group then coalesce(pd.working_group, 0)
-                  else 0
-                end
-              + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-              + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-            )
-            * coalesce(pum.factor, 1)
-          ),
-          0
-        )
-        + coalesce(max(mp.total_points), 0)
-      )::integer as "totalPoints",
-      coalesce(max(streak.count), 0)::integer as "attendanceStreakCount",
-      coalesce(bool_or(streak.has_pending_recent_meeting), false) as "attendanceStreakHasPendingRecentMeeting",
+      coalesce(streak.count, 0)::integer as "attendanceStreakCount",
+      coalesce(streak.has_pending_recent_meeting, false) as "attendanceStreakHasPendingRecentMeeting",
       coalesce(
         (
           select json_agg(
@@ -204,48 +117,6 @@ export const getLeaderboard = async (
         '[]'::json
       )::text as achievements
     from ${users} u
-    left join ${userPointSubmissions} ups on ups.user_id = u.id
-    left join ${guildMeetings} gm
-      on gm.id = ups.guild_meeting_id
-      and gm.timestamp <= now()
-      ${pointStartDateCondition}
-    left join lateral (
-      select
-        attendance_virtual,
-        attendance_on_site,
-        protocol_forced,
-        protocol_voluntarily,
-        moderation,
-        working_group,
-        twl,
-        presentation
-      from ${pointDistribution} pd
-      where pd.active_from <= gm.timestamp
-      order by pd.active_from desc
-      limit 1
-    ) pd on true
-    left join lateral (
-      select
-        case pu.powerup
-          when 'small-point-multiplicator' then ${pointMultiplicatorFactors["small-point-multiplicator"]}::numeric
-          when 'medium-point-multiplicator' then ${pointMultiplicatorFactors["medium-point-multiplicator"]}::numeric
-          when 'large-point-multiplicator' then ${pointMultiplicatorFactors["large-point-multiplicator"]}::numeric
-          else 1::numeric
-        end as factor
-      from ${powerupUtilization} pu
-      where pu.meeting_id = gm.id
-        and pu.user_id = u.id
-        and pu.powerup like '%-point-multiplicator'
-      order by pu.usage_timestamp desc
-      limit 1
-    ) pum on true
-    left join lateral (
-      select
-        coalesce(sum(mp.points), 0)::integer as total_points
-      from ${manualPoints} mp
-      where mp.user_id = u.id
-        ${manualPointStartDateCondition}
-    ) mp on true
     left join lateral (
       with meeting_rows as (
         select
@@ -309,8 +180,7 @@ export const getLeaderboard = async (
         )::integer as count,
         (select sil.value from should_ignore_latest sil) as has_pending_recent_meeting
     ) streak on true
-    group by u.id, u.username, u.profile_picture, u.description, u.team_id
-    order by "totalPoints" desc, u.username
+    order by u.username
   `);
 
   const rows = result.rows as RawLeaderboardEntry[];
@@ -321,7 +191,7 @@ export const getLeaderboard = async (
     profilePicture: row.profilePicture,
     description: row.description,
     teamId: String(row.teamId),
-    totalPoints: Number(row.totalPoints),
+    totalPoints: totalPointsByUserId.get(String(row.userId)) ?? 0,
     attendanceStreak: {
       count: Number(row.attendanceStreakCount),
       hasPendingRecentMeeting: Boolean(row.attendanceStreakHasPendingRecentMeeting),
@@ -337,150 +207,79 @@ export const getLeaderboard = async (
       title: String(achievement.title),
       image: String(achievement.image),
     })),
-  }));
+  })).sort((firstEntry, secondEntry) =>
+    secondEntry.totalPoints - firstEntry.totalPoints ||
+    firstEntry.username.localeCompare(secondEntry.username),
+  );
 };
 
 export const getTeamLeaderboard = async (
   config: TeamLeaderboardConfig = {},
 ): Promise<TeamLeaderboardEntry[]> => {
-  const pointMultiplicatorFactors = await getPointMultiplicatorFactors();
-  const startDate = parseLeaderboardStartDate(config["start-date"]);
+  const startDate = parsePointCalculationStartDate(config["start-date"]);
   const aggregation = parseTeamLeaderboardAggregation(config.aggregation);
-  const pointStartDateCondition =
-    startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
-  const manualPointStartDateCondition =
-    startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
-  const teamTotalPointsExpression =
-    aggregation === "sum"
-      ? sql`coalesce(sum(ut.total_points), 0)::integer`
-      : sql`
-        coalesce(
-          ceil(
-            coalesce(sum(ut.total_points), 0)::numeric
-            / nullif(count(ut.user_id), 0)
-          ),
-          0
-        )::integer
-      `;
+  const pointTotals = await loadUserPointTotals({ startDate });
+  const totalPointsByUserId = new Map(
+    pointTotals.map((entry) => [entry.userId, entry.totalPoints]),
+  );
 
-  const result = await db.execute(sql<RawTeamLeaderboardEntry>`
-    with user_totals as (
-      select
-        u.id as user_id,
-        u.team_id as team_id,
-        u.username,
-        u.profile_picture as profile_picture,
-        (
-          coalesce(
-            sum(
-              (
-                case ups.attendance
-                  when 1 then coalesce(pd.attendance_virtual, 0)
-                  when 2 then coalesce(pd.attendance_on_site, 0)
-                  else 0
-                end
-                + case ups.protocol
-                    when 1 then coalesce(pd.protocol_forced, 0)
-                    when 2 then coalesce(pd.protocol_voluntarily, 0)
-                    else 0
-                  end
-                + case
-                    when ups.moderation then coalesce(pd.moderation, 0)
-                    else 0
-                  end
-                + case
-                    when ups.working_group then coalesce(pd.working_group, 0)
-                    else 0
-                  end
-                + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-                + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-              )
-              * coalesce(pum.factor, 1)
-            ),
-            0
-          )
-          + coalesce(max(mp.total_points), 0)
-        )::integer as total_points
-      from ${users} u
-      left join ${userPointSubmissions} ups on ups.user_id = u.id
-      left join ${guildMeetings} gm
-        on gm.id = ups.guild_meeting_id
-        and gm.timestamp <= now()
-        ${pointStartDateCondition}
-      left join lateral (
-        select
-          attendance_virtual,
-          attendance_on_site,
-          protocol_forced,
-          protocol_voluntarily,
-          moderation,
-          working_group,
-          twl,
-          presentation
-        from ${pointDistribution} pd
-        where pd.active_from <= gm.timestamp
-        order by pd.active_from desc
-        limit 1
-      ) pd on true
-      left join lateral (
-        select
-          case pu.powerup
-            when 'small-point-multiplicator' then ${pointMultiplicatorFactors["small-point-multiplicator"]}::numeric
-            when 'medium-point-multiplicator' then ${pointMultiplicatorFactors["medium-point-multiplicator"]}::numeric
-            when 'large-point-multiplicator' then ${pointMultiplicatorFactors["large-point-multiplicator"]}::numeric
-            else 1::numeric
-          end as factor
-        from ${powerupUtilization} pu
-        where pu.meeting_id = gm.id
-          and pu.user_id = u.id
-          and pu.powerup like '%-point-multiplicator'
-        order by pu.usage_timestamp desc
-        limit 1
-      ) pum on true
-      left join lateral (
-        select
-          coalesce(sum(mp.points), 0)::integer as total_points
-        from ${manualPoints} mp
-        where mp.user_id = u.id
-          ${manualPointStartDateCondition}
-      ) mp on true
-      group by u.id, u.team_id, u.username, u.profile_picture
-    )
+  const result = await db.execute(sql<RawTeamMemberEntry>`
     select
       t.id as "teamId",
       t.name as "teamName",
-      ${teamTotalPointsExpression} as "totalPoints",
-      coalesce(
-        json_agg(
-          json_build_object(
-            'userId', ut.user_id,
-            'username', ut.username,
-            'profilePicture', ut.profile_picture,
-            'totalPoints', ut.total_points
-          )
-          order by ut.total_points desc, ut.username
-        ) filter (where ut.user_id is not null),
-        '[]'::json
-      )::text as members
+      u.id as "userId",
+      u.username,
+      u.profile_picture as "profilePicture"
     from ${teams} t
-    left join user_totals ut on ut.team_id = t.id
-    group by t.id, t.name
-    order by "totalPoints" desc, t.name
+    left join ${users} u on u.team_id = t.id
+    order by t.name, u.username
   `);
 
-  const rows = result.rows as RawTeamLeaderboardEntry[];
+  const entriesByTeamId = new Map<string, TeamLeaderboardEntry>();
 
-  return rows.map((row) => ({
-    teamId: String(row.teamId),
-    teamName: String(row.teamName),
-    totalPoints: Number(row.totalPoints),
-    members: (JSON.parse(row.members) as TeamMemberEntry[]).map((member) => ({
-      userId: String(member.userId),
-      username: String(member.username),
-      profilePicture: member.profilePicture ?? null,
-      totalPoints: Number(member.totalPoints),
-    })),
-  }));
+  for (const row of result.rows as RawTeamMemberEntry[]) {
+    const teamId = String(row.teamId);
+    const entry = entriesByTeamId.get(teamId) ?? {
+      teamId,
+      teamName: String(row.teamName),
+      totalPoints: 0,
+      members: [],
+    };
+
+    if (row.userId !== null && row.username !== null) {
+      const userId = String(row.userId);
+
+      entry.members.push({
+        userId,
+        username: String(row.username),
+        profilePicture: row.profilePicture,
+        totalPoints: totalPointsByUserId.get(userId) ?? 0,
+      });
+    }
+
+    entriesByTeamId.set(teamId, entry);
+  }
+
+  return Array.from(entriesByTeamId.values())
+    .map((entry) => {
+      const summedPoints = entry.members.reduce((total, member) => total + member.totalPoints, 0);
+
+      return {
+        ...entry,
+        totalPoints:
+          aggregation === "sum" || entry.members.length === 0
+            ? summedPoints
+            : Math.ceil(summedPoints / entry.members.length),
+        members: entry.members.sort((firstMember, secondMember) =>
+          secondMember.totalPoints - firstMember.totalPoints ||
+          firstMember.username.localeCompare(secondMember.username),
+        ),
+      };
+    })
+    .sort((firstEntry, secondEntry) =>
+      secondEntry.totalPoints - firstEntry.totalPoints ||
+      firstEntry.teamName.localeCompare(secondEntry.teamName),
+    );
 };
 
 export const getIndividualLeaderboardPlacement = async (userId: string): Promise<number | null> => {
