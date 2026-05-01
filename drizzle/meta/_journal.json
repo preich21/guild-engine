@@ -43,6 +43,13 @@
       "when": 1777614488586,
       "tag": "0005_fine_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777618355103,
+      "tag": "0006_large_rhodey",
+      "breakpoints": true
     }
   ]
 }

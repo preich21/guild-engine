@@ -71,6 +71,8 @@ const en = {
       "Unlocked achievements stay colorful. Locked achievements are shown greyed out.",
     allAchievementsEmpty:
       "There are currently no achievements configured. Please contact your administrator.",
+    powerupsHeading: "Powerups",
+    lootboxLabel: "Lootbox",
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",
     edit: {

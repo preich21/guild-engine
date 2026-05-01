@@ -46,8 +46,10 @@ export default async function UserProfilePage({
     getCurrentUserRecord(),
     getCurrentFeatureConfig(),
   ]);
+  const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
   const profile = await getUserProfileData(uuid, {
     includeLevelProgress: isFeatureEnabled(featureConfig.state, "level-system"),
+    includePowerups: arePowerupsEnabled,
   });
 
   if (!profile) {
@@ -67,6 +69,7 @@ export default async function UserProfilePage({
           showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
           showStreak={isFeatureEnabled(featureConfig.state, "streaks")}
           showAchievements={isFeatureEnabled(featureConfig.state, "badges")}
+          showPowerups={arePowerupsEnabled}
           edit={editTeams ? { teams: editTeams, action: saveProfile } : undefined}
         />
       </div>

@@ -9,7 +9,11 @@ import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
-import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
+import {
+  createUserProfileDataMap,
+  getUserPowerupsMap,
+  getUserProfileAchievementCatalog,
+} from "@/lib/user-profile";
 
 export async function generateMetadata({
   params,
@@ -35,6 +39,7 @@ export default async function CooperativeProgressRoutePage({
   }
 
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
+  const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const isIndividualLeaderboardEnabled = isFeatureEnabled(
@@ -79,6 +84,9 @@ export default async function CooperativeProgressRoutePage({
     ? await getUserLevelProgressMap(progress.topContributors.map((entry) => entry.userId))
     : {};
   const profileEntries = individualLeaderboardEntries ?? progress.topContributors;
+  const powerupsByUserId = arePowerupsEnabled
+    ? await getUserPowerupsMap(profileEntries.map((entry) => entry.userId))
+    : {};
 
   return (
     <CooperativeProgressPage
@@ -88,10 +96,12 @@ export default async function CooperativeProgressRoutePage({
         profileEntries,
         allAchievements,
         levelProgressByUserId,
+        powerupsByUserId,
       )}
       showLeaderboardPlacement={isIndividualLeaderboardEnabled}
       showStreaks={areStreaksEnabled}
       showAchievements={areBadgesEnabled}
+      showPowerups={arePowerupsEnabled}
       dictionary={{
         heading: dictionary.cooperativeProgress.heading,
         topContributorsHeading: dictionary.cooperativeProgress.topContributorsHeading,

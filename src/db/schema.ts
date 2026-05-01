@@ -161,6 +161,20 @@ export const userLevels = pgTable("user_levels", {
   lastLevelUp: timestamp("last_level_up", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const userPowerups = pgTable("user_powerups", {
+  userId: uuid("user_id")
+    .notNull()
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  lootboxes: smallint("lootboxes").notNull().default(0),
+  smallPointMultiplicators: smallint("small_point_multiplicators").notNull().default(0),
+  mediumPointMultiplicators: smallint("medium_point_multiplicators").notNull().default(0),
+  largePointMultiplicators: smallint("large_point_multiplicators").notNull().default(0),
+  streakFreezes: smallint("streak_freezes").notNull().default(0),
+  rolePresents: smallint("role_presents").notNull().default(0),
+  roleShields: smallint("role_shields").notNull().default(0),
+});
+
 export const manualPoints = pgTable(
   "manual_points",
   {

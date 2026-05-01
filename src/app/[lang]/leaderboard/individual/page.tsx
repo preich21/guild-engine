@@ -8,7 +8,11 @@ import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
-import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
+import {
+  createUserProfileDataMap,
+  getUserPowerupsMap,
+  getUserProfileAchievementCatalog,
+} from "@/lib/user-profile";
 
 export async function generateMetadata({
   params,
@@ -31,6 +35,7 @@ export default async function IndividualLeaderboardPage({
 
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
+  const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const individualLeaderboardConfig = {
@@ -50,6 +55,9 @@ export default async function IndividualLeaderboardPage({
   const levelProgressByUserId = areLevelsEnabled
     ? await getUserLevelProgressMap(entries.map((entry) => entry.userId))
     : {};
+  const powerupsByUserId = arePowerupsEnabled
+    ? await getUserPowerupsMap(entries.map((entry) => entry.userId))
+    : {};
 
   const highlightedUserId = typeof highlight === "string" ? highlight : undefined;
 
@@ -58,8 +66,14 @@ export default async function IndividualLeaderboardPage({
       lang={lang}
       entries={entries}
       highlightedUserId={highlightedUserId}
-      profileDataByUserId={createUserProfileDataMap(entries, allAchievements, levelProgressByUserId)}
+      profileDataByUserId={createUserProfileDataMap(
+        entries,
+        allAchievements,
+        levelProgressByUserId,
+        powerupsByUserId,
+      )}
       showAchievements={areBadgesEnabled}
+      showPowerups={arePowerupsEnabled}
       showStreaks={areStreaksEnabled}
       dictionary={{
         heading: dictionary.leaderboard.individual.heading,

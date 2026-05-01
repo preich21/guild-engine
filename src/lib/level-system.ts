@@ -3,7 +3,15 @@ import "server-only";
 import {cache} from "react";
 import {sql} from "drizzle-orm";
 
-import {guildMeetings, manualPoints, pointDistribution, userLevels, userPointSubmissions, users,} from "@/db/schema";
+import {
+  guildMeetings,
+  manualPoints,
+  pointDistribution,
+  userLevels,
+  userPointSubmissions,
+  userPowerups,
+  users,
+} from "@/db/schema";
 import {db} from "@/lib/db";
 import {getCurrentFeatureConfig} from "@/lib/feature-config-server";
 import {getFeatureSettingValue, isFeatureEnabled} from "@/lib/feature-flags";
@@ -260,22 +268,52 @@ export const getUserLevelProgressMap = cache(
     );
 
     if (levelUps.length > 0) {
-      await db
-        .insert(userLevels)
-        .values(
-          levelUps.map(([userId, entry]) => ({
+      await db.transaction(async (tx) => {
+        const awardedLootboxesByUserId = new Map(
+          levelUps.map(([userId, entry]) => [
             userId,
-            currentLevel: entry.calculatedLevel,
-          })),
-        )
-        .onConflictDoUpdate({
-          target: userLevels.userId,
-          set: {
-            currentLevel: sql`excluded.current_level`,
-            lastLevelUp: sql`now()`,
-          },
-          setWhere: sql`${userLevels.currentLevel} < excluded.current_level`,
-        });
+            entry.calculatedLevel - (entry.storedLevel ?? 0),
+          ]),
+        );
+        const savedLevelUps = await tx
+          .insert(userLevels)
+          .values(
+            levelUps.map(([userId, entry]) => ({
+              userId,
+              currentLevel: entry.calculatedLevel,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: userLevels.userId,
+            set: {
+              currentLevel: sql`excluded.current_level`,
+              lastLevelUp: sql`now()`,
+            },
+            setWhere: sql`${userLevels.currentLevel} < excluded.current_level`,
+          })
+          .returning({
+            userId: userLevels.userId,
+          });
+
+        if (savedLevelUps.length === 0) {
+          return;
+        }
+
+        await tx
+          .insert(userPowerups)
+          .values(
+            savedLevelUps.map(({ userId }) => ({
+              userId,
+              lootboxes: awardedLootboxesByUserId.get(userId) ?? 0,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: userPowerups.userId,
+            set: {
+              lootboxes: sql`${userPowerups.lootboxes} + excluded.lootboxes`,
+            },
+          });
+      });
     }
 
     return Object.fromEntries(

@@ -8,7 +8,11 @@ import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getFeatureSettingValue, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserLevelProgressMap } from "@/lib/level-system";
 import { getPageMetadata } from "@/lib/page-metadata";
-import { createUserProfileDataMap, getUserProfileAchievementCatalog } from "@/lib/user-profile";
+import {
+  createUserProfileDataMap,
+  getUserPowerupsMap,
+  getUserProfileAchievementCatalog,
+} from "@/lib/user-profile";
 
 export async function generateMetadata({
   params,
@@ -29,6 +33,7 @@ export default async function TeamLeaderboardPage({
 
   const featureConfig = await getCurrentFeatureConfig();
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
+  const arePowerupsEnabled = isFeatureEnabled(featureConfig.state, "powerups");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
   const teamLeaderboardConfig = {
@@ -45,6 +50,9 @@ export default async function TeamLeaderboardPage({
   const levelProgressByUserId = areLevelsEnabled
     ? await getUserLevelProgressMap(individualEntries.map((entry) => entry.userId))
     : {};
+  const powerupsByUserId = arePowerupsEnabled
+    ? await getUserPowerupsMap(individualEntries.map((entry) => entry.userId))
+    : {};
 
   return (
     <TeamLeaderboard
@@ -55,10 +63,12 @@ export default async function TeamLeaderboardPage({
         individualEntries,
         allAchievements,
         levelProgressByUserId,
+        powerupsByUserId,
       )}
       showLeaderboardPlacement={isFeatureEnabled(featureConfig.state, "individual-leaderboard")}
       showStreaks={areStreaksEnabled}
       showAchievements={areBadgesEnabled}
+      showPowerups={arePowerupsEnabled}
       dictionary={{
         heading: dictionary.leaderboard.team.heading,
         empty: dictionary.leaderboard.team.empty,

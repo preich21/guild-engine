@@ -72,6 +72,8 @@ const de = {
       "Freigeschaltete Erfolge bleiben farbig. Noch nicht freigeschaltete Erfolge werden ausgegraut angezeigt.",
     allAchievementsEmpty:
       "Derzeit sind keine Erfolge konfiguriert. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
+    powerupsHeading: "Powerups",
+    lootboxLabel: "Lootbox",
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",
     edit: {

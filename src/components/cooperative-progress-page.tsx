@@ -28,6 +28,7 @@ type CooperativeProgressPageProps = {
   showLeaderboardPlacement: boolean;
   showStreaks: boolean;
   showAchievements: boolean;
+  showPowerups: boolean;
   dictionary: CooperativeProgressPageDictionary;
 };
 
@@ -40,6 +41,7 @@ export function CooperativeProgressPage({
   showLeaderboardPlacement,
   showStreaks,
   showAchievements,
+  showPowerups,
   dictionary,
 }: CooperativeProgressPageProps) {
   const numberFormatter = new Intl.NumberFormat(lang);
@@ -100,6 +102,7 @@ export function CooperativeProgressPage({
                             showLeaderboardPlacement={showLeaderboardPlacement}
                             showStreak={showStreaks}
                             showAchievements={showAchievements}
+                            showPowerups={showPowerups}
                             triggerClassName="h-auto max-w-full gap-3 rounded-lg p-1 pr-2"
                           >
                             <Avatar className="size-8 border border-border bg-background">
