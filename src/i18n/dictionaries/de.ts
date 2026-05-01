@@ -75,6 +75,11 @@ const de = {
     powerupsHeading: "Powerups",
     lootboxLabel: "Lootbox",
     lootboxDescription: "Enthält ein zufällig freigeschaltetes Powerup.",
+    powerupsDialog: {
+      cancelPowerupDialogButton: "Abbrechen",
+      usePowerupNowButton: "Jetzt nutzen",
+      lootboxOpenError: "Diese Lootbox konnte nicht geöffnet werden.",
+    },
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",
     edit: {

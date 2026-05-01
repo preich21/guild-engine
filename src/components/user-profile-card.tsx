@@ -8,9 +8,15 @@ import {
   UserProfileEditDialog,
   type UserProfileEditDictionary,
 } from "@/components/user-profile-edit-dialog";
+import {
+  UserProfilePowerups as UserProfilePowerupsList,
+  type PowerupItem,
+  type UserProfilePowerupsDictionary,
+} from "@/components/user-profile-powerups";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type {
+  OpenLootboxActionResult,
   ProfileEditTeam,
   SaveProfileActionState,
 } from "@/app/[lang]/user/[uuid]/actions";
@@ -58,6 +64,7 @@ export type UserProfileDictionary = {
   powerupsHeading: string;
   lootboxLabel: string;
   lootboxDescription: string;
+  powerupsDialog: UserProfilePowerupsDictionary;
   openProfileButton: string;
   openProfilePage: string;
   edit: UserProfileEditDictionary;
@@ -71,6 +78,14 @@ type UserProfileEditProps = {
   ) => Promise<SaveProfileActionState>;
 };
 
+type UserProfilePowerupsProps = {
+  canUsePowerups: boolean;
+  openLootboxAction?: (
+    lang: Locale,
+    targetUserId: string,
+  ) => Promise<OpenLootboxActionResult>;
+};
+
 type UserProfileCardProps = {
   lang: Locale;
   profile: UserProfileData;
@@ -82,20 +97,13 @@ type UserProfileCardProps = {
   showPowerups: boolean;
   enabledPowerupIds: string[];
   edit?: UserProfileEditProps;
+  powerups?: UserProfilePowerupsProps;
 };
 
 type PowerupConfigurationEntry = {
   id: string;
   label?: Partial<Record<Locale, string>>;
   description?: Partial<Record<Locale, string>>;
-};
-
-type PowerupItem = {
-  key: keyof UserProfilePowerups;
-  imageId: string;
-  label: string;
-  description: string | null;
-  count: number;
 };
 
 const powerupConfiguration = featureConfiguration.features.find(
@@ -208,6 +216,7 @@ export function UserProfileCard({
   showPowerups,
   enabledPowerupIds,
   edit,
+  powerups,
 }: UserProfileCardProps) {
   const earnedAchievementIds = new Set(profile.achievements.map((achievement) => achievement.id));
   const leaderboardHref = `/${lang}/leaderboard/individual?highlight=${profile.userId}#leaderboard-user-${profile.userId}`;
@@ -421,58 +430,14 @@ export function UserProfileCard({
             <CardTitle>{dictionary.powerupsHeading}</CardTitle>
           </CardHeader>
           <CardContent>
-            <TooltipProvider>
-              <ScrollArea className="w-full">
-                <ScrollAreaViewport>
-                  <ScrollAreaContent className="flex min-w-max gap-3 pb-3">
-                    {powerupItems.map((powerup) => {
-                      const isEmpty = powerup.count === 0;
-
-                      return (
-                        <Tooltip key={powerup.key}>
-                          <TooltipTrigger
-                            render={
-                              <div
-                                className={cn(
-                                  "relative flex size-24 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/30 p-3 shadow-sm transition-opacity sm:size-28",
-                                  isEmpty && "opacity-45 grayscale",
-                                )}
-                                aria-label={powerup.label}
-                              >
-                                <Image
-                                  src={`/powerups/${powerup.imageId}.png`}
-                                  alt=""
-                                  width={72}
-                                  height={72}
-                                  className="size-16 object-contain sm:size-20"
-                                />
-                                <span
-                                  className={cn(
-                                    "absolute right-2 top-2 min-w-6 rounded-full border border-border bg-background px-1.5 py-0.5 text-center text-xs font-semibold leading-none text-foreground shadow-sm tabular-nums",
-                                    isEmpty && "text-muted-foreground",
-                                  )}
-                                >
-                                  {powerup.count}
-                                </span>
-                              </div>
-                            }
-                          />
-                          <TooltipContent>
-                            <div className="space-y-1">
-                              <p className="font-medium">{powerup.label}</p>
-                              {powerup.description ? (
-                                <p className="text-background/80">{powerup.description}</p>
-                              ) : null}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </ScrollAreaContent>
-                </ScrollAreaViewport>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </TooltipProvider>
+            <UserProfilePowerupsList
+              lang={lang}
+              userId={profile.userId}
+              items={powerupItems}
+              canUsePowerups={powerups?.canUsePowerups ?? false}
+              dictionary={dictionary.powerupsDialog}
+              openLootboxAction={powerups?.openLootboxAction}
+            />
           </CardContent>
         </Card>
       ) : null}

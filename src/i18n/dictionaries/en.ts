@@ -74,6 +74,11 @@ const en = {
     powerupsHeading: "Powerups",
     lootboxLabel: "Lootbox",
     lootboxDescription: "Contains one randomly unlocked powerup.",
+    powerupsDialog: {
+      cancelPowerupDialogButton: "Cancel",
+      usePowerupNowButton: "Use Now",
+      lootboxOpenError: "Could not open this lootbox.",
+    },
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",
     edit: {

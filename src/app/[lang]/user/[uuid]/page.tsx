@@ -7,7 +7,7 @@ import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getEnabledPowerupIds, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
-import { getProfileEditTeams, saveProfile } from "./actions";
+import { getProfileEditTeams, openLootbox, saveProfile } from "./actions";
 
 export async function generateMetadata({
   params,
@@ -58,6 +58,7 @@ export default async function UserProfilePage({
   }
 
   const canEditProfile = currentUser?.id === profile.userId;
+  const canUsePowerups = canEditProfile;
   const editTeams = canEditProfile ? await getProfileEditTeams() : null;
 
   return (
@@ -73,6 +74,10 @@ export default async function UserProfilePage({
           showPowerups={arePowerupsEnabled}
           enabledPowerupIds={enabledPowerupIds}
           edit={editTeams ? { teams: editTeams, action: saveProfile } : undefined}
+          powerups={{
+            canUsePowerups,
+            openLootboxAction: openLootbox,
+          }}
         />
       </div>
     </main>
