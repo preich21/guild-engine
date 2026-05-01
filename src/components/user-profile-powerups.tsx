@@ -33,6 +33,7 @@ import {
   ScrollBar,
 } from "@/components/ui/scroll-area";
 import type { Locale } from "@/i18n/config";
+import { useFeatureSettingValue } from "@/components/feature-config-provider";
 import { cn } from "@/lib/utils";
 import type { UserProfilePowerups } from "@/lib/user-profile";
 
@@ -56,6 +57,7 @@ export type UserProfilePowerupsDictionary = {
   mediumPointMultiplicatorUseDescription: string;
   largePointMultiplicatorUseDescription: string;
   roleShieldUseDescription: string;
+  streakFreezeAutomaticDescription: string;
   pointMultiplicatorAlreadyActivatedTooltip: string;
   roleShieldAlreadyActivatedTooltip: string;
 };
@@ -143,6 +145,13 @@ export function UserProfilePowerups({
   const [isOpening, startOpeningTransition] = useTransition();
   const [isUsing, startUsingTransition] = useTransition();
   const [error, setError] = useState(false);
+  const configuredAutomaticApplyTimeoutHours = Number(
+    useFeatureSettingValue("powerups", "streak-freeze-automatic-apply-timeout"),
+  );
+  const automaticApplyTimeoutHours =
+    Number.isInteger(configuredAutomaticApplyTimeoutHours) && configuredAutomaticApplyTimeoutHours >= 1
+      ? configuredAutomaticApplyTimeoutHours
+      : 72;
 
   useEffect(() => {
     setDisplayItems(items);
@@ -293,6 +302,7 @@ export function UserProfilePowerups({
           ),
         )
       : false;
+  const selectedPowerupIsStreakFreeze = selectedDisplayPowerup?.imageId === "streak-freeze";
 
   useEffect(() => {
     if (!selectedDisplayPowerup || !isUsablePowerupId(selectedDisplayPowerup.imageId)) {
@@ -496,8 +506,20 @@ export function UserProfilePowerups({
               <>
                 <DialogHeader className="items-start text-left">
                   <DialogTitle>{selectedDisplayPowerup.label}</DialogTitle>
-                  {selectedDisplayPowerup.description ? (
-                    <DialogDescription>{selectedDisplayPowerup.description}</DialogDescription>
+                  {selectedDisplayPowerup.description || selectedPowerupIsStreakFreeze ? (
+                    <DialogDescription className="space-y-2">
+                      {selectedDisplayPowerup.description ? (
+                        <span className="block">{selectedDisplayPowerup.description}</span>
+                      ) : null}
+                      {selectedPowerupIsStreakFreeze ? (
+                        <span className="block">
+                          {dictionary.streakFreezeAutomaticDescription.replace(
+                            "{hours}",
+                            String(automaticApplyTimeoutHours),
+                          )}
+                        </span>
+                      ) : null}
+                    </DialogDescription>
                   ) : null}
                 </DialogHeader>
 
@@ -573,29 +595,31 @@ export function UserProfilePowerups({
               <Button type="button" variant="outline" onClick={() => closeDialog(false)}>
                 {dictionary.cancelPowerupDialogButton}
               </Button>
-              <Button
-                type="button"
-                onClick={
-                  isUsablePowerupId(selectedDisplayPowerup.imageId)
-                    ? handleUsePowerup
-                    : handleUseNow
-                }
-                disabled={
-                  isOpening ||
-                  isUsing ||
-                  selectedDisplayPowerup.count === 0 ||
-                  (selectedDisplayPowerup.imageId === "lootbox" && !openLootboxAction) ||
-                  (usablePowerupIds.has(selectedDisplayPowerup.imageId) &&
-                    (!utilizePowerupAction ||
-                      !selectedMeetingId ||
-                      selectedMeetingIsDisabled ||
-                      futureGuildMeetings.length === 0))
-                }
-              >
-                {isUsablePowerupId(selectedDisplayPowerup.imageId)
-                  ? dictionary.usePowerupButton
-                  : dictionary.usePowerupNowButton}
-              </Button>
+              {selectedPowerupIsStreakFreeze ? null : (
+                <Button
+                  type="button"
+                  onClick={
+                    isUsablePowerupId(selectedDisplayPowerup.imageId)
+                      ? handleUsePowerup
+                      : handleUseNow
+                  }
+                  disabled={
+                    isOpening ||
+                    isUsing ||
+                    selectedDisplayPowerup.count === 0 ||
+                    (selectedDisplayPowerup.imageId === "lootbox" && !openLootboxAction) ||
+                    (usablePowerupIds.has(selectedDisplayPowerup.imageId) &&
+                      (!utilizePowerupAction ||
+                        !selectedMeetingId ||
+                        selectedMeetingIsDisabled ||
+                        futureGuildMeetings.length === 0))
+                  }
+                >
+                  {isUsablePowerupId(selectedDisplayPowerup.imageId)
+                    ? dictionary.usePowerupButton
+                    : dictionary.usePowerupNowButton}
+                </Button>
+              )}
             </DialogFooter>
 
           </DialogContent>

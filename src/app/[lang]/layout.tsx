@@ -83,13 +83,21 @@ export default async function RootLayout({
           : Promise.resolve(null),
         areStreaksEnabled
           ? getUserGuildMeetingAttendanceStreak(currentUser.id)
-          : Promise.resolve({ count: 0, hasPendingRecentMeeting: false }),
+          : Promise.resolve({
+              count: 0,
+              hasPendingRecentMeeting: false,
+              latestMeetingWasStreakFreeze: false,
+            }),
         areLevelsEnabled ? getUserLevelProgress(currentUser.id) : Promise.resolve(null),
         isCooperativeProgressEnabled
           ? getCooperativeProgress(cooperativeProgressConfig)
           : Promise.resolve(null),
       ]).then(([, streak, level, cooperative]) => [streak, level, cooperative] as const)
-    : ([{ count: 0, hasPendingRecentMeeting: false }, null, null] as const);
+    : ([
+        { count: 0, hasPendingRecentMeeting: false, latestMeetingWasStreakFreeze: false },
+        null,
+        null,
+      ] as const);
 
   return (
     <FeatureConfigProvider initialState={featureConfig.state}>

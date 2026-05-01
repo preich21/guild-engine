@@ -403,17 +403,23 @@ export function FeatureConfigurationForm({
                                       getSettingDefaultValue(childSetting);
 
                                     return (
-                                      <FeatureSettingControl
-                                        key={childSetting.id}
-                                        featureId={feature.id}
-                                        setting={childSetting}
-                                        value={childValue}
-                                        lang={lang}
-                                        disabled={childDisabled}
-                                        disabledReason={childDisabledReason}
-                                        selectPlaceholder={dictionary.selectPlaceholder}
-                                        onValueChange={updateSetting}
-                                      />
+                                      <div key={childSetting.id} className="space-y-2">
+                                        <FeatureSettingControl
+                                          featureId={feature.id}
+                                          setting={childSetting}
+                                          value={childValue}
+                                          lang={lang}
+                                          disabled={childDisabled}
+                                          disabledReason={childDisabledReason}
+                                          selectPlaceholder={dictionary.selectPlaceholder}
+                                          onValueChange={updateSetting}
+                                        />
+                                        {childSetting.description ? (
+                                          <p className="text-sm text-muted-foreground">
+                                            {localize(childSetting.description, lang)}
+                                          </p>
+                                        ) : null}
+                                      </div>
                                     );
                                   })}
                                 </div>

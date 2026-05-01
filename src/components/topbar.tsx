@@ -57,6 +57,7 @@ type TopbarProps = {
   attendanceStreak: {
     count: number;
     hasPendingRecentMeeting: boolean;
+    latestMeetingWasStreakFreeze: boolean;
   };
   featureConfig: FeatureConfigState;
   levelProgress?: UserLevelProgress | null;
@@ -165,6 +166,7 @@ export function Topbar({
             <AttendanceStreakIndicator
               initialCount={attendanceStreak.count}
               initialHasPendingRecentMeeting={attendanceStreak.hasPendingRecentMeeting}
+              initialLatestMeetingWasStreakFreeze={attendanceStreak.latestMeetingWasStreakFreeze}
               label={dictionary.attendanceStreakLabel}
             />
           ) : null}

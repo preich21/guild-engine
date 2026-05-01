@@ -599,6 +599,22 @@
           "parentSettingId": "streak-freeze"
         },
         {
+          "id": "streak-freeze-automatic-apply-timeout",
+          "type": "number",
+          "label": {
+            "en": "Streak Freeze Automatic Apply",
+            "de": "Serien-Freeze automatisch anwenden"
+          },
+          "description": {
+            "en": "The number of hours after a meeting a streak freeze will be automatically applied to save a users streak.",
+            "de": "Die Anzahl der Stunden nach einem Treffen, nach der ein Serien-Freeze automatisch angewendet wird, um die Serie eines Benutzers zu erhalten."
+          },
+          "defaultValue": 72,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "streak-freeze"
+        },
+        {
           "id": "role-present",
           "type": "switch",
           "label": {

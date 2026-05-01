@@ -57,6 +57,20 @@
       "when": 1777638532444,
       "tag": "0007_square_ultimatum",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777647268710,
+      "tag": "0008_wealthy_red_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777648305959,
+      "tag": "0009_absurd_firebird",
+      "breakpoints": true
     }
   ]
 }

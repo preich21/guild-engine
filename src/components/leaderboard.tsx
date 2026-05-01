@@ -123,6 +123,9 @@ export function Leaderboard({
                           <AttendanceStreakIndicator
                             initialCount={entry.attendanceStreak.count}
                             initialHasPendingRecentMeeting={entry.attendanceStreak.hasPendingRecentMeeting}
+                            initialLatestMeetingWasStreakFreeze={
+                              entry.attendanceStreak.latestMeetingWasStreakFreeze
+                            }
                             label={dictionary.streakLabel}
                           />
                         </TableCell>

@@ -18,6 +18,7 @@ export type CooperativeProgressContributor = {
   attendanceStreak: {
     count: number;
     hasPendingRecentMeeting: boolean;
+    latestMeetingWasStreakFreeze: boolean;
   };
   achievements: Array<{
     id: string;

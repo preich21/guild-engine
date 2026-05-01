@@ -76,7 +76,7 @@ const de = {
     lootboxLabel: "Lootbox",
     lootboxDescription: "Enthält ein zufällig freigeschaltetes Powerup.",
     powerupsDialog: {
-      cancelPowerupDialogButton: "Abbrechen",
+      cancelPowerupDialogButton: "Schließen",
       usePowerupNowButton: "Jetzt nutzen",
       usePowerupButton: "Nutzen",
       lootboxOpenError: "Diese Lootbox konnte nicht geöffnet werden.",
@@ -91,6 +91,8 @@ const de = {
         'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Großer Punkte-Multiplikator verbraucht.',
       roleShieldUseDescription:
         'Wähle das Treffen aus, bei dem du davor geschützt sein möchtest, Rollen zugewiesen zu bekommen. Nachdem du unten auf "Nutzen" klickst, wird dein Rollen-Schild verbraucht.',
+      streakFreezeAutomaticDescription:
+        "Serien-Freezes werden {hours} Stunden nach Beginn des Treffens automatisch angewendet, wenn keine Anwesenheit erfasst wurde, um deine Serie zu erhalten.",
       pointMultiplicatorAlreadyActivatedTooltip:
         "Du hast für dieses Treffen bereits das Powerup {powerup} aktiviert und kannst deshalb keinen weiteren Punkte-Multiplikator aktivieren.",
       roleShieldAlreadyActivatedTooltip:

@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -191,6 +192,23 @@ export const powerupUtilization = pgTable(
   (table) => [
     index("powerup_utilization_meeting_id_idx").on(table.meetingId),
     index("powerup_utilization_user_id_idx").on(table.userId),
+  ],
+);
+
+export const activatedStreakFreezes = pgTable(
+  "activated_streak_freezes",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    meetingId: uuid("meeting_id")
+      .notNull()
+      .references(() => guildMeetings.id, { onDelete: "cascade" }),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.meetingId] }),
+    index("activated_streak_freezes_meeting_id_idx").on(table.meetingId),
   ],
 );
 

@@ -75,7 +75,7 @@ const en = {
     lootboxLabel: "Lootbox",
     lootboxDescription: "Contains one randomly unlocked powerup.",
     powerupsDialog: {
-      cancelPowerupDialogButton: "Cancel",
+      cancelPowerupDialogButton: "Close",
       usePowerupNowButton: "Use Now",
       usePowerupButton: "Use",
       lootboxOpenError: "Could not open this lootbox.",
@@ -90,6 +90,8 @@ const en = {
         'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Large Point Multiplier will be consumed.',
       roleShieldUseDescription:
         'Select the meeting you would like to be protected from getting assigned any roles. After clicking "Use" below, your Role Shield will be consumed.',
+      streakFreezeAutomaticDescription:
+        "Streak freezes will be automatically applied {hours} hours after the meeting has started if no attendance was recorded to preserve your streak.",
       pointMultiplicatorAlreadyActivatedTooltip:
         "You already activated a {powerup} for this meeting and therefore cannot activate another one",
       roleShieldAlreadyActivatedTooltip:
