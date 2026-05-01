@@ -9,11 +9,14 @@ import {
   guildMeetings,
   manualPoints,
   pointDistribution,
+  powerupUtilization,
   teams,
   userAchievements,
   userPointSubmissions,
   users,
 } from "@/db/schema";
+import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
+import { getFeatureSettingValue } from "@/lib/feature-flags";
 
 export type LeaderboardEntry = {
   userId: string;
@@ -76,6 +79,35 @@ type RawTeamLeaderboardEntry = {
   members: string;
 };
 
+const pointMultiplicatorPowerupIds = [
+  "small-point-multiplicator",
+  "medium-point-multiplicator",
+  "large-point-multiplicator",
+] as const;
+
+type PointMultiplicatorPowerupId = (typeof pointMultiplicatorPowerupIds)[number];
+
+type PointMultiplicatorFactors = Record<PointMultiplicatorPowerupId, number>;
+
+const parsePointMultiplicatorFactor = (value: unknown): number => {
+  const factor = typeof value === "number" ? value : Number(value);
+
+  return Number.isFinite(factor) && factor >= 1 ? factor : 1;
+};
+
+const getPointMultiplicatorFactors = async (): Promise<PointMultiplicatorFactors> => {
+  const featureConfig = await loadCurrentFeatureConfig();
+
+  return Object.fromEntries(
+    pointMultiplicatorPowerupIds.map((powerupId) => [
+      powerupId,
+      parsePointMultiplicatorFactor(
+        getFeatureSettingValue(featureConfig.state, "powerups", `${powerupId}-multiplicator`),
+      ),
+    ]),
+  ) as PointMultiplicatorFactors;
+};
+
 const parseLeaderboardStartDate = (value: unknown): string | null => {
   if (typeof value !== "string") {
     return null;
@@ -108,6 +140,7 @@ const parseTeamLeaderboardAggregation = (
 export const getLeaderboard = async (
   config: IndividualLeaderboardConfig = {},
 ): Promise<LeaderboardEntry[]> => {
+  const pointMultiplicatorFactors = await getPointMultiplicatorFactors();
   const startDate = parseLeaderboardStartDate(config.startDate);
   const pointStartDateCondition =
     startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
@@ -124,26 +157,29 @@ export const getLeaderboard = async (
       (
         coalesce(
           sum(
-            case ups.attendance
-              when 1 then coalesce(pd.attendance_virtual, 0)
-              when 2 then coalesce(pd.attendance_on_site, 0)
-              else 0
-            end
-            + case ups.protocol
-                when 1 then coalesce(pd.protocol_forced, 0)
-                when 2 then coalesce(pd.protocol_voluntarily, 0)
+            (
+              case ups.attendance
+                when 1 then coalesce(pd.attendance_virtual, 0)
+                when 2 then coalesce(pd.attendance_on_site, 0)
                 else 0
               end
-            + case
-                when ups.moderation then coalesce(pd.moderation, 0)
-                else 0
-              end
-            + case
-                when ups.working_group then coalesce(pd.working_group, 0)
-                else 0
-              end
-            + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-            + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+              + case ups.protocol
+                  when 1 then coalesce(pd.protocol_forced, 0)
+                  when 2 then coalesce(pd.protocol_voluntarily, 0)
+                  else 0
+                end
+              + case
+                  when ups.moderation then coalesce(pd.moderation, 0)
+                  else 0
+                end
+              + case
+                  when ups.working_group then coalesce(pd.working_group, 0)
+                  else 0
+                end
+              + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
+              + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+            )
+            * coalesce(pum.factor, 1)
           ),
           0
         )
@@ -188,6 +224,21 @@ export const getLeaderboard = async (
       order by pd.active_from desc
       limit 1
     ) pd on true
+    left join lateral (
+      select
+        case pu.powerup
+          when 'small-point-multiplicator' then ${pointMultiplicatorFactors["small-point-multiplicator"]}::numeric
+          when 'medium-point-multiplicator' then ${pointMultiplicatorFactors["medium-point-multiplicator"]}::numeric
+          when 'large-point-multiplicator' then ${pointMultiplicatorFactors["large-point-multiplicator"]}::numeric
+          else 1::numeric
+        end as factor
+      from ${powerupUtilization} pu
+      where pu.meeting_id = gm.id
+        and pu.user_id = u.id
+        and pu.powerup like '%-point-multiplicator'
+      order by pu.usage_timestamp desc
+      limit 1
+    ) pum on true
     left join lateral (
       select
         coalesce(sum(mp.points), 0)::integer as total_points
@@ -292,6 +343,7 @@ export const getLeaderboard = async (
 export const getTeamLeaderboard = async (
   config: TeamLeaderboardConfig = {},
 ): Promise<TeamLeaderboardEntry[]> => {
+  const pointMultiplicatorFactors = await getPointMultiplicatorFactors();
   const startDate = parseLeaderboardStartDate(config["start-date"]);
   const aggregation = parseTeamLeaderboardAggregation(config.aggregation);
   const pointStartDateCondition =
@@ -321,26 +373,29 @@ export const getTeamLeaderboard = async (
         (
           coalesce(
             sum(
-              case ups.attendance
-                when 1 then coalesce(pd.attendance_virtual, 0)
-                when 2 then coalesce(pd.attendance_on_site, 0)
-                else 0
-              end
-              + case ups.protocol
-                  when 1 then coalesce(pd.protocol_forced, 0)
-                  when 2 then coalesce(pd.protocol_voluntarily, 0)
+              (
+                case ups.attendance
+                  when 1 then coalesce(pd.attendance_virtual, 0)
+                  when 2 then coalesce(pd.attendance_on_site, 0)
                   else 0
                 end
-              + case
-                  when ups.moderation then coalesce(pd.moderation, 0)
-                  else 0
-                end
-              + case
-                  when ups.working_group then coalesce(pd.working_group, 0)
-                  else 0
-                end
-              + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-              + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+                + case ups.protocol
+                    when 1 then coalesce(pd.protocol_forced, 0)
+                    when 2 then coalesce(pd.protocol_voluntarily, 0)
+                    else 0
+                  end
+                + case
+                    when ups.moderation then coalesce(pd.moderation, 0)
+                    else 0
+                  end
+                + case
+                    when ups.working_group then coalesce(pd.working_group, 0)
+                    else 0
+                  end
+                + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
+                + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
+              )
+              * coalesce(pum.factor, 1)
             ),
             0
           )
@@ -367,6 +422,21 @@ export const getTeamLeaderboard = async (
         order by pd.active_from desc
         limit 1
       ) pd on true
+      left join lateral (
+        select
+          case pu.powerup
+            when 'small-point-multiplicator' then ${pointMultiplicatorFactors["small-point-multiplicator"]}::numeric
+            when 'medium-point-multiplicator' then ${pointMultiplicatorFactors["medium-point-multiplicator"]}::numeric
+            when 'large-point-multiplicator' then ${pointMultiplicatorFactors["large-point-multiplicator"]}::numeric
+            else 1::numeric
+          end as factor
+        from ${powerupUtilization} pu
+        where pu.meeting_id = gm.id
+          and pu.user_id = u.id
+          and pu.powerup like '%-point-multiplicator'
+        order by pu.usage_timestamp desc
+        limit 1
+      ) pum on true
       left join lateral (
         select
           coalesce(sum(mp.points), 0)::integer as total_points
