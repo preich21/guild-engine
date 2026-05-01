@@ -175,6 +175,25 @@ export const userPowerups = pgTable("user_powerups", {
   roleShields: smallint("role_shields").notNull().default(0),
 });
 
+export const powerupUtilization = pgTable(
+  "powerup_utilization",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    meetingId: uuid("meeting_id")
+      .notNull()
+      .references(() => guildMeetings.id),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    powerup: varchar("powerup", { length: 255 }).notNull(),
+    usageTimestamp: timestamp("usage_timestamp", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("powerup_utilization_meeting_id_idx").on(table.meetingId),
+    index("powerup_utilization_user_id_idx").on(table.userId),
+  ],
+);
+
 export const manualPoints = pgTable(
   "manual_points",
   {

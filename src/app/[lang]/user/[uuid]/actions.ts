@@ -1,10 +1,10 @@
 "use server";
 
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { updateSession } from "@/auth";
-import { teams, userPowerups, users } from "@/db/schema";
+import { guildMeetings, powerupUtilization, teams, userPowerups, users } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
@@ -32,6 +32,17 @@ export type OpenLootboxActionResult =
   | {
       status: "error";
     };
+
+export type FutureGuildMeeting = {
+  id: string;
+  timestamp: string;
+  activatedPointMultiplicator: PointMultiplicatorPowerupId | null;
+  hasActivatedRoleShield: boolean;
+};
+
+export type UsePowerupActionResult = {
+  status: "success" | "error";
+};
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,6 +75,40 @@ const awardablePowerupColumns = {
 
 type AwardablePowerupId = keyof typeof awardablePowerupColumns;
 
+const usablePowerupColumns = {
+  "small-point-multiplicator": {
+    fieldName: "smallPointMultiplicators",
+    column: userPowerups.smallPointMultiplicators,
+  },
+  "medium-point-multiplicator": {
+    fieldName: "mediumPointMultiplicators",
+    column: userPowerups.mediumPointMultiplicators,
+  },
+  "large-point-multiplicator": {
+    fieldName: "largePointMultiplicators",
+    column: userPowerups.largePointMultiplicators,
+  },
+  "role-shield": {
+    fieldName: "roleShields",
+    column: userPowerups.roleShields,
+  },
+} as const;
+
+type UsablePowerupId = keyof typeof usablePowerupColumns;
+
+const pointMultiplicatorPowerupIds = [
+  "small-point-multiplicator",
+  "medium-point-multiplicator",
+  "large-point-multiplicator",
+] as const;
+
+type PointMultiplicatorPowerupId = (typeof pointMultiplicatorPowerupIds)[number];
+
+const isPointMultiplicatorPowerupId = (
+  powerupId: string,
+): powerupId is PointMultiplicatorPowerupId =>
+  pointMultiplicatorPowerupIds.some((pointMultiplicatorId) => pointMultiplicatorId === powerupId);
+
 const getStringEntry = (formData: FormData, key: string) => {
   const value = formData.get(key);
   return typeof value === "string" ? value : null;
@@ -77,6 +122,68 @@ export const getProfileEditTeams = async (): Promise<ProfileEditTeam[]> =>
     })
     .from(teams)
     .orderBy(asc(teams.name), asc(teams.id));
+
+export const getFutureGuildMeetings = async (): Promise<FutureGuildMeeting[]> => {
+  const currentUser = await getCurrentUserRecord();
+
+  if (!currentUser) {
+    return [];
+  }
+
+  const meetingRows = await db
+    .select({
+      id: guildMeetings.id,
+      timestamp: guildMeetings.timestamp,
+    })
+    .from(guildMeetings)
+    .where(gt(guildMeetings.timestamp, new Date()))
+    .orderBy(asc(guildMeetings.timestamp), asc(guildMeetings.id));
+
+  const utilizationRows = await db
+    .select({
+      meetingId: powerupUtilization.meetingId,
+      powerup: powerupUtilization.powerup,
+    })
+    .from(powerupUtilization)
+    .innerJoin(guildMeetings, eq(guildMeetings.id, powerupUtilization.meetingId))
+    .where(
+      and(
+        eq(powerupUtilization.userId, currentUser.id),
+        gt(guildMeetings.timestamp, new Date()),
+        inArray(powerupUtilization.powerup, [...pointMultiplicatorPowerupIds, "role-shield"]),
+      ),
+    );
+
+  const utilizationsByMeetingId = new Map<
+    string,
+    {
+      activatedPointMultiplicator: PointMultiplicatorPowerupId | null;
+      hasActivatedRoleShield: boolean;
+    }
+  >();
+
+  for (const utilization of utilizationRows) {
+    const existing = utilizationsByMeetingId.get(utilization.meetingId) ?? {
+      activatedPointMultiplicator: null,
+      hasActivatedRoleShield: false,
+    };
+
+    utilizationsByMeetingId.set(utilization.meetingId, {
+      activatedPointMultiplicator: isPointMultiplicatorPowerupId(utilization.powerup)
+        ? utilization.powerup
+        : existing.activatedPointMultiplicator,
+      hasActivatedRoleShield: existing.hasActivatedRoleShield || utilization.powerup === "role-shield",
+    });
+  }
+
+  return meetingRows.map((meeting) => ({
+    id: meeting.id,
+    timestamp: meeting.timestamp.toISOString(),
+    activatedPointMultiplicator:
+      utilizationsByMeetingId.get(meeting.id)?.activatedPointMultiplicator ?? null,
+    hasActivatedRoleShield: utilizationsByMeetingId.get(meeting.id)?.hasActivatedRoleShield ?? false,
+  }));
+};
 
 export const saveProfile = async (
   previousState: SaveProfileActionState,
@@ -149,6 +256,9 @@ export const saveProfile = async (
 
 const isAwardablePowerupId = (powerupId: string): powerupId is AwardablePowerupId =>
   powerupId in awardablePowerupColumns;
+
+const isUsablePowerupId = (powerupId: string): powerupId is UsablePowerupId =>
+  powerupId in usablePowerupColumns;
 
 const getFrequency = (value: unknown) => {
   const frequency = Number(value);
@@ -252,4 +362,100 @@ export const openLootbox = async (
     status: "success",
     awardedPowerupId,
   };
+};
+
+export const usePowerup = async (
+  lang: string,
+  meetingId: string,
+  powerupId: string,
+): Promise<UsePowerupActionResult> => {
+  const currentUser = await getCurrentUserRecord();
+
+  if (
+    !currentUser ||
+    !hasLocale(lang) ||
+    !uuidPattern.test(meetingId) ||
+    !isUsablePowerupId(powerupId)
+  ) {
+    return { status: "error" };
+  }
+
+  const featureConfig = await loadCurrentFeatureConfig();
+
+  if (
+    !isFeatureEnabled(featureConfig.state, "powerups") ||
+    !getEnabledPowerupIds(featureConfig.state).includes(powerupId)
+  ) {
+    return { status: "error" };
+  }
+
+  const powerup = usablePowerupColumns[powerupId];
+  const updatedRows = await db.transaction(async (tx) => {
+    const duplicateLockKey = isPointMultiplicatorPowerupId(powerupId)
+      ? `powerup_utilization:${currentUser.id}:${meetingId}:point-multiplicator`
+      : `powerup_utilization:${currentUser.id}:${meetingId}:role-shield`;
+
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${duplicateLockKey}))`);
+
+    const meetingRows = await tx
+      .select({ id: guildMeetings.id })
+      .from(guildMeetings)
+      .where(and(eq(guildMeetings.id, meetingId), gt(guildMeetings.timestamp, new Date())))
+      .limit(1);
+
+    if (!meetingRows[0]) {
+      return 0;
+    }
+
+    const conflictingUtilizationRows = await tx
+      .select({ id: powerupUtilization.id })
+      .from(powerupUtilization)
+      .where(
+        and(
+          eq(powerupUtilization.userId, currentUser.id),
+          eq(powerupUtilization.meetingId, meetingId),
+          isPointMultiplicatorPowerupId(powerupId)
+            ? inArray(powerupUtilization.powerup, pointMultiplicatorPowerupIds)
+            : eq(powerupUtilization.powerup, "role-shield"),
+        ),
+      )
+      .limit(1);
+
+    if (conflictingUtilizationRows[0]) {
+      return 0;
+    }
+
+    const decrementedRows = await tx
+      .update(userPowerups)
+      .set({
+        [powerup.fieldName]: sql`${powerup.column} - 1`,
+      })
+      .where(and(eq(userPowerups.userId, currentUser.id), gt(powerup.column, 0)))
+      .returning({ userId: userPowerups.userId });
+
+    if (!decrementedRows[0]) {
+      return 0;
+    }
+
+    const insertedRows = await tx
+      .insert(powerupUtilization)
+      .values({
+        meetingId,
+        userId: currentUser.id,
+        powerup: powerupId,
+      })
+      .returning({ id: powerupUtilization.id });
+
+    return insertedRows.length;
+  });
+
+  if (updatedRows === 0) {
+    return { status: "error" };
+  }
+
+  revalidatePath(`/${lang}/user/${currentUser.id}`);
+  revalidatePath(`/${lang}/leaderboard/individual`);
+  revalidatePath(`/${lang}/leaderboard/team`);
+
+  return { status: "success" };
 };

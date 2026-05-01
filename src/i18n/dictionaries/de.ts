@@ -78,7 +78,23 @@ const de = {
     powerupsDialog: {
       cancelPowerupDialogButton: "Abbrechen",
       usePowerupNowButton: "Jetzt nutzen",
+      usePowerupButton: "Nutzen",
       lootboxOpenError: "Diese Lootbox konnte nicht geöffnet werden.",
+      powerupUseError: "Dieses Powerup konnte nicht genutzt werden.",
+      noFutureMeetings: "Es sind keine zukünftigen Gildentreffen verfügbar.",
+      meetingSelectionLabel: "Gildentreffen",
+      smallPointMultiplicatorUseDescription:
+        'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Kleiner Punkte-Multiplikator verbraucht.',
+      mediumPointMultiplicatorUseDescription:
+        'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Mittlerer Punkte-Multiplikator verbraucht.',
+      largePointMultiplicatorUseDescription:
+        'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Großer Punkte-Multiplikator verbraucht.',
+      roleShieldUseDescription:
+        'Wähle das Treffen aus, bei dem du davor geschützt sein möchtest, Rollen zugewiesen zu bekommen. Nachdem du unten auf "Nutzen" klickst, wird dein Rollen-Schild verbraucht.',
+      pointMultiplicatorAlreadyActivatedTooltip:
+        "Du hast für dieses Treffen bereits das Powerup {powerup} aktiviert und kannst deshalb keinen weiteren Punkte-Multiplikator aktivieren.",
+      roleShieldAlreadyActivatedTooltip:
+        "Du hast für dieses Treffen bereits einen Rollen-Schild aktiviert und kannst deshalb keinen weiteren aktivieren.",
     },
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",

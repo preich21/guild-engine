@@ -7,7 +7,7 @@ import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getEnabledPowerupIds, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
-import { getProfileEditTeams, openLootbox, saveProfile } from "./actions";
+import { getFutureGuildMeetings, getProfileEditTeams, openLootbox, saveProfile, usePowerup } from "./actions";
 
 export async function generateMetadata({
   params,
@@ -59,7 +59,10 @@ export default async function UserProfilePage({
 
   const canEditProfile = currentUser?.id === profile.userId;
   const canUsePowerups = canEditProfile;
-  const editTeams = canEditProfile ? await getProfileEditTeams() : null;
+  const [editTeams, futureGuildMeetings] = await Promise.all([
+    canEditProfile ? getProfileEditTeams() : null,
+    canUsePowerups ? getFutureGuildMeetings() : [],
+  ]);
 
   return (
     <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
@@ -76,7 +79,9 @@ export default async function UserProfilePage({
           edit={editTeams ? { teams: editTeams, action: saveProfile } : undefined}
           powerups={{
             canUsePowerups,
+            futureGuildMeetings,
             openLootboxAction: openLootbox,
+            utilizePowerupAction: usePowerup,
           }}
         />
       </div>

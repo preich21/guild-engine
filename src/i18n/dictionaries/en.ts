@@ -77,7 +77,23 @@ const en = {
     powerupsDialog: {
       cancelPowerupDialogButton: "Cancel",
       usePowerupNowButton: "Use Now",
+      usePowerupButton: "Use",
       lootboxOpenError: "Could not open this lootbox.",
+      powerupUseError: "Could not use this powerup.",
+      noFutureMeetings: "No future guild meetings are available.",
+      meetingSelectionLabel: "Guild meeting",
+      smallPointMultiplicatorUseDescription:
+        'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Small Point Multiplier will be consumed.',
+      mediumPointMultiplicatorUseDescription:
+        'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Medium Point Multiplier will be consumed.',
+      largePointMultiplicatorUseDescription:
+        'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Large Point Multiplier will be consumed.',
+      roleShieldUseDescription:
+        'Select the meeting you would like to be protected from getting assigned any roles. After clicking "Use" below, your Role Shield will be consumed.',
+      pointMultiplicatorAlreadyActivatedTooltip:
+        "You already activated a {powerup} for this meeting and therefore cannot activate another one",
+      roleShieldAlreadyActivatedTooltip:
+        "You already activated a Role Shield for this meeting and therefore cannot activate another one",
     },
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",

@@ -426,7 +426,7 @@
             "de": "Kleiner Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points by a small factor for a meeting.",
+            "en": "Allows a user to multiply their received points by a small factor for one meeting.",
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem kleinen Faktor zu multiplizieren."
           },
           "defaultValue": true,
@@ -474,7 +474,7 @@
             "de": "Mittlerer Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points by a medium factor for a meeting.",
+            "en": "Allows a user to multiply their received points by a medium factor for one meeting.",
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem mittleren Faktor zu multiplizieren."
           },
           "defaultValue": true,
@@ -522,7 +522,7 @@
             "de": "Großer Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to multiply their received points by a large factor for a meeting.",
+            "en": "Allows a user to multiply their received points by a large factor for one meeting.",
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem großen Faktor zu multiplizieren."
           },
           "defaultValue": true,
@@ -606,7 +606,7 @@
             "de": "Rollen-Geschenk"
           },
           "description": {
-            "en": "Allows a user to force another user to receive a specific role for a meeting. Can be countered with a \"Role Shield\" powerup.",
+            "en": "Allows a user to force another user to receive a specific role for one meeting. Can be countered with a \"Role Shield\" powerup.",
             "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte Rolle für ein Meeting zu erhalten. Kann mit einem \"Rollen-Schild\" Powerup gekontert werden."
           },
           "defaultValue": true

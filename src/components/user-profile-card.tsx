@@ -16,9 +16,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type {
+  FutureGuildMeeting,
   OpenLootboxActionResult,
   ProfileEditTeam,
   SaveProfileActionState,
+  UsePowerupActionResult,
 } from "@/app/[lang]/user/[uuid]/actions";
 import {
   Card,
@@ -80,10 +82,16 @@ type UserProfileEditProps = {
 
 type UserProfilePowerupsProps = {
   canUsePowerups: boolean;
+  futureGuildMeetings: FutureGuildMeeting[];
   openLootboxAction?: (
     lang: Locale,
     targetUserId: string,
   ) => Promise<OpenLootboxActionResult>;
+  utilizePowerupAction?: (
+    lang: Locale,
+    meetingId: string,
+    powerupId: string,
+  ) => Promise<UsePowerupActionResult>;
 };
 
 type UserProfileCardProps = {
@@ -435,8 +443,10 @@ export function UserProfileCard({
               userId={profile.userId}
               items={powerupItems}
               canUsePowerups={powerups?.canUsePowerups ?? false}
+              futureGuildMeetings={powerups?.futureGuildMeetings ?? []}
               dictionary={dictionary.powerupsDialog}
               openLootboxAction={powerups?.openLootboxAction}
+              utilizePowerupAction={powerups?.utilizePowerupAction}
             />
           </CardContent>
         </Card>
