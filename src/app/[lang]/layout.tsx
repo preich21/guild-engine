@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 
 import { getCooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
@@ -40,6 +41,8 @@ export default async function RootLayout({
   if (!hasLocale(lang)) {
     notFound();
   }
+
+  await connection();
 
   const [dictionary, currentUser, featureConfig] = await Promise.all([
     getDictionary(lang),

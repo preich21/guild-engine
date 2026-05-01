@@ -1,0 +1,17 @@
+node_modules
+.next
+
+eslint.config.mjs
+
+.git*
+
+.env
+.env.*
+
+Dockerfile
+*compose.yaml
+
+README.md
+AGENTS.md
+CLAUDE.md
+LICENSE
