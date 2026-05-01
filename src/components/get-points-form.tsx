@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ChangeEvent, useActionState, useMemo, useTransition, useState } from "react";
 
@@ -8,16 +9,24 @@ import type {
   AttendanceAnswer,
   GetPointsActionState,
   GetPointsFormValues,
+  PointMultiplicatorPowerupId,
   ProtocolAnswer,
   YesNoAnswer,
 } from "@/app/[lang]/get-points/actions";
 
+import { useFeatureSettingValue } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type GetPointsFormProps = {
   action: (
@@ -51,6 +60,10 @@ type GetPointsFormProps = {
     never: string;
     saveSuccess: string;
     saveError: string;
+    activatedPointMultiplicatorTooltip: string;
+    smallPointMultiplicatorSize: string;
+    mediumPointMultiplicatorSize: string;
+    largePointMultiplicatorSize: string;
   };
   formDisabled: boolean;
   showNoMeetingError: boolean;
@@ -62,9 +75,25 @@ type GetPointsFormProps = {
   availableMeetingDates: string[];
   previousMeetingDate: string | null;
   nextMeetingDate: string | null;
+  activatedPointMultiplicator: PointMultiplicatorPowerupId | null;
 };
 
 const initialState: GetPointsActionState = { status: "idle" };
+
+const pointMultiplicatorSizeKeys = {
+  "small-point-multiplicator": "smallPointMultiplicatorSize",
+  "medium-point-multiplicator": "mediumPointMultiplicatorSize",
+  "large-point-multiplicator": "largePointMultiplicatorSize",
+} as const satisfies Record<
+  PointMultiplicatorPowerupId,
+  "smallPointMultiplicatorSize" | "mediumPointMultiplicatorSize" | "largePointMultiplicatorSize"
+>;
+
+const formatMultiplicatorFactor = (value: unknown) => {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+
+  return Number.isFinite(parsed) ? parsed.toFixed(1) : "1.0";
+};
 
 export function GetPointsForm({
   action,
@@ -79,6 +108,7 @@ export function GetPointsForm({
   availableMeetingDates,
   previousMeetingDate,
   nextMeetingDate,
+  activatedPointMultiplicator,
 }: GetPointsFormProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -97,6 +127,19 @@ export function GetPointsForm({
   const isLoading = pending || isNavigating;
   const isSubmissionBlocked = formDisabled || pending;
   const availableMeetingDateSet = useMemo(() => new Set(availableMeetingDates), [availableMeetingDates]);
+  const multiplicatorSettingId = `${
+    activatedPointMultiplicator ?? "small-point-multiplicator"
+  }-multiplicator`;
+  const multiplicatorFactor = useFeatureSettingValue("powerups", multiplicatorSettingId);
+  const multiplicatorFactorLabel = formatMultiplicatorFactor(multiplicatorFactor);
+  const activatedPointMultiplicatorTooltip = activatedPointMultiplicator
+    ? dictionary.activatedPointMultiplicatorTooltip
+        .replace(
+          "{size}",
+          dictionary[pointMultiplicatorSizeKeys[activatedPointMultiplicator]],
+        )
+        .replace("{factor}", multiplicatorFactorLabel)
+    : null;
 
   const handleAttendanceChange = (nextAttendance: AttendanceAnswer) => {
     setAttendance(nextAttendance);
@@ -170,9 +213,36 @@ export function GetPointsForm({
       {meetingId ? <input type="hidden" name="guildMeetingId" value={meetingId} /> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {dictionary.heading}
-        </h1>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {dictionary.heading}
+          </h1>
+
+          {activatedPointMultiplicator && activatedPointMultiplicatorTooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span
+                      className="relative inline-flex size-8 shrink-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      aria-label={activatedPointMultiplicatorTooltip}
+                      tabIndex={0}
+                    />
+                  }
+                >
+                  <Image
+                    src={`/powerups/${activatedPointMultiplicator}.png`}
+                    alt=""
+                    fill
+                    sizes="32px"
+                    className="object-contain"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>{activatedPointMultiplicatorTooltip}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
+        </div>
 
         <div className="flex items-center gap-2 self-start">
           <Button
@@ -387,4 +457,3 @@ function RadioOption({ id, value, label }: RadioOptionProps) {
     </div>
   );
 }
-

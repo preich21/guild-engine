@@ -157,6 +157,11 @@ const de = {
     saveButton: "Speichern",
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
+    activatedPointMultiplicatorTooltip:
+      "Du hast einen {size} Punkte-Multiplikator aktiviert und bekommst deshalb {factor} Mal so viele Punkte für dieses Treffen.",
+    smallPointMultiplicatorSize: "kleinen",
+    mediumPointMultiplicatorSize: "mittleren",
+    largePointMultiplicatorSize: "großen",
   },
   roleRaffle: {
     heading: "Rollen-Verlosung",

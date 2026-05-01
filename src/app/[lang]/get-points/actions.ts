@@ -1,9 +1,9 @@
 "use server";
 
-import { guildMeetings, userPointSubmissions } from "@/db/schema";
+import { guildMeetings, powerupUtilization, userPointSubmissions } from "@/db/schema";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 export type GetPointsActionState = {
   status: "idle" | "success" | "error";
@@ -22,6 +22,11 @@ export type GetPointsFormValues = {
   presentations: number;
 };
 
+export type PointMultiplicatorPowerupId =
+  | "small-point-multiplicator"
+  | "medium-point-multiplicator"
+  | "large-point-multiplicator";
+
 export type GetPointsPageData = {
   hasEligibleMeeting: boolean;
   formDisabled: boolean;
@@ -32,6 +37,7 @@ export type GetPointsPageData = {
   nextMeetingDate: string | null;
   initialValues: GetPointsFormValues;
   lastModifiedAt: string | null;
+  activatedPointMultiplicator: PointMultiplicatorPowerupId | null;
 };
 
 type MeetingEntry = {
@@ -65,6 +71,17 @@ const yesNoMap = {
   no: false,
   yes: true,
 } as const;
+
+const pointMultiplicatorPowerupIds = [
+  "small-point-multiplicator",
+  "medium-point-multiplicator",
+  "large-point-multiplicator",
+] as const;
+
+const isPointMultiplicatorPowerupId = (
+  powerupId: string,
+): powerupId is PointMultiplicatorPowerupId =>
+  pointMultiplicatorPowerupIds.some((pointMultiplicatorId) => pointMultiplicatorId === powerupId);
 
 const attendanceNumberToAnswer: Record<number, AttendanceAnswer> = {
   0: "no",
@@ -131,6 +148,28 @@ const getMeetingById = async (meetingId: string) => {
   return meetingRows[0] ?? null;
 };
 
+const getActivatedPointMultiplicator = async (
+  userId: string,
+  meetingId: string,
+): Promise<PointMultiplicatorPowerupId | null> => {
+  const utilizationRows = await db
+    .select({ powerup: powerupUtilization.powerup })
+    .from(powerupUtilization)
+    .where(
+      and(
+        eq(powerupUtilization.meetingId, meetingId),
+        eq(powerupUtilization.userId, userId),
+        inArray(powerupUtilization.powerup, pointMultiplicatorPowerupIds),
+      ),
+    )
+    .orderBy(desc(powerupUtilization.usageTimestamp))
+    .limit(1);
+
+  const powerup = utilizationRows[0]?.powerup;
+
+  return powerup && isPointMultiplicatorPowerupId(powerup) ? powerup : null;
+};
+
 export const getGetPointsPageData = async (
   selectedMeetingDate: string | null,
 ): Promise<GetPointsPageData> => {
@@ -149,6 +188,7 @@ export const getGetPointsPageData = async (
       nextMeetingDate: null,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
+      activatedPointMultiplicator: null,
     };
   }
 
@@ -173,28 +213,32 @@ export const getGetPointsPageData = async (
       nextMeetingDate,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
+      activatedPointMultiplicator: null,
     };
   }
 
-  const submissionRows = await db
-    .select({
-      attendance: userPointSubmissions.attendance,
-      protocol: userPointSubmissions.protocol,
-      moderation: userPointSubmissions.moderation,
-      workingGroup: userPointSubmissions.workingGroup,
-      twl: userPointSubmissions.twl,
-      presentations: userPointSubmissions.presentations,
-      modifiedAt: userPointSubmissions.modifiedAt,
-    })
-    .from(userPointSubmissions)
-    .where(
-      and(
-        eq(userPointSubmissions.userId, userRecord.id),
-        eq(userPointSubmissions.guildMeetingId, meeting.id),
-      ),
-    )
-    .orderBy(desc(userPointSubmissions.modifiedAt))
-    .limit(1);
+  const [submissionRows, activatedPointMultiplicator] = await Promise.all([
+    db
+      .select({
+        attendance: userPointSubmissions.attendance,
+        protocol: userPointSubmissions.protocol,
+        moderation: userPointSubmissions.moderation,
+        workingGroup: userPointSubmissions.workingGroup,
+        twl: userPointSubmissions.twl,
+        presentations: userPointSubmissions.presentations,
+        modifiedAt: userPointSubmissions.modifiedAt,
+      })
+      .from(userPointSubmissions)
+      .where(
+        and(
+          eq(userPointSubmissions.userId, userRecord.id),
+          eq(userPointSubmissions.guildMeetingId, meeting.id),
+        ),
+      )
+      .orderBy(desc(userPointSubmissions.modifiedAt))
+      .limit(1),
+    getActivatedPointMultiplicator(userRecord.id, meeting.id),
+  ]);
 
   const submission = submissionRows[0];
 
@@ -209,6 +253,7 @@ export const getGetPointsPageData = async (
       nextMeetingDate,
       initialValues: defaultFormValues,
       lastModifiedAt: null,
+      activatedPointMultiplicator,
     };
   }
 
@@ -229,6 +274,7 @@ export const getGetPointsPageData = async (
       presentations: submission.presentations,
     },
     lastModifiedAt: submission.modifiedAt.toISOString(),
+    activatedPointMultiplicator,
   };
 };
 

@@ -156,6 +156,11 @@ const en = {
     saveButton: "Save",
     saveSuccess: "Saved successfully.",
     saveError: "Could not save your submission. Please try again.",
+    activatedPointMultiplicatorTooltip:
+      "You activated a {size} point multiplicator and will therefore get {factor} times the points for this meeting.",
+    smallPointMultiplicatorSize: "small",
+    mediumPointMultiplicatorSize: "medium",
+    largePointMultiplicatorSize: "large",
   },
   roleRaffle: {
     heading: "Role Raffle",

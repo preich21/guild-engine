@@ -83,6 +83,7 @@ export default async function GetPointsPage({
           availableMeetingDates={pageData.availableMeetingDates}
           previousMeetingDate={pageData.previousMeetingDate}
           nextMeetingDate={pageData.nextMeetingDate}
+          activatedPointMultiplicator={pageData.activatedPointMultiplicator}
         />
       </div>
     </main>
