@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { hasLocale } from "@/i18n/config";
+import { defaultLocale, hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref } from "@/lib/feature-flags";
@@ -16,6 +16,10 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     getCurrentFeatureConfig(),
     getCurrentUserRecord(),
   ]);
+  const redirectLang =
+    currentUser?.preferredLang && hasLocale(currentUser.preferredLang)
+      ? currentUser.preferredLang
+      : lang || defaultLocale;
 
-  redirect(getHomePageHref(lang, featureConfig.homePagePath, currentUser?.id));
+  redirect(getHomePageHref(redirectLang, featureConfig.homePagePath, currentUser?.id));
 }

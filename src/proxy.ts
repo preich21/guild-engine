@@ -9,24 +9,6 @@ import { db } from "@/lib/db";
 import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref, isRouteEnabled } from "@/lib/feature-flags";
 
-const getPreferredLocale = (request: NextRequest): Locale => {
-  const acceptedLanguages = request.headers
-    .get("accept-language")
-    ?.split(",")
-    .map((value) => value.split(";")[0]?.trim().toLowerCase())
-    .filter(Boolean);
-
-  for (const language of acceptedLanguages ?? []) {
-    const baseLanguage = language.split("-")[0];
-
-    if (baseLanguage && hasLocale(baseLanguage)) {
-      return baseLanguage;
-    }
-  }
-
-  return defaultLocale;
-};
-
 const getLocaleFromPathname = (pathname: string): Locale | null => {
   const [, maybeLocale] = pathname.split("/");
   return maybeLocale && hasLocale(maybeLocale) ? maybeLocale : null;
@@ -38,7 +20,7 @@ const getAuthenticatedUsername = (authValue: unknown) => {
   return typeof userName === "string" && userName.trim() !== "" ? userName : null;
 };
 
-const getAuthenticatedUserId = async (authValue: unknown) => {
+const getAuthenticatedUserRecord = async (authValue: unknown) => {
   const username = getAuthenticatedUsername(authValue);
 
   if (!username) {
@@ -46,12 +28,12 @@ const getAuthenticatedUserId = async (authValue: unknown) => {
   }
 
   const userRows = await db
-    .select({ id: users.id })
+    .select({ id: users.id, preferredLang: users.preferredLang })
     .from(users)
     .where(eq(users.username, username))
     .limit(1);
 
-  return userRows[0]?.id ?? null;
+  return userRows[0] ?? null;
 };
 
 const getAuthenticatedHomePath = async (
@@ -59,10 +41,28 @@ const getAuthenticatedHomePath = async (
   homePagePath: string | null,
   authValue: unknown,
 ) => {
-  const userId = await getAuthenticatedUserId(authValue);
-  const homePath = getHomePageHref(locale, homePagePath, userId);
+  const user = await getAuthenticatedUserRecord(authValue);
+  const preferredLocale =
+    user?.preferredLang && hasLocale(user.preferredLang) ? user.preferredLang : locale;
+  const homePath = getHomePageHref(preferredLocale, homePagePath, user?.id);
 
-  return homePath === `/${locale}/login` ? `/${locale}/rules` : homePath;
+  return homePath === `/${preferredLocale}/login` ? `/${preferredLocale}/rules` : homePath;
+};
+
+const getAuthenticatedRedirectContext = async (
+  locale: Locale,
+  homePagePath: string | null,
+  authValue: unknown,
+) => {
+  const user = await getAuthenticatedUserRecord(authValue);
+  const redirectLocale =
+    user?.preferredLang && hasLocale(user.preferredLang) ? user.preferredLang : locale;
+  const homePath = getHomePageHref(redirectLocale, homePagePath, user?.id);
+
+  return {
+    locale: redirectLocale,
+    homePath: homePath === `/${redirectLocale}/login` ? `/${redirectLocale}/rules` : homePath,
+  };
 };
 
 export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
@@ -72,8 +72,7 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
   );
 
   if (!pathnameHasLocale) {
-    const locale = getPreferredLocale(request);
-    request.nextUrl.pathname = `/${locale}${pathname}`;
+    request.nextUrl.pathname = `/${defaultLocale}${pathname}`;
 
     return NextResponse.redirect(request.nextUrl);
   }
@@ -106,8 +105,16 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
 
   if (isAuthenticated && isLoginPath) {
     const nextPath = request.nextUrl.searchParams.get("next");
-    const homePath = await getAuthenticatedHomePath(locale, featureConfig.homePagePath, request.auth);
-    const redirectPath = getSafePostLoginPath(locale, nextPath, homePath);
+    const redirectContext = await getAuthenticatedRedirectContext(
+      locale,
+      featureConfig.homePagePath,
+      request.auth,
+    );
+    const redirectPath = getSafePostLoginPath(
+      redirectContext.locale,
+      nextPath,
+      redirectContext.homePath,
+    );
 
     return NextResponse.redirect(new URL(redirectPath, request.url));
   }

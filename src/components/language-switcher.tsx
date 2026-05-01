@@ -2,7 +2,9 @@
 
 import { Check, Languages } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
 
+import { updateCurrentUserPreferredLang } from "@/app/[lang]/actions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,6 +39,7 @@ export function LanguageSwitcher({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const labels = {
     en: englishLabel,
@@ -58,7 +61,12 @@ export function LanguageSwitcher({
   const handleLanguageChange = (targetLocale: Locale) => {
     const nextPath = getLanguageHref(targetLocale);
     const query = searchParams.toString();
-    router.push(query ? `${nextPath}?${query}` : nextPath);
+    const nextHref = query ? `${nextPath}?${query}` : nextPath;
+
+    startTransition(async () => {
+      await updateCurrentUserPreferredLang(targetLocale);
+      router.push(nextHref);
+    });
   };
 
   return (
@@ -86,6 +94,7 @@ export function LanguageSwitcher({
             <DropdownMenuItem
               key={option.locale}
               onClick={() => handleLanguageChange(option.locale)}
+              disabled={isPending}
               aria-current={isActive ? "page" : undefined}
             >
               <span aria-hidden="true">{option.flag}</span>
@@ -98,5 +107,4 @@ export function LanguageSwitcher({
     </DropdownMenu>
   );
 }
-
 

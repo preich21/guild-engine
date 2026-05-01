@@ -3,8 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { LoginForm } from "@/components/login-form";
 import { hasLocale } from "@/i18n/config";
+import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
+import { getHomePageHref } from "@/lib/feature-flags";
 import { getPageMetadata } from "@/lib/page-metadata";
 
 import { loginWithCredentials } from "./actions";
@@ -38,7 +41,17 @@ export default async function LoginPage({
   const session = await auth();
 
   if (session) {
-    redirect(getSafePostLoginPath(lang, nextPath));
+    const currentUser = await getCurrentUserRecord();
+    const redirectLocale =
+      currentUser?.preferredLang && hasLocale(currentUser.preferredLang)
+        ? currentUser.preferredLang
+        : lang;
+    const featureConfig = await getCurrentFeatureConfig();
+    const homePath = getHomePageHref(redirectLocale, featureConfig.homePagePath, currentUser?.id);
+    const defaultRedirectPath =
+      homePath === `/${redirectLocale}/login` ? `/${redirectLocale}/rules` : homePath;
+
+    redirect(getSafePostLoginPath(redirectLocale, nextPath, defaultRedirectPath));
   }
 
   return (
@@ -52,5 +65,3 @@ export default async function LoginPage({
     </main>
   );
 }
-
-

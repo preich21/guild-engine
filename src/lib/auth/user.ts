@@ -35,6 +35,7 @@ export const getCurrentUserRecord = async () => {
       username: users.username,
       profilePicture: users.profilePicture,
       admin: users.admin,
+      preferredLang: users.preferredLang,
       teamId: users.teamId,
     })
     .from(users)

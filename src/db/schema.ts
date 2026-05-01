@@ -37,6 +37,7 @@ export const users = pgTable(
     profilePicture: varchar("profile_picture", { length: 65535 }),
     description: varchar("description", { length: 1023 }),
     admin: boolean("admin").notNull().default(false),
+    preferredLang: varchar("preferred_lang", { length: 3 }),
     teamId: uuid("team_id")
       .notNull()
       .default(NO_TEAM_ASSIGNED_TEAM_ID)

@@ -22,7 +22,11 @@ export const getSafePostLoginPath = (
     return defaultPath;
   }
 
-  if (parsed.pathname === `${localePrefix}/login`) {
+  if (
+    parsed.pathname === localePrefix ||
+    parsed.pathname === `${localePrefix}/` ||
+    parsed.pathname === `${localePrefix}/login`
+  ) {
     return defaultPath;
   }
 

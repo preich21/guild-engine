@@ -1,8 +1,10 @@
 "use server";
 
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { guildMeetings, pointDistribution, userPointSubmissions, users } from "@/db/schema";
+import { hasLocale, type Locale } from "@/i18n/config";
+import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
 
 export type LeaderboardEntry = {
@@ -78,4 +80,21 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     profilePicture: row.profilePicture,
     totalPoints: Number(row.totalPoints),
   }));
+};
+
+export const updateCurrentUserPreferredLang = async (lang: Locale) => {
+  if (!hasLocale(lang)) {
+    return;
+  }
+
+  const currentUser = await getCurrentUserRecord();
+
+  if (!currentUser) {
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({ preferredLang: lang })
+    .where(eq(users.id, currentUser.id));
 };
