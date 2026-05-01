@@ -164,15 +164,17 @@ const de = {
     spinButton: "Drehen!",
     selectUsersTitle: "Benutzer auswählen",
     selectUsersDescription:
-      "Wähle alle Benutzer aus, die dieses Mal für die Rolle infrage kommen. Sie nehmen an der Rollen-Verlosung teil.",
+      "Wähle alle Benutzer aus, die in diesem Meeting für die Rolle infrage kommen. Sie nehmen an der Rollen-Verlosung teil.",
     selectAllButton: "Alle auswählen",
     deselectAllButton: "Alle abwählen",
+    roleShieldDisabledTooltip:
+      "{username} hat für das heutige Meeting ein Rollen-Schild verwendet und kann daher keine Rollen zugewiesen bekommen.",
     cancelButton: "Abbrechen",
     selectButton: "Auswählen",
     emptyState:
       "Noch keine Einträge in der Verlosung. Wähle mindestens zwei Benutzer aus, um das Glücksrad zu füllen.",
     winnerTitle: "Glückwunsch {username}!",
-    winnerDescription: "Du hast die große Ehre, dieses Mal die Rolle zu übernehmen.",
+    winnerDescription: "Du hast die große Ehre, für dieses Meeting die Rolle zu übernehmen.",
     winnerPointSystemDescription:
       'Du kannst die erzwungene Rollenübernahme im Formular "Punkte Erfassen" eintragen.',
     dismissButton: "Schließen",

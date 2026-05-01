@@ -163,14 +163,16 @@ const en = {
     spinButton: "Spin!",
     selectUsersTitle: "Select Users",
     selectUsersDescription:
-      "Select all users that are eligible to take over the role this time. Those will take part in the role raffle.",
+      "Select all users that are eligible to take over the role for this meeting. Those will take part in the role raffle.",
     selectAllButton: "Select All",
     deselectAllButton: "Deselect All",
+    roleShieldDisabledTooltip:
+      "{username} used a Role Shield for todays meeting and can therefore not be assigned any roles",
     cancelButton: "Cancel",
     selectButton: "Select",
     emptyState: "No raffle entries yet. Select at least two users to populate the wheel of fortune.",
     winnerTitle: "Congratulations {username}!",
-    winnerDescription: "You have the great honor to take over the role this time.",
+    winnerDescription: "You have the great honor to take over the role for this meeting.",
     winnerPointSystemDescription: 'You may enter taking over the role forcedly in the "Get Points" form.',
     dismissButton: "Dismiss",
   },

@@ -15,6 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollAreaContent, ScrollAreaViewport, ScrollBar } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { RoleRaffleUser } from "@/lib/role-raffle";
 
 type RoleRaffleProps = {
@@ -27,6 +29,7 @@ type RoleRaffleProps = {
     selectUsersDescription: string;
     selectAllButton: string;
     deselectAllButton: string;
+    roleShieldDisabledTooltip: string;
     cancelButton: string;
     selectButton: string;
     emptyState: string;
@@ -88,11 +91,13 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   const pendingWinnerNameRef = useRef<string | null>(null);
   const checkboxBaseId = useId();
   const isPointSystemEnabled = useFeatureEnabled("point-system");
+  const enabledUsers = useMemo(() => users.filter((user) => !user.isRoleShielded), [users]);
+  const enabledUserIds = useMemo(() => new Set(enabledUsers.map((user) => user.id)), [enabledUsers]);
 
   const selectedUsers = useMemo(() => {
     const selectedIdSet = new Set(selectedUserIds);
-    return users.filter((user) => selectedIdSet.has(user.id));
-  }, [selectedUserIds, users]);
+    return enabledUsers.filter((user) => selectedIdSet.has(user.id));
+  }, [enabledUsers, selectedUserIds]);
 
   const wheelData = useMemo(
     () =>
@@ -104,7 +109,7 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
     [selectedUsers],
   );
 
-  const allSelected = users.length > 0 && draftSelectedUserIds.length === users.length;
+  const allSelected = enabledUsers.length > 0 && draftSelectedUserIds.length === enabledUsers.length;
   const canSelectDraftUsers = draftSelectedUserIds.length >= 2;
   const canSpin = selectedUsers.length >= 2 && !mustSpin;
 
@@ -118,6 +123,10 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   );
 
   const toggleDraftUser = (userId: string, checked: boolean | "indeterminate") => {
+    if (!enabledUserIds.has(userId)) {
+      return;
+    }
+
     setDraftSelectedUserIds((current) => {
       const nextSet = new Set(current);
 
@@ -127,19 +136,19 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
         nextSet.delete(userId);
       }
 
-      return users
+      return enabledUsers
         .filter((user) => nextSet.has(user.id))
         .map((user) => user.id);
     });
   };
 
   const handleToggleAll = () => {
-    setDraftSelectedUserIds(allSelected ? [] : users.map((user) => user.id));
+    setDraftSelectedUserIds(allSelected ? [] : enabledUsers.map((user) => user.id));
   };
 
   const handleSelectionOpenChange = (open: boolean) => {
     if (open) {
-      setDraftSelectedUserIds(selectedUserIds);
+      setDraftSelectedUserIds(selectedUserIds.filter((userId) => enabledUserIds.has(userId)));
     }
 
     setIsSelectionOpen(open);
@@ -150,7 +159,7 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
       return;
     }
 
-    setSelectedUserIds(draftSelectedUserIds);
+    setSelectedUserIds(draftSelectedUserIds.filter((userId) => enabledUserIds.has(userId)));
     setIsSelectionOpen(false);
   };
 
@@ -204,13 +213,13 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
           </CardHeader>
           <CardContent className="space-y-8">
             <div className="flex justify-center">
-              <div className="w-full max-w-[44rem] rounded-[2rem] border border-border bg-muted/30 p-4 shadow-inner sm:p-6">
+              <div className="w-full max-w-176 rounded-[2rem] border border-border bg-muted/30 p-4 shadow-inner sm:p-6">
                 {wheelData.length === 0 ? (
                   <div className="flex aspect-square items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background text-center text-sm text-muted-foreground">
                     <p className="max-w-xs">{dictionary.emptyState}</p>
                   </div>
                 ) : (
-                  <div className="relative mx-auto aspect-square w-full max-w-[30rem]">
+                  <div className="relative mx-auto aspect-square w-full max-w-120">
                     <div className="absolute left-1/2 top-0 z-10 h-0 w-0 -translate-x-1/2 border-x-[0.9rem] border-t-[1.7rem] border-x-transparent border-t-primary" />
                     <svg
                       viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
@@ -299,43 +308,60 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
             <DialogDescription className="pb-2">{dictionary.selectUsersDescription}</DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[55vh] rounded-lg border border-border bg-background">
-            <ScrollAreaViewport>
-              <ScrollAreaContent className="p-3">
-                <div className="mb-3 flex justify-end">
-                  <Button type="button" variant="ghost" size="sm" onClick={handleToggleAll}>
-                    {allSelected ? dictionary.deselectAllButton : dictionary.selectAllButton}
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {users.map((user, index) => {
-                    const checkboxId = `${checkboxBaseId}-${index}`;
-                    const isChecked = draftSelectedUserIds.includes(user.id);
+          <TooltipProvider>
+            <ScrollArea className="max-h-[55vh] rounded-lg border border-border bg-background">
+              <ScrollAreaViewport>
+                <ScrollAreaContent className="p-3">
+                  <div className="mb-3 flex justify-end">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleToggleAll}>
+                      {allSelected ? dictionary.deselectAllButton : dictionary.selectAllButton}
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {users.map((user, index) => {
+                      const checkboxId = `${checkboxBaseId}-${index}`;
+                      const isChecked = !user.isRoleShielded && draftSelectedUserIds.includes(user.id);
+                      const disabledReason = user.isRoleShielded
+                        ? dictionary.roleShieldDisabledTooltip.replace("{username}", user.username)
+                        : null;
+                      const option = (
+                        <label
+                          key={user.id}
+                          htmlFor={checkboxId}
+                          className={cn(
+                            "flex items-start gap-3 rounded-lg border border-border bg-card p-3",
+                            user.isRoleShielded ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                          )}
+                        >
+                          <Checkbox
+                            id={checkboxId}
+                            checked={isChecked}
+                            disabled={user.isRoleShielded}
+                            onCheckedChange={(checked) => toggleDraftUser(user.id, checked)}
+                            aria-label={user.username}
+                            className="mt-1"
+                          />
+                          <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
+                            {user.username}
+                          </span>
+                        </label>
+                      );
 
-                    return (
-                      <label
-                        key={user.id}
-                        htmlFor={checkboxId}
-                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3"
-                      >
-                        <Checkbox
-                          id={checkboxId}
-                          checked={isChecked}
-                          onCheckedChange={(checked) => toggleDraftUser(user.id, checked)}
-                          aria-label={user.username}
-                          className="mt-1"
-                        />
-                        <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
-                          {user.username}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </ScrollAreaContent>
-            </ScrollAreaViewport>
-            <ScrollBar orientation="vertical" />
-          </ScrollArea>
+                      return disabledReason ? (
+                        <Tooltip key={user.id}>
+                          <TooltipTrigger render={option} />
+                          <TooltipContent>{disabledReason}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        option
+                      );
+                    })}
+                  </div>
+                </ScrollAreaContent>
+              </ScrollAreaViewport>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+          </TooltipProvider>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleSelectionOpenChange(false)}>
