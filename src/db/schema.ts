@@ -98,8 +98,8 @@ export const featureConfig = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
     modifyingUser: uuid("modifying_user")
-      .notNull()
-      .references(() => users.id),
+      .default('N/A')
+      .references(() => users.id, { onDelete: "set default" }),
     pointSystemEnabled: boolean("point_system_enabled").notNull().default(false),
     pointSystemConfig: jsonb("point_system_config").$type<FeatureConfigEntry[]>().notNull().default([]),
     individualLeaderboardEnabled: boolean("individual_leaderboard_enabled").notNull().default(false),
@@ -182,10 +182,10 @@ export const powerupUtilization = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     meetingId: uuid("meeting_id")
       .notNull()
-      .references(() => guildMeetings.id),
+      .references(() => guildMeetings.id, { onDelete: "cascade" }),
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     powerup: varchar("powerup", { length: 255 }).notNull(),
     usageTimestamp: timestamp("usage_timestamp", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -218,7 +218,7 @@ export const manualPoints = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     points: smallint("points").notNull(),
     reason: text("reason").notNull(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
@@ -235,7 +235,7 @@ export const userPointSubmissions = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull().defaultNow(),
     guildMeetingId: uuid("guild_meeting_id").notNull().references(() => guildMeetings.id),
     attendance: smallint("attendance").notNull(),
