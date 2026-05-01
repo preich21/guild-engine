@@ -419,15 +419,15 @@
       ],
       "configuration": [
         {
-          "id": "point-multiplicator",
+          "id": "small-point-multiplicator",
           "type": "switch",
           "label": {
-            "en": "Point Multiplicator",
-            "de": "Punkte-Multiplikator"
+            "en": "Small Point Multiplicator",
+            "de": "Kleiner Punkte-Multiplikator"
           },
           "description": {
-            "en": "Allows a user to duplicate their received points for a meeting.",
-            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu verdoppeln."
+            "en": "Allows a user to multiply their received points for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
           },
           "defaultValue": true,
           "prerequisites": [
@@ -441,6 +441,126 @@
               }
             }
           ]
+        },
+        {
+          "id": "small-point-multiplicator-frequency",
+          "type": "number",
+          "label": {
+            "en": "Frequency",
+            "de": "Häufigkeit"
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "small-point-multiplicator"
+        },
+        {
+          "id": "small-point-multiplicator-multiplicator",
+          "type": "decimal",
+          "label": {
+            "en": "Multiplicator",
+            "de": "Multiplikator"
+          },
+          "defaultValue": 2,
+          "min": 1,
+          "step": 0.1,
+          "parentSettingId": "small-point-multiplicator"
+        },
+        {
+          "id": "medium-point-multiplicator",
+          "type": "switch",
+          "label": {
+            "en": "Medium Point Multiplicator",
+            "de": "Mittlerer Punkte-Multiplikator"
+          },
+          "description": {
+            "en": "Allows a user to multiply their received points for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable Point System first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst das Punktesystem aktivieren."
+              },
+              "condition": {
+                "featureEnabled": "point-system"
+              }
+            }
+          ]
+        },
+        {
+          "id": "medium-point-multiplicator-frequency",
+          "type": "number",
+          "label": {
+            "en": "Frequency",
+            "de": "Häufigkeit"
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "medium-point-multiplicator"
+        },
+        {
+          "id": "medium-point-multiplicator-multiplicator",
+          "type": "decimal",
+          "label": {
+            "en": "Multiplicator",
+            "de": "Multiplikator"
+          },
+          "defaultValue": 3,
+          "min": 1,
+          "step": 0.1,
+          "parentSettingId": "medium-point-multiplicator"
+        },
+        {
+          "id": "large-point-multiplicator",
+          "type": "switch",
+          "label": {
+            "en": "Large Point Multiplicator",
+            "de": "Großer Punkte-Multiplikator"
+          },
+          "description": {
+            "en": "Allows a user to multiply their received points for a meeting.",
+            "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting zu multiplizieren."
+          },
+          "defaultValue": true,
+          "prerequisites": [
+            {
+              "tooltip": {
+                "en": "To use this setting you must enable Point System first.",
+                "de": "Um diese Einstellung zu nutzen, musst du zuerst das Punktesystem aktivieren."
+              },
+              "condition": {
+                "featureEnabled": "point-system"
+              }
+            }
+          ]
+        },
+        {
+          "id": "large-point-multiplicator-frequency",
+          "type": "number",
+          "label": {
+            "en": "Frequency",
+            "de": "Häufigkeit"
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "large-point-multiplicator"
+        },
+        {
+          "id": "large-point-multiplicator-multiplicator",
+          "type": "decimal",
+          "label": {
+            "en": "Multiplicator",
+            "de": "Multiplikator"
+          },
+          "defaultValue": 4,
+          "min": 1,
+          "step": 0.1,
+          "parentSettingId": "large-point-multiplicator"
         },
         {
           "id": "streak-freeze",
@@ -467,6 +587,18 @@
           ]
         },
         {
+          "id": "streak-freeze-frequency",
+          "type": "number",
+          "label": {
+            "en": "Frequency",
+            "de": "Häufigkeit"
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "streak-freeze"
+        },
+        {
           "id": "role-present",
           "type": "switch",
           "label": {
@@ -478,6 +610,18 @@
             "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte Rolle für ein Meeting zu erhalten. Kann mit einem \"Rollen-Schild\" Powerup gekontert werden."
           },
           "defaultValue": true
+        },
+        {
+          "id": "role-present-frequency",
+          "type": "number",
+          "label": {
+            "en": "Frequency",
+            "de": "Häufigkeit"
+          },
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "role-present"
         },
         {
           "id": "role-shield",
@@ -524,61 +668,16 @@
           ]
         },
         {
-          "id": "one-time-doing-present",
-          "type": "switch",
+          "id": "role-shield-frequency",
+          "type": "number",
           "label": {
-            "en": "One-Time Doing Present",
-            "de": "Einmalige-Aufgabe-Geschenk"
+            "en": "Frequency",
+            "de": "Häufigkeit"
           },
-          "description": {
-            "en": "Allows a user to force another user to receive a specific one-time doing. Can be countered with a \"One-Time Doing Shield\" powerup.",
-            "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte einmalige Aufgabe zu erhalten. Kann mit einem \"Einmalige-Aufgabe-Schild\" Powerup gekontert werden."
-          },
-          "defaultValue": true
-        },
-        {
-          "id": "one-time-doing-shield",
-          "type": "switch",
-          "label": {
-            "en": "One-Time Doing Shield",
-            "de": "Einmalige-Aufgabe-Schild"
-          },
-          "description": {
-            "en": "Allows a user to opt-out of a one-time doing raffle beforehand or to counter one \"One-Time Doing Present\" powerup.",
-            "de": "Erlaubt es einem Benutzer, sich im Voraus aus einer Einmalige-Aufgabe-Verlosung zu befreien oder ein \"Einmalige-Aufgabe-Geschenk\" Powerup zu kontern."
-          },
-          "defaultValue": true,
-          "prerequisites": [
-            {
-              "tooltip": {
-                "en": "To use this setting you must enable One-Time Doing Raffle with Minigames, or enable One-Time Doing Present first.",
-                "de": "Um diese Einstellung zu nutzen, musst du zuerst die Einmalige-Aufgabe-Verlosung mit Minispielen oder das Einmalige-Aufgabe-Geschenk aktivieren."
-              },
-              "condition": {
-                "any": [
-                  {
-                    "all": [
-                      {
-                        "featureEnabled": "minigames"
-                      },
-                      {
-                        "settingEnabled": {
-                          "featureId": "minigames",
-                          "settingId": "one-time-doing-raffle"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "settingEnabled": {
-                      "featureId": "powerups",
-                      "settingId": "one-time-doing-present"
-                    }
-                  }
-                ]
-              }
-            }
-          ]
+          "defaultValue": 1,
+          "min": 1,
+          "step": 1,
+          "parentSettingId": "role-shield"
         }
       ]
     }

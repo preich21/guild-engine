@@ -49,6 +49,7 @@ type FeatureSetting = {
   defaultValue?: FieldValue;
   min?: number;
   step?: number;
+  parentSettingId?: string;
   options?: Array<{
     value: string;
     label: LocalizedText;
@@ -354,7 +355,9 @@ export function FeatureConfigurationForm({
                     {(feature.configuration?.length ?? 0) > 0 ? (
                       <div className="grid gap-4 grid-cols-2">
                         <p className="text-sm font-medium col-span-2">{dictionary.configurationLabel}</p>
-                        {feature.configuration?.map((setting) => {
+                        {feature.configuration
+                          ?.filter((setting) => !setting.parentSettingId)
+                          .map((setting) => {
                           const unmetSettingRequirement = getFirstUnmetRequirement(setting.prerequisites, featureState);
                           const disabledReason = !featureEnabled
                             ? dictionary.disabledUntilFeatureEnabled
@@ -363,6 +366,8 @@ export function FeatureConfigurationForm({
                               : undefined;
                           const settingDisabled = !featureEnabled || Boolean(unmetSettingRequirement);
                           const settingValue = featureState[feature.id]?.settings[setting.id] ?? getSettingDefaultValue(setting);
+                          const childSettings =
+                            feature.configuration?.filter((childSetting) => childSetting.parentSettingId === setting.id) ?? [];
 
                           return (
                             <div key={setting.id} className="space-y-2 rounded-lg border border-border bg-background p-3 col-span-2 md:col-span-1">
@@ -378,6 +383,40 @@ export function FeatureConfigurationForm({
                               />
                               {setting.description ? (
                                 <p className="text-sm text-muted-foreground">{localize(setting.description, lang)}</p>
+                              ) : null}
+                              {childSettings.length > 0 ? (
+                                <div className="grid gap-3 pt-2 sm:grid-cols-2">
+                                  {childSettings.map((childSetting) => {
+                                    const unmetChildRequirement = getFirstUnmetRequirement(
+                                      childSetting.prerequisites,
+                                      featureState,
+                                    );
+                                    const childDisabled =
+                                      settingDisabled || settingValue !== true || Boolean(unmetChildRequirement);
+                                    const childDisabledReason = !featureEnabled
+                                      ? dictionary.disabledUntilFeatureEnabled
+                                      : unmetChildRequirement?.tooltip
+                                        ? localize(unmetChildRequirement.tooltip, lang)
+                                        : disabledReason;
+                                    const childValue =
+                                      featureState[feature.id]?.settings[childSetting.id] ??
+                                      getSettingDefaultValue(childSetting);
+
+                                    return (
+                                      <FeatureSettingControl
+                                        key={childSetting.id}
+                                        featureId={feature.id}
+                                        setting={childSetting}
+                                        value={childValue}
+                                        lang={lang}
+                                        disabled={childDisabled}
+                                        disabledReason={childDisabledReason}
+                                        selectPlaceholder={dictionary.selectPlaceholder}
+                                        onValueChange={updateSetting}
+                                      />
+                                    );
+                                  })}
+                                </div>
                               ) : null}
                             </div>
                           );
