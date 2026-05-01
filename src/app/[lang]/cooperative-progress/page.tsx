@@ -47,6 +47,11 @@ export default async function CooperativeProgressRoutePage({
     featureConfig.state,
     "individual-leaderboard",
   );
+  const cooperativeProgressTitle = getFeatureSettingValue(
+    featureConfig.state,
+    "cooperative-progress-bar",
+    "cooperative-progress-bar-title",
+  );
   const cooperativeProgressConfig = {
     "start-date": getFeatureSettingValue(
       featureConfig.state,
@@ -88,6 +93,10 @@ export default async function CooperativeProgressRoutePage({
   const powerupsByUserId = arePowerupsEnabled
     ? await getUserPowerupsMap(profileEntries.map((entry) => entry.userId))
     : {};
+  const configuredTitle =
+    typeof cooperativeProgressTitle === "string" && cooperativeProgressTitle.trim() !== ""
+      ? cooperativeProgressTitle.trim()
+      : null;
 
   return (
     <CooperativeProgressPage
@@ -105,7 +114,7 @@ export default async function CooperativeProgressRoutePage({
       showPowerups={arePowerupsEnabled}
       enabledPowerupIds={enabledPowerupIds}
       dictionary={{
-        heading: dictionary.cooperativeProgress.heading,
+        heading: configuredTitle ?? dictionary.cooperativeProgress.heading,
         topContributorsHeading: dictionary.cooperativeProgress.topContributorsHeading,
         emptyContributors: dictionary.cooperativeProgress.emptyContributors,
         rankColumn: dictionary.cooperativeProgress.rankColumn,

@@ -241,6 +241,19 @@
       ],
       "configuration": [
         {
+          "id": "cooperative-progress-bar-title",
+          "type": "string",
+          "label": {
+            "en": "Title",
+            "de": "Titel"
+          },
+          "description": {
+            "en": "The title shown to users when hovering over the cooperative progress bar and as the heading on the cooperative progress page. Leave empty to show \"Cooperative Progress\".",
+            "de": "Der Titel, der Benutzern beim Überfahren des kooperativen Fortschrittsbalkens und als Überschrift auf der Seite für kooperativen Fortschritt angezeigt wird. Leer lassen, um \"Cooperative Progress\" anzuzeigen."
+          },
+          "defaultValue": ""
+        },
+        {
           "id": "start-date",
           "type": "date",
           "label": {

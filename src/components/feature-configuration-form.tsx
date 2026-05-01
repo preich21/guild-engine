@@ -43,7 +43,7 @@ export type FieldValue = boolean | number | string;
 
 type FeatureSetting = {
   id: string;
-  type: "checkbox" | "date" | "decimal" | "number" | "select" | "switch";
+  type: "checkbox" | "date" | "decimal" | "number" | "select" | "string" | "switch";
   label: LocalizedText;
   description?: LocalizedText;
   defaultValue?: FieldValue;
@@ -598,7 +598,7 @@ function FeatureSettingControl({
       <DisabledTooltip content={disabledReason}>
         <Input
           id={id}
-          type={setting.type === "date" ? "date" : "number"}
+          type={setting.type === "date" ? "date" : setting.type === "string" ? "text" : "number"}
           value={String(value)}
           min={setting.min}
           step={setting.step}

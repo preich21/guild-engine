@@ -37,7 +37,7 @@ export type SaveFeatureConfigResult =
 
 type CatalogSetting = {
   id: string;
-  type: "checkbox" | "date" | "decimal" | "number" | "select" | "switch";
+  type: "checkbox" | "date" | "decimal" | "number" | "select" | "string" | "switch";
   defaultValue?: FeatureConfigValue;
   min?: number;
   step?: number;
@@ -346,6 +346,7 @@ export const saveFeatureConfig = async (
 
   revalidatePath(`/${lang}/admin/feature-config`);
   revalidatePath(`/${lang}`);
+  revalidatePath(`/${lang}/cooperative-progress`);
 
   return {
     status: "success",

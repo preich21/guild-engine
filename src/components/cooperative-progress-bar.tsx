@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Gift, PartyPopper } from "lucide-react";
 
 import type { CooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
+import { useFeatureSettingValue } from "@/components/feature-config-provider";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
@@ -21,6 +24,9 @@ type CooperativeProgressBarProps = {
   className?: string;
 };
 
+const withTooltipTitle = (template: string, title: string | null) =>
+  title ? template.replace(/^[^:]+:/, `${title}:`) : template;
+
 export function CooperativeProgressBar({
   lang,
   progress,
@@ -30,12 +36,20 @@ export function CooperativeProgressBar({
   className,
 }: CooperativeProgressBarProps) {
   const numberFormatter = new Intl.NumberFormat(lang);
+  const configuredTitle = useFeatureSettingValue(
+    "cooperative-progress-bar",
+    "cooperative-progress-bar-title",
+  );
+  const title =
+    typeof configuredTitle === "string" && configuredTitle.trim() !== ""
+      ? configuredTitle.trim()
+      : null;
   const pointsOverGoal = Math.max(0, progress.currentPoints - progress.goalPoints);
   const tooltip = progress.isComplete
-    ? dictionary.overGoalTooltip
+    ? withTooltipTitle(dictionary.overGoalTooltip, title)
         .replace("{current}", numberFormatter.format(pointsOverGoal))
         .replace("{goal}", numberFormatter.format(progress.goalPoints))
-    : dictionary.inProgressTooltip
+    : withTooltipTitle(dictionary.inProgressTooltip, title)
         .replace("{current}", numberFormatter.format(progress.currentPoints))
         .replace("{goal}", numberFormatter.format(progress.goalPoints));
   const Icon = progress.isComplete ? PartyPopper : Gift;
