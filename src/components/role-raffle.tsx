@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { useFeatureEnabled } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -15,14 +15,32 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea, ScrollAreaContent, ScrollAreaViewport, ScrollBar } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { RoleRaffleUser } from "@/lib/role-raffle";
+import type { RolePresentsMeeting, RoleRaffleUser } from "@/lib/role-raffle";
+
+type DisplayRolePresentsMeeting = RolePresentsMeeting & {
+  displayTimestamp: string;
+};
+
+type DisplayRoleRaffleRolePresents = {
+  latestPastMeeting: DisplayRolePresentsMeeting | null;
+  nextFutureMeeting: DisplayRolePresentsMeeting | null;
+};
 
 type RoleRaffleProps = {
   users: RoleRaffleUser[];
+  rolePresents: DisplayRoleRaffleRolePresents;
   dictionary: {
     heading: string;
+    rolePresentsHeading: string;
+    rolePresentsMeetingTitle: string;
+    anonymousRolePresentGifter: string;
+    victimLabel: string;
+    benefactorLabel: string;
+    commentLabel: string;
+    noRolePresentsUsed: string;
     selectUsersButton: string;
     spinButton: string;
     selectUsersTitle: string;
@@ -79,7 +97,11 @@ const getSegmentPath = (startAngle: number, endAngle: number) => {
 
 const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
 
-export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
+const subscribeToHydration = () => () => {};
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
+
+export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps) {
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
   const [isWinnerOpen, setIsWinnerOpen] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -90,6 +112,11 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingWinnerNameRef = useRef<string | null>(null);
   const checkboxBaseId = useId();
+  const hasHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
   const isPointSystemEnabled = useFeatureEnabled("point-system");
   const enabledUsers = useMemo(() => users.filter((user) => !user.isRoleShielded), [users]);
   const enabledUserIds = useMemo(() => new Set(enabledUsers.map((user) => user.id)), [enabledUsers]);
@@ -112,6 +139,13 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   const allSelected = enabledUsers.length > 0 && draftSelectedUserIds.length === enabledUsers.length;
   const canSelectDraftUsers = draftSelectedUserIds.length >= 2;
   const canSpin = selectedUsers.length >= 2 && !mustSpin;
+  const rolePresentMeetings = useMemo(
+    () =>
+      [rolePresents.latestPastMeeting, rolePresents.nextFutureMeeting].filter(
+        (meeting): meeting is DisplayRolePresentsMeeting => meeting !== null,
+      ),
+    [rolePresents.latestPastMeeting, rolePresents.nextFutureMeeting],
+  );
 
   useEffect(
     () => () => {
@@ -207,95 +241,165 @@ export function RoleRaffle({ users, dictionary }: RoleRaffleProps) {
   return (
     <>
       <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
-        <Card className="w-full max-w-5xl shadow-md ring-1 ring-foreground/10">
-          <CardHeader className="items-center text-center">
-            <CardTitle>{dictionary.heading}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="flex justify-center">
-              <div className="w-full max-w-176 rounded-[2rem] border border-border bg-muted/30 p-4 shadow-inner sm:p-6">
-                {wheelData.length === 0 ? (
-                  <div className="flex aspect-square items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background text-center text-sm text-muted-foreground">
-                    <p className="max-w-xs">{dictionary.emptyState}</p>
-                  </div>
-                ) : (
-                  <div className="relative mx-auto aspect-square w-full max-w-120">
-                    <div className="absolute left-1/2 top-0 z-10 h-0 w-0 -translate-x-1/2 border-x-[0.9rem] border-t-[1.7rem] border-x-transparent border-t-primary" />
-                    <svg
-                      viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
-                      role="img"
-                      aria-label={dictionary.heading}
-                      className="size-full drop-shadow-md"
-                    >
-                      <g
-                        style={{
-                          transform: `rotate(${rotationDegrees}deg)`,
-                          transformBox: "fill-box",
-                          transformOrigin: "center",
-                          transition: mustSpin
-                            ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.12, 0.72, 0.18, 1)`
-                            : undefined,
-                        }}
-                      >
-                        {wheelData.map((segment, index) => {
-                          const segmentAngle = 360 / wheelData.length;
-                          const startAngle = index * segmentAngle;
-                          const endAngle = startAngle + segmentAngle;
-                          const labelAngle = startAngle + segmentAngle / 2;
-                          const labelPosition = polarToCartesian(labelAngle, WHEEL_LABEL_RADIUS);
+        <Card className="w-full max-w-7xl shadow-md ring-1 ring-foreground/10">
+          <CardContent>
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+              <div className="min-w-0 flex-1 space-y-8">
+                <h1 className="text-center text-xl font-semibold tracking-normal text-foreground">
+                  {dictionary.heading}
+                </h1>
 
-                          return (
-                            <g key={segment.id}>
-                              <path
-                                d={getSegmentPath(startAngle, endAngle)}
-                                fill={segment.color}
-                                stroke="#f8fafc"
-                                strokeWidth="3"
-                              />
-                              <text
-                                x={labelPosition.x}
-                                y={labelPosition.y}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="fill-zinc-950 text-[16px] font-bold"
-                                transform={`rotate(${labelAngle} ${labelPosition.x} ${labelPosition.y})`}
-                              >
-                                {segment.label}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </g>
-                      <circle
-                        cx={WHEEL_CENTER}
-                        cy={WHEEL_CENTER}
-                        r="46"
-                        className="fill-background stroke-border"
-                        strokeWidth="4"
-                      />
-                    </svg>
+                <div className="flex justify-center">
+                  <div className="w-full max-w-176 rounded-[2rem] border border-border bg-muted/30 p-4 shadow-inner sm:p-6">
+                    {wheelData.length === 0 ? (
+                      <div className="mx-auto flex aspect-square w-full max-w-120 items-center justify-center rounded-[1.5rem] border border-dashed border-border bg-background text-center text-sm text-muted-foreground">
+                        <p className="max-w-xs">{dictionary.emptyState}</p>
+                      </div>
+                    ) : (
+                      <div className="relative mx-auto aspect-square w-full max-w-120">
+                        <div className="absolute left-1/2 top-0 z-10 h-0 w-0 -translate-x-1/2 border-x-[0.9rem] border-t-[1.7rem] border-x-transparent border-t-primary" />
+                        <svg
+                          viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
+                          role="img"
+                          aria-label={dictionary.heading}
+                          className="size-full drop-shadow-md"
+                        >
+                          <g
+                            style={{
+                              transform: `rotate(${rotationDegrees}deg)`,
+                              transformBox: "fill-box",
+                              transformOrigin: "center",
+                              transition: mustSpin
+                                ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.12, 0.72, 0.18, 1)`
+                                : undefined,
+                            }}
+                          >
+                            {wheelData.map((segment, index) => {
+                              const segmentAngle = 360 / wheelData.length;
+                              const startAngle = index * segmentAngle;
+                              const endAngle = startAngle + segmentAngle;
+                              const labelAngle = startAngle + segmentAngle / 2;
+                              const labelPosition = polarToCartesian(labelAngle, WHEEL_LABEL_RADIUS);
+
+                              return (
+                                <g key={segment.id}>
+                                  <path
+                                    d={getSegmentPath(startAngle, endAngle)}
+                                    fill={segment.color}
+                                    stroke="#f8fafc"
+                                    strokeWidth="3"
+                                  />
+                                  <text
+                                    x={labelPosition.x}
+                                    y={labelPosition.y}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    className="fill-zinc-950 text-[16px] font-bold"
+                                    transform={`rotate(${labelAngle} ${labelPosition.x} ${labelPosition.y})`}
+                                  >
+                                    {segment.label}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </g>
+                          <circle
+                            cx={WHEEL_CENTER}
+                            cy={WHEEL_CENTER}
+                            r="46"
+                            className="fill-background stroke-border"
+                            strokeWidth="4"
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:min-w-44 sm:w-auto"
+                    onClick={() => handleSelectionOpenChange(true)}
+                  >
+                    {dictionary.selectUsersButton}
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:min-w-44 sm:w-auto"
+                    onClick={handleSpin}
+                    disabled={hasHydrated && !canSpin}
+                  >
+                    {dictionary.spinButton}
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:min-w-44 sm:w-auto"
-                onClick={() => handleSelectionOpenChange(true)}
-              >
-                {dictionary.selectUsersButton}
-              </Button>
-              <Button
-                type="button"
-                className="w-full sm:min-w-44 sm:w-auto"
-                onClick={handleSpin}
-                disabled={!canSpin}
-              >
-                {dictionary.spinButton}
-              </Button>
+              <Separator orientation="horizontal" className="lg:hidden" />
+              <Separator orientation="vertical" className="hidden lg:block" />
+
+              <aside className="w-full space-y-5 lg:w-96 lg:shrink-0">
+                <h2 className="text-xl font-semibold tracking-normal text-foreground">
+                  {dictionary.rolePresentsHeading}
+                </h2>
+
+                <div className="space-y-5">
+                  {rolePresentMeetings.map((meeting) => (
+                    <section key={meeting.id} className="space-y-3">
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {dictionary.rolePresentsMeetingTitle.replace(
+                          "{timestamp}",
+                          meeting.displayTimestamp,
+                        )}
+                      </h3>
+                      <ScrollArea
+                        className={cn(
+                          "rounded-lg border border-border bg-background",
+                          meeting.entries.length > 3 && "max-h-96",
+                        )}
+                      >
+                        <ScrollAreaViewport>
+                          <ScrollAreaContent className="space-y-3 p-3">
+                            {meeting.entries.length === 0 ? (
+                              <p className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                                {dictionary.noRolePresentsUsed}
+                              </p>
+                            ) : (
+                              meeting.entries.map((entry) => (
+                                <div
+                                  key={entry.id}
+                                  className="space-y-2 rounded-lg border border-border bg-card p-3 text-sm text-card-foreground"
+                                >
+                                  <p>
+                                    <span className="font-medium">{dictionary.victimLabel}: </span>
+                                    <span>{entry.receivingUsername}</span>
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">{dictionary.benefactorLabel}: </span>
+                                    <span className="text-muted-foreground">
+                                      {entry.anonymous || !entry.giftingUsername
+                                        ? dictionary.anonymousRolePresentGifter
+                                        : entry.giftingUsername}
+                                    </span>
+                                  </p>
+                                  <p className="whitespace-pre-wrap wrap-break-word text-muted-foreground">
+                                    <span className="font-medium text-card-foreground">
+                                      {dictionary.commentLabel}:{" "}
+                                    </span>
+                                    {entry.comment.trim() || "--"}
+                                  </p>
+                                </div>
+                              ))
+                            )}
+                          </ScrollAreaContent>
+                        </ScrollAreaViewport>
+                        <ScrollBar orientation="vertical" />
+                      </ScrollArea>
+                    </section>
+                  ))}
+                </div>
+              </aside>
             </div>
           </CardContent>
         </Card>

@@ -186,6 +186,13 @@ const de = {
   },
   roleRaffle: {
     heading: "Rollen-Verlosung",
+    rolePresentsHeading: "Rollen-Geschenke",
+    rolePresentsMeetingTitle: "Meeting am {timestamp}",
+    anonymousRolePresentGifter: "Anonym",
+    victimLabel: "Empfänger",
+    benefactorLabel: "Wohltäter",
+    commentLabel: "Kommentar",
+    noRolePresentsUsed: "Für dieses Meeting wurden keine Rollen-Geschenke verwendet.",
     selectUsersButton: "Benutzer auswählen",
     spinButton: "Drehen!",
     selectUsersTitle: "Benutzer auswählen",

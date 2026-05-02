@@ -185,6 +185,13 @@ const en = {
   },
   roleRaffle: {
     heading: "Role Raffle",
+    rolePresentsHeading: "Role Presents",
+    rolePresentsMeetingTitle: "Meeting on {timestamp}",
+    anonymousRolePresentGifter: "Anonymous",
+    victimLabel: "Recipient",
+    benefactorLabel: "Benefactor",
+    commentLabel: "Comment",
+    noRolePresentsUsed: "No role presents used for this meeting.",
     selectUsersButton: "Select Users",
     spinButton: "Spin!",
     selectUsersTitle: "Select Users",
