@@ -82,7 +82,12 @@ const de = {
       lootboxOpenError: "Diese Lootbox konnte nicht geöffnet werden.",
       powerupUseError: "Dieses Powerup konnte nicht genutzt werden.",
       noFutureMeetings: "Es sind keine zukünftigen Gildentreffen verfügbar.",
-      meetingSelectionLabel: "Gildentreffen",
+      noRolePresentReceivers: "Es sind keine anderen Benutzer verfügbar.",
+      meetingSelectionLabel: "Meetings",
+      rolePresentReceiverSelectionLabel: "Benutzer",
+      rolePresentCommentLabel: "Kommentar",
+      rolePresentCommentPlaceholder: "Gib an, welche Rolle du verschenken möchtest",
+      rolePresentAnonymousLabel: "Anonym",
       smallPointMultiplicatorUseDescription:
         'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Kleiner Punkte-Multiplikator verbraucht.',
       mediumPointMultiplicatorUseDescription:
@@ -91,12 +96,26 @@ const de = {
         'Wähle das Treffen aus, für das du deine Punkte-Multiplikation erhalten möchtest. Nachdem du unten auf "Nutzen" klickst, wird dein Großer Punkte-Multiplikator verbraucht.',
       roleShieldUseDescription:
         'Wähle das Treffen aus, bei dem du davor geschützt sein möchtest, Rollen zugewiesen zu bekommen. Nachdem du unten auf "Nutzen" klickst, wird dein Rollen-Schild verbraucht.',
+      rolePresentUseDescription:
+        'Wähle das Meeting aus, bei dem du eine Rolle verschenken möchtest, und wähle die Person aus, an die du die Rolle verschenken möchtest. Wenn du eine bestimmte Rolle verschenken möchtest, stelle das im Kommentarfeld unten klar. Bitte stelle sicher, dass die Person tatsächlich an dem ausgewählten Meeting teilnimmt, andernfalls hat dein Rollen-Geschenk keinen Effekt. Nachdem du unten auf "Nutzen" klickst, wird dein Rollen-Geschenk verbraucht.',
       streakFreezeAutomaticDescription:
         "Serien-Freezes werden {hours} Stunden nach Beginn des Treffens automatisch angewendet, wenn keine Anwesenheit erfasst wurde, um deine Serie zu erhalten.",
       pointMultiplicatorAlreadyActivatedTooltip:
         "Du hast für dieses Treffen bereits das Powerup {powerup} aktiviert und kannst deshalb keinen weiteren Punkte-Multiplikator aktivieren.",
       roleShieldAlreadyActivatedTooltip:
         "Du hast für dieses Treffen bereits einen Rollen-Schild aktiviert und kannst deshalb keinen weiteren aktivieren.",
+      rolePresentAnonymousTooltip:
+        "Wenn diese Option aktiviert ist, enthält das Rollen-Geschenk nicht den Namen der absendenden Person. Andernfalls ist der Name für alle sichtbar.",
+      rolePresentMeetingWarningTitle: "Rollen-Geschenk bereits genutzt",
+      rolePresentMeetingWarningDescription:
+        "Für dieses Meeting wurden bereits ein oder mehrere Rollen-Geschenke genutzt.",
+      rolePresentReceivingUserLabel: "Empfangende Person",
+      rolePresentCommentDetailsLabel: "Kommentar",
+      rolePresentGiftingUserLabel: "Schenkende Person",
+      rolePresentMeetingWarningGuidance:
+        "Wenn du dieselbe Rolle verschenken möchtest, wähle bitte ein anderes Meeting. Wenn du derselben Person eine andere Rolle schenken möchtest, stelle sicher, dass diese beiden Rollen gleichzeitig gehandhabt werden können. Andernfalls wähle bitte ein anderes Meeting. Wenn zu viele Rollen verschenkt werden, verfallen die überschüssigen.",
+      rolePresentWarningCancelButton: "Abbrechen",
+      rolePresentWarningUseAnywayButton: "Trotzdem nutzen",
     },
     openProfileButton: "Profil von {username} öffnen",
     openProfilePage: "Vollständige Profilseite öffnen",

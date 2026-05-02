@@ -71,6 +71,13 @@
       "when": 1777648305959,
       "tag": "0009_absurd_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777703065018,
+      "tag": "0010_cheerful_toxin",
+      "breakpoints": true
     }
   ]
 }

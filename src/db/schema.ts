@@ -23,6 +23,14 @@ export type FeatureConfigEntry = {
   value: FeatureConfigValue;
 };
 
+export type RolePresentPowerupSettings = {
+  receivingUserId: string;
+  comment: string;
+  anonymous: boolean;
+};
+
+export type PowerupUtilizationSettings = RolePresentPowerupSettings | null;
+
 export const NO_TEAM_ASSIGNED_TEAM_ID = "00000000-0000-0000-0000-000000000001";
 
 export const teams = pgTable("team", {
@@ -187,6 +195,7 @@ export const powerupUtilization = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     powerup: varchar("powerup", { length: 255 }).notNull(),
+    settings: jsonb("settings").$type<PowerupUtilizationSettings>().default(null),
     usageTimestamp: timestamp("usage_timestamp", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

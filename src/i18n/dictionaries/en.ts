@@ -81,7 +81,12 @@ const en = {
       lootboxOpenError: "Could not open this lootbox.",
       powerupUseError: "Could not use this powerup.",
       noFutureMeetings: "No future guild meetings are available.",
-      meetingSelectionLabel: "Guild meeting",
+      noRolePresentReceivers: "No other users are available.",
+      meetingSelectionLabel: "Meetings",
+      rolePresentReceiverSelectionLabel: "Users",
+      rolePresentCommentLabel: "Comment",
+      rolePresentCommentPlaceholder: "Specify which role you want to gift",
+      rolePresentAnonymousLabel: "Anonymous",
       smallPointMultiplicatorUseDescription:
         'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Small Point Multiplier will be consumed.',
       mediumPointMultiplicatorUseDescription:
@@ -90,12 +95,26 @@ const en = {
         'Select the meeting you would like to receive your point mulitplication for. After clicking "Use" below, your Large Point Multiplier will be consumed.',
       roleShieldUseDescription:
         'Select the meeting you would like to be protected from getting assigned any roles. After clicking "Use" below, your Role Shield will be consumed.',
+      rolePresentUseDescription:
+        'Select the meeting at which you want to gift a role and select the user to whom you want to gift the role to. If you want to gift a specific role, clarify that in the comment field below. Please make sure that the user will actually attend the meeting you select, otherwise your Role Present will have no effect. After clicking "Use" below, your Role Present will be consumed.',
       streakFreezeAutomaticDescription:
         "Streak freezes will be automatically applied {hours} hours after the meeting has started if no attendance was recorded to preserve your streak.",
       pointMultiplicatorAlreadyActivatedTooltip:
         "You already activated a {powerup} for this meeting and therefore cannot activate another one",
       roleShieldAlreadyActivatedTooltip:
         "You already activated a Role Shield for this meeting and therefore cannot activate another one",
+      rolePresentAnonymousTooltip:
+        "When checked, the Role Present will not contain the name of the sender. Otherwise the sender's name will be visible for everyone.",
+      rolePresentMeetingWarningTitle: "Role Present already used",
+      rolePresentMeetingWarningDescription:
+        "There have already been used one or more Role Presents for this meeting.",
+      rolePresentReceivingUserLabel: "Receiving user",
+      rolePresentCommentDetailsLabel: "Comment",
+      rolePresentGiftingUserLabel: "Gifting Person",
+      rolePresentMeetingWarningGuidance:
+        "If you want to gift the same role, please select another meeting. If you want to gift another role to the same user, make sure those two roles can be handled at the same time. Otherwise please select another meeting. If too many roles are gifted, the excess ones will expire.",
+      rolePresentWarningCancelButton: "Cancel",
+      rolePresentWarningUseAnywayButton: "Use Anyway",
     },
     openProfileButton: "Open profile of {username}",
     openProfilePage: "Open full profile page",

@@ -1,16 +1,25 @@
 "use client";
 
 import Image from "next/image";
+import { TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
   FutureGuildMeeting,
   OpenLootboxActionResult,
+  RolePresentReceiver,
   UsePowerupActionResult,
+  UsePowerupSettings,
 } from "@/app/[lang]/user/[uuid]/actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -32,6 +41,7 @@ import {
   ScrollAreaViewport,
   ScrollBar,
 } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import type { Locale } from "@/i18n/config";
 import { useFeatureSettingValue } from "@/components/feature-config-provider";
 import { cn } from "@/lib/utils";
@@ -52,14 +62,29 @@ export type UserProfilePowerupsDictionary = {
   lootboxOpenError: string;
   powerupUseError: string;
   noFutureMeetings: string;
+  noRolePresentReceivers: string;
   meetingSelectionLabel: string;
+  rolePresentReceiverSelectionLabel: string;
+  rolePresentCommentLabel: string;
+  rolePresentCommentPlaceholder: string;
+  rolePresentAnonymousLabel: string;
   smallPointMultiplicatorUseDescription: string;
   mediumPointMultiplicatorUseDescription: string;
   largePointMultiplicatorUseDescription: string;
   roleShieldUseDescription: string;
+  rolePresentUseDescription: string;
   streakFreezeAutomaticDescription: string;
   pointMultiplicatorAlreadyActivatedTooltip: string;
   roleShieldAlreadyActivatedTooltip: string;
+  rolePresentAnonymousTooltip: string;
+  rolePresentMeetingWarningTitle: string;
+  rolePresentMeetingWarningDescription: string;
+  rolePresentReceivingUserLabel: string;
+  rolePresentCommentDetailsLabel: string;
+  rolePresentGiftingUserLabel: string;
+  rolePresentMeetingWarningGuidance: string;
+  rolePresentWarningCancelButton: string;
+  rolePresentWarningUseAnywayButton: string;
 };
 
 type UserProfilePowerupsProps = {
@@ -68,6 +93,7 @@ type UserProfilePowerupsProps = {
   items: PowerupItem[];
   canUsePowerups: boolean;
   futureGuildMeetings: FutureGuildMeeting[];
+  rolePresentReceivers: RolePresentReceiver[];
   dictionary: UserProfilePowerupsDictionary;
   openLootboxAction?: (
     lang: Locale,
@@ -77,6 +103,7 @@ type UserProfilePowerupsProps = {
     lang: Locale,
     meetingId: string,
     powerupId: string,
+    settings?: UsePowerupSettings,
   ) => Promise<UsePowerupActionResult>;
 };
 
@@ -103,6 +130,7 @@ const usablePowerupIds = new Set([
   "medium-point-multiplicator",
   "large-point-multiplicator",
   "role-shield",
+  "role-present",
 ]);
 
 const powerupUseDescriptionKeys = {
@@ -110,6 +138,7 @@ const powerupUseDescriptionKeys = {
   "medium-point-multiplicator": "mediumPointMultiplicatorUseDescription",
   "large-point-multiplicator": "largePointMultiplicatorUseDescription",
   "role-shield": "roleShieldUseDescription",
+  "role-present": "rolePresentUseDescription",
 } as const satisfies Record<string, keyof UserProfilePowerupsDictionary>;
 
 const pointMultiplicatorPowerupIds = {
@@ -132,6 +161,7 @@ export function UserProfilePowerups({
   items,
   canUsePowerups,
   futureGuildMeetings,
+  rolePresentReceivers,
   dictionary,
   openLootboxAction,
   utilizePowerupAction,
@@ -141,6 +171,13 @@ export function UserProfilePowerups({
   const [selectedPowerup, setSelectedPowerup] = useState<PowerupItem | null>(null);
   const [awardedPowerup, setAwardedPowerup] = useState<PowerupItem | null>(null);
   const [selectedMeetingId, setSelectedMeetingId] = useState(futureGuildMeetings[0]?.id ?? "");
+  const [selectedReceivingUserId, setSelectedReceivingUserId] = useState(
+    rolePresentReceivers[0]?.id ?? "",
+  );
+  const [rolePresentComment, setRolePresentComment] = useState("");
+  const [rolePresentAnonymous, setRolePresentAnonymous] = useState(false);
+  const [rolePresentConfirmationOpen, setRolePresentConfirmationOpen] = useState(false);
+  const [openRolePresentWarningMeetingId, setOpenRolePresentWarningMeetingId] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isOpening, startOpeningTransition] = useTransition();
   const [isUsing, startUsingTransition] = useTransition();
@@ -162,6 +199,12 @@ export function UserProfilePowerups({
       setSelectedMeetingId(futureGuildMeetings[0]?.id ?? "");
     }
   }, [futureGuildMeetings, selectedMeetingId]);
+
+  useEffect(() => {
+    if (!rolePresentReceivers.some((receiver) => receiver.id === selectedReceivingUserId)) {
+      setSelectedReceivingUserId(rolePresentReceivers[0]?.id ?? "");
+    }
+  }, [rolePresentReceivers, selectedReceivingUserId]);
 
   const selectedDisplayPowerup = useMemo(
     () =>
@@ -203,6 +246,11 @@ export function UserProfilePowerups({
     setSelectedPowerup(powerup);
     setAwardedPowerup(null);
     setSelectedMeetingId(getFirstSelectableMeetingId(powerup.imageId));
+    setSelectedReceivingUserId(rolePresentReceivers[0]?.id ?? "");
+    setRolePresentComment("");
+    setRolePresentAnonymous(false);
+    setRolePresentConfirmationOpen(false);
+    setOpenRolePresentWarningMeetingId("");
     setError(false);
     setDialogOpen(true);
   };
@@ -215,6 +263,11 @@ export function UserProfilePowerups({
       setSelectedMeetingId(
         selectedDisplayPowerup ? getFirstSelectableMeetingId(selectedDisplayPowerup.imageId) : "",
       );
+      setSelectedReceivingUserId(rolePresentReceivers[0]?.id ?? "");
+      setRolePresentComment("");
+      setRolePresentAnonymous(false);
+      setRolePresentConfirmationOpen(false);
+      setOpenRolePresentWarningMeetingId("");
       setError(false);
     }
   };
@@ -250,7 +303,15 @@ export function UserProfilePowerups({
     });
   };
 
-  const handleUsePowerup = () => {
+  const selectedRolePresentMeeting = useMemo(
+    () => futureGuildMeetings.find((meeting) => meeting.id === selectedMeetingId) ?? null,
+    [futureGuildMeetings, selectedMeetingId],
+  );
+  const selectedMeetingHasRolePresentWarning =
+    selectedDisplayPowerup?.imageId === "role-present" &&
+    Boolean(selectedRolePresentMeeting?.rolePresentUtilizations.length);
+
+  const handleUsePowerup = (forceRolePresentWarning = false) => {
     if (
       !selectedDisplayPowerup ||
       !isUsablePowerupId(selectedDisplayPowerup.imageId) ||
@@ -260,10 +321,34 @@ export function UserProfilePowerups({
       return;
     }
 
+    if (
+      selectedDisplayPowerup.imageId === "role-present" &&
+      selectedMeetingHasRolePresentWarning &&
+      !forceRolePresentWarning
+    ) {
+      setRolePresentConfirmationOpen(true);
+      return;
+    }
+
     startUsingTransition(async () => {
       setError(false);
+      setRolePresentConfirmationOpen(false);
 
-      const result = await utilizePowerupAction(lang, selectedMeetingId, selectedDisplayPowerup.imageId);
+      const settings =
+        selectedDisplayPowerup.imageId === "role-present"
+          ? {
+              receivingUserId: selectedReceivingUserId,
+              comment: rolePresentComment,
+              anonymous: rolePresentAnonymous,
+            }
+          : undefined;
+
+      const result = await utilizePowerupAction(
+        lang,
+        selectedMeetingId,
+        selectedDisplayPowerup.imageId,
+        settings,
+      );
 
       if (result.status === "error") {
         setError(true);
@@ -303,6 +388,45 @@ export function UserProfilePowerups({
         )
       : false;
   const selectedPowerupIsStreakFreeze = selectedDisplayPowerup?.imageId === "streak-freeze";
+  const selectedPowerupIsRolePresent = selectedDisplayPowerup?.imageId === "role-present";
+  const selectedRolePresentReceiver = rolePresentReceivers.find(
+    (receiver) => receiver.id === selectedReceivingUserId,
+  );
+
+  const renderRolePresentWarningContent = (meeting: FutureGuildMeeting) => (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <p className="font-medium text-foreground">{dictionary.rolePresentMeetingWarningTitle}</p>
+        <p className="text-muted-foreground">
+          {dictionary.rolePresentMeetingWarningDescription}
+        </p>
+      </div>
+      <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+        {meeting.rolePresentUtilizations.map((utilization) => (
+          <div
+            key={utilization.id}
+            className="space-y-1 rounded-md border border-border bg-muted/30 p-2"
+          >
+            <p className="break-all">
+              <span className="font-medium">{dictionary.rolePresentReceivingUserLabel}: </span>
+              {utilization.receivingUsername ?? utilization.receivingUserId}
+            </p>
+            <p className="wrap-break-word">
+              <span className="font-medium">{dictionary.rolePresentCommentDetailsLabel}: </span>
+              {utilization.comment || "--"}
+            </p>
+            <p className="break-all">
+              <span className="font-medium">{dictionary.rolePresentGiftingUserLabel}: </span>
+              {utilization.anonymous
+                ? dictionary.rolePresentAnonymousLabel
+                : utilization.giftingUsername ?? utilization.giftingUserId}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="text-muted-foreground">{dictionary.rolePresentMeetingWarningGuidance}</p>
+    </div>
+  );
 
   useEffect(() => {
     if (!selectedDisplayPowerup || !isUsablePowerupId(selectedDisplayPowerup.imageId)) {
@@ -431,58 +555,95 @@ export function UserProfilePowerups({
                   </div>
                 </div>
 
+                <div className="mt-2 border-t border-border" />
+
                 <div className="space-y-3 py-2">
                   <p className="text-sm leading-6 text-muted-foreground">
                     {dictionary[powerupUseDescriptionKeys[selectedDisplayPowerup.imageId]]}
                   </p>
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">
-                      {dictionary.meetingSelectionLabel}
-                    </p>
-                    {futureGuildMeetings.length === 0 ? (
-                      <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                        {dictionary.noFutureMeetings}
+                  <div className="grid gap-3">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">
+                        {dictionary.meetingSelectionLabel}
                       </p>
-                    ) : (
-                      <RadioGroup
-                        value={selectedMeetingId}
-                        onValueChange={setSelectedMeetingId}
-                        className="max-h-64 overflow-y-auto rounded-lg border border-border p-3"
-                      >
-                        {futureGuildMeetings.map((meeting) => {
-                          const optionId = `powerup-meeting-${meeting.id}`;
-                          const disabledReason = getMeetingDisabledReason(
-                            selectedDisplayPowerup.imageId,
-                            meeting,
-                          );
-                          const option = (
-                            <Label
-                              key={meeting.id}
-                              htmlFor={optionId}
-                              className={cn(
-                                "flex items-center gap-3 rounded-md border border-border bg-background px-3 py-2",
-                                disabledReason
-                                  ? "cursor-not-allowed opacity-55"
-                                  : "cursor-pointer",
-                              )}
-                            >
-                              <RadioGroupItem
-                                id={optionId}
-                                value={meeting.id}
-                                disabled={Boolean(disabledReason)}
-                                className="size-5"
-                              />
-                              <span className="flex flex-col gap-0.5">
-                                <span className="text-sm text-foreground">
-                                  {formatMeetingTimestamp(meeting.timestamp)}
+                      {futureGuildMeetings.length === 0 ? (
+                        <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                          {dictionary.noFutureMeetings}
+                        </p>
+                      ) : (
+                        <RadioGroup
+                          value={selectedMeetingId}
+                          onValueChange={setSelectedMeetingId}
+                          className={cn(
+                            "overflow-y-auto rounded-lg border border-border p-3",
+                            selectedPowerupIsRolePresent ? "max-h-40" : "max-h-80",
+                          )}
+                        >
+                          {futureGuildMeetings.map((meeting) => {
+                            const optionId = `powerup-meeting-${meeting.id}`;
+                            const disabledReason = getMeetingDisabledReason(
+                              selectedDisplayPowerup.imageId,
+                              meeting,
+                            );
+                            const rolePresentWarnings =
+                              selectedPowerupIsRolePresent &&
+                              meeting.rolePresentUtilizations.length > 0;
+                            const option = (
+                              <Label
+                                key={meeting.id}
+                                htmlFor={optionId}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-md border border-border bg-background px-3 py-2",
+                                  disabledReason
+                                    ? "cursor-not-allowed opacity-55"
+                                    : "cursor-pointer",
+                                )}
+                              >
+                                <RadioGroupItem
+                                  id={optionId}
+                                  value={meeting.id}
+                                  disabled={Boolean(disabledReason)}
+                                  className="size-5"
+                                />
+                                <span className="flex flex-col gap-0.5">
+                                  <span className="text-sm text-foreground">
+                                    {formatMeetingTimestamp(meeting.timestamp)}
+                                  </span>
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {meeting.id}
+                                  </span>
                                 </span>
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {meeting.id}
-                                </span>
-                              </span>
-                            </Label>
-                          );
+                                {rolePresentWarnings ? (
+                                  <Popover
+                                    open={openRolePresentWarningMeetingId === meeting.id}
+                                    onOpenChange={(open) =>
+                                      setOpenRolePresentWarningMeetingId(open ? meeting.id : "")
+                                    }
+                                  >
+                                    <PopoverTrigger
+                                      render={
+                                        <button
+                                          type="button"
+                                          className="ml-auto rounded-md p-1 text-amber-600 outline-none hover:bg-amber-500/10 focus-visible:ring-2 focus-visible:ring-ring/50 dark:text-amber-400"
+                                          aria-label={dictionary.rolePresentMeetingWarningTitle}
+                                          onClick={(event) => event.preventDefault()}
+                                        >
+                                          <TriangleAlert className="size-4" aria-hidden="true" />
+                                        </button>
+                                      }
+                                    />
+                                    <PopoverContent
+                                      side="left"
+                                      align="start"
+                                      className="w-[min(90vw,24rem)] text-xs"
+                                    >
+                                      {renderRolePresentWarningContent(meeting)}
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : null}
+                              </Label>
+                            );
 
                           return disabledReason ? (
                             <Tooltip key={meeting.id}>
@@ -492,10 +653,95 @@ export function UserProfilePowerups({
                           ) : (
                             option
                           );
-                        })}
-                      </RadioGroup>
-                    )}
+                          })}
+                        </RadioGroup>
+                      )}
+                    </div>
+
+                    {selectedPowerupIsRolePresent ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {dictionary.rolePresentReceiverSelectionLabel}
+                        </p>
+                        {rolePresentReceivers.length === 0 ? (
+                          <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                            {dictionary.noRolePresentReceivers}
+                          </p>
+                        ) : (
+                          <RadioGroup
+                            value={selectedReceivingUserId}
+                            onValueChange={setSelectedReceivingUserId}
+                            className="max-h-40 overflow-y-auto rounded-lg border border-border p-3"
+                          >
+                            {rolePresentReceivers.map((receiver) => {
+                              const optionId = `role-present-receiver-${receiver.id}`;
+
+                              return (
+                                <Label
+                                  key={receiver.id}
+                                  htmlFor={optionId}
+                                  className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-background px-3 py-2"
+                                >
+                                  <RadioGroupItem
+                                    id={optionId}
+                                    value={receiver.id}
+                                    className="size-5"
+                                  />
+                                  <span className="flex min-w-0 flex-col gap-0.5">
+                                    <span className="truncate text-sm text-foreground">
+                                      {receiver.username}
+                                    </span>
+                                    <span className="truncate font-mono text-xs text-muted-foreground">
+                                      {receiver.id}
+                                    </span>
+                                  </span>
+                                </Label>
+                              );
+                            })}
+                          </RadioGroup>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
+
+                  {selectedPowerupIsRolePresent ? (
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                      <div className="space-y-2">
+                        <Label htmlFor="role-present-comment">
+                          {dictionary.rolePresentCommentLabel}
+                        </Label>
+                        <Input
+                          id="role-present-comment"
+                          value={rolePresentComment}
+                          onChange={(event) => setRolePresentComment(event.target.value)}
+                          placeholder={dictionary.rolePresentCommentPlaceholder}
+                          maxLength={1023}
+                        />
+                      </div>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                              <Switch
+                                id="role-present-anonymous"
+                                checked={rolePresentAnonymous}
+                                onCheckedChange={setRolePresentAnonymous}
+                              />
+                              <Label
+                                htmlFor="role-present-anonymous"
+                                className="cursor-pointer text-sm"
+                              >
+                                {dictionary.rolePresentAnonymousLabel}
+                              </Label>
+                            </div>
+                          }
+                        />
+                        <TooltipContent className="max-w-72">
+                          {dictionary.rolePresentAnonymousTooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ) : null}
                 </div>
 
                 {error ? (
@@ -596,29 +842,59 @@ export function UserProfilePowerups({
                 {dictionary.cancelPowerupDialogButton}
               </Button>
               {selectedPowerupIsStreakFreeze ? null : (
-                <Button
-                  type="button"
-                  onClick={
-                    isUsablePowerupId(selectedDisplayPowerup.imageId)
-                      ? handleUsePowerup
-                      : handleUseNow
-                  }
-                  disabled={
-                    isOpening ||
-                    isUsing ||
-                    selectedDisplayPowerup.count === 0 ||
-                    (selectedDisplayPowerup.imageId === "lootbox" && !openLootboxAction) ||
-                    (usablePowerupIds.has(selectedDisplayPowerup.imageId) &&
-                      (!utilizePowerupAction ||
-                        !selectedMeetingId ||
-                        selectedMeetingIsDisabled ||
-                        futureGuildMeetings.length === 0))
-                  }
+                <Popover
+                  open={rolePresentConfirmationOpen}
+                  onOpenChange={setRolePresentConfirmationOpen}
                 >
-                  {isUsablePowerupId(selectedDisplayPowerup.imageId)
-                    ? dictionary.usePowerupButton
-                    : dictionary.usePowerupNowButton}
-                </Button>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        onClick={
+                          isUsablePowerupId(selectedDisplayPowerup.imageId)
+                            ? () => handleUsePowerup()
+                            : handleUseNow
+                        }
+                        disabled={
+                          isOpening ||
+                          isUsing ||
+                          selectedDisplayPowerup.count === 0 ||
+                          (selectedDisplayPowerup.imageId === "lootbox" && !openLootboxAction) ||
+                          (usablePowerupIds.has(selectedDisplayPowerup.imageId) &&
+                            (!utilizePowerupAction ||
+                              !selectedMeetingId ||
+                              selectedMeetingIsDisabled ||
+                              futureGuildMeetings.length === 0 ||
+                              (selectedPowerupIsRolePresent && !selectedRolePresentReceiver)))
+                        }
+                      >
+                        {selectedMeetingHasRolePresentWarning ? (
+                          <TriangleAlert className="size-4" aria-hidden="true" />
+                        ) : null}
+                        {isUsablePowerupId(selectedDisplayPowerup.imageId)
+                          ? dictionary.usePowerupButton
+                          : dictionary.usePowerupNowButton}
+                      </Button>
+                    }
+                  />
+                  {selectedMeetingHasRolePresentWarning && selectedRolePresentMeeting ? (
+                    <PopoverContent align="end" className="w-[min(90vw,25rem)]">
+                      {renderRolePresentWarningContent(selectedRolePresentMeeting)}
+                      <div className="flex justify-end gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setRolePresentConfirmationOpen(false)}
+                        >
+                          {dictionary.rolePresentWarningCancelButton}
+                        </Button>
+                        <Button type="button" onClick={() => handleUsePowerup(true)}>
+                          {dictionary.rolePresentWarningUseAnywayButton}
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  ) : null}
+                </Popover>
               )}
             </DialogFooter>
 

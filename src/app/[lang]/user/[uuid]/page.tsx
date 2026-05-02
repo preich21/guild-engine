@@ -7,7 +7,14 @@ import { getCurrentUserRecord } from "@/lib/auth/user";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getEnabledPowerupIds, isFeatureEnabled } from "@/lib/feature-flags";
 import { getUserProfileData } from "@/lib/user-profile";
-import { getFutureGuildMeetings, getProfileEditTeams, openLootbox, saveProfile, usePowerup } from "./actions";
+import {
+  getFutureGuildMeetings,
+  getProfileEditTeams,
+  getRolePresentReceivers,
+  openLootbox,
+  saveProfile,
+  usePowerup,
+} from "./actions";
 
 export async function generateMetadata({
   params,
@@ -59,9 +66,10 @@ export default async function UserProfilePage({
 
   const canEditProfile = currentUser?.id === profile.userId;
   const canUsePowerups = canEditProfile;
-  const [editTeams, futureGuildMeetings] = await Promise.all([
+  const [editTeams, futureGuildMeetings, rolePresentReceivers] = await Promise.all([
     canEditProfile ? getProfileEditTeams() : null,
     canUsePowerups ? getFutureGuildMeetings() : [],
+    canUsePowerups ? getRolePresentReceivers() : [],
   ]);
 
   return (
@@ -80,6 +88,7 @@ export default async function UserProfilePage({
           powerups={{
             canUsePowerups,
             futureGuildMeetings,
+            rolePresentReceivers,
             openLootboxAction: openLootbox,
             utilizePowerupAction: usePowerup,
           }}

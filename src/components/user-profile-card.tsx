@@ -19,8 +19,10 @@ import type {
   FutureGuildMeeting,
   OpenLootboxActionResult,
   ProfileEditTeam,
+  RolePresentReceiver,
   SaveProfileActionState,
   UsePowerupActionResult,
+  UsePowerupSettings,
 } from "@/app/[lang]/user/[uuid]/actions";
 import {
   Card,
@@ -83,6 +85,7 @@ type UserProfileEditProps = {
 type UserProfilePowerupsProps = {
   canUsePowerups: boolean;
   futureGuildMeetings: FutureGuildMeeting[];
+  rolePresentReceivers: RolePresentReceiver[];
   openLootboxAction?: (
     lang: Locale,
     targetUserId: string,
@@ -91,6 +94,7 @@ type UserProfilePowerupsProps = {
     lang: Locale,
     meetingId: string,
     powerupId: string,
+    settings?: UsePowerupSettings,
   ) => Promise<UsePowerupActionResult>;
 };
 
@@ -444,6 +448,7 @@ export function UserProfileCard({
               items={powerupItems}
               canUsePowerups={powerups?.canUsePowerups ?? false}
               futureGuildMeetings={powerups?.futureGuildMeetings ?? []}
+              rolePresentReceivers={powerups?.rolePresentReceivers ?? []}
               dictionary={dictionary.powerupsDialog}
               openLootboxAction={powerups?.openLootboxAction}
               utilizePowerupAction={powerups?.utilizePowerupAction}

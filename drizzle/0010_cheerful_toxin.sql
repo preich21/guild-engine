@@ -1,0 +1,1 @@
+ALTER TABLE "powerup_utilization" ADD COLUMN "settings" jsonb DEFAULT 'null'::jsonb;
