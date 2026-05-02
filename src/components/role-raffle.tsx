@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { useFeatureEnabled } from "@/components/feature-config-provider";
@@ -41,6 +42,7 @@ type RoleRaffleProps = {
     benefactorLabel: string;
     commentLabel: string;
     noRolePresentsUsed: string;
+    rolePresentCounteredTooltip: string;
     selectUsersButton: string;
     spinButton: string;
     selectUsersTitle: string;
@@ -100,6 +102,18 @@ const getRandomIndex = (length: number) => Math.floor(Math.random() * length);
 const subscribeToHydration = () => () => {};
 const getClientHydrationSnapshot = () => true;
 const getServerHydrationSnapshot = () => false;
+
+function RoleShieldIcon() {
+  return (
+    <Image
+      src="/powerups/role-shield.png"
+      alt=""
+      width={16}
+      height={16}
+      className="size-[1em] shrink-0"
+    />
+  );
+}
 
 export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps) {
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
@@ -239,7 +253,7 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
   };
 
   return (
-    <>
+    <TooltipProvider>
       <main className="flex flex-1 justify-center bg-zinc-50 px-4 py-8 dark:bg-black sm:px-6 sm:py-12">
         <Card className="w-full max-w-7xl shadow-md ring-1 ring-foreground/10">
           <CardContent>
@@ -354,12 +368,9 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
                         )}
                       </h3>
                       <ScrollArea
-                        className={cn(
-                          "rounded-lg border border-border bg-background",
-                          meeting.entries.length > 3 && "max-h-96",
-                        )}
+                        className="rounded-lg border border-border bg-background"
                       >
-                        <ScrollAreaViewport>
+                        <ScrollAreaViewport className={cn(meeting.entries.length > 3 && "max-h-96")}>
                           <ScrollAreaContent className="space-y-3 p-3">
                             {meeting.entries.length === 0 ? (
                               <p className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -369,8 +380,29 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
                               meeting.entries.map((entry) => (
                                 <div
                                   key={entry.id}
-                                  className="space-y-2 rounded-lg border border-border bg-card p-3 text-sm text-card-foreground"
+                                  className={cn(
+                                    "relative space-y-2 rounded-lg border border-border bg-card p-3 text-sm text-card-foreground",
+                                    entry.isCounteredByRoleShield &&
+                                      "bg-muted/50 pr-8 text-muted-foreground",
+                                  )}
                                 >
+                                  {entry.isCounteredByRoleShield ? (
+                                    <Tooltip>
+                                      <TooltipTrigger
+                                        render={
+                                          <span className="absolute right-3 top-3 text-sm">
+                                            <RoleShieldIcon />
+                                            <span className="sr-only">
+                                              {dictionary.rolePresentCounteredTooltip}
+                                            </span>
+                                          </span>
+                                        }
+                                      />
+                                      <TooltipContent>
+                                        {dictionary.rolePresentCounteredTooltip}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
                                   <p>
                                     <span className="font-medium">{dictionary.victimLabel}: </span>
                                     <span>{entry.receivingUsername}</span>
@@ -384,9 +416,7 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
                                     </span>
                                   </p>
                                   <p className="whitespace-pre-wrap wrap-break-word text-muted-foreground">
-                                    <span className="font-medium text-card-foreground">
-                                      {dictionary.commentLabel}:{" "}
-                                    </span>
+                                    <span className="font-medium">{dictionary.commentLabel}: </span>
                                     {entry.comment.trim() || "--"}
                                   </p>
                                 </div>
@@ -412,9 +442,8 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
             <DialogDescription className="pb-2">{dictionary.selectUsersDescription}</DialogDescription>
           </DialogHeader>
 
-          <TooltipProvider>
-            <ScrollArea className="max-h-[55vh] rounded-lg border border-border bg-background">
-              <ScrollAreaViewport>
+            <ScrollArea className="rounded-lg border border-border bg-background">
+              <ScrollAreaViewport className="max-h-[55vh]">
                 <ScrollAreaContent className="p-3">
                   <div className="mb-3 flex justify-end">
                     <Button type="button" variant="ghost" size="sm" onClick={handleToggleAll}>
@@ -448,6 +477,12 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
                           <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
                             {user.username}
                           </span>
+                          {user.isRoleShielded ? (
+                            <span className="mt-1 text-sm">
+                              <RoleShieldIcon />
+                              <span className="sr-only">{disabledReason}</span>
+                            </span>
+                          ) : null}
                         </label>
                       );
 
@@ -465,7 +500,6 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
               </ScrollAreaViewport>
               <ScrollBar orientation="vertical" />
             </ScrollArea>
-          </TooltipProvider>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => handleSelectionOpenChange(false)}>
@@ -494,6 +528,6 @@ export function RoleRaffle({ users, rolePresents, dictionary }: RoleRaffleProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }

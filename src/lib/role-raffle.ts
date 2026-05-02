@@ -18,10 +18,12 @@ export type RoleRaffleUser = {
 
 export type RolePresentEntry = {
   id: string;
+  receivingUserId: string;
   receivingUsername: string;
   giftingUsername: string | null;
   comment: string;
   anonymous: boolean;
+  isCounteredByRoleShield: boolean;
 };
 
 export type RolePresentsMeeting = {
@@ -117,7 +119,7 @@ export const getRoleRaffleRolePresents = async (): Promise<RoleRaffleRolePresent
     };
   }
 
-  const utilizationRows = (
+  const rolePresentUtilizationRows = (
     await db
       .select({
         id: powerupUtilization.id,
@@ -135,10 +137,30 @@ export const getRoleRaffleRolePresents = async (): Promise<RoleRaffleRolePresent
       )
       .orderBy(asc(powerupUtilization.usageTimestamp), asc(powerupUtilization.id))
   ).filter((utilization) => isRolePresentSettings(utilization.settings));
+  const roleShieldUtilizationRows = await db
+    .select({
+      meetingId: powerupUtilization.meetingId,
+      userId: powerupUtilization.userId,
+    })
+    .from(powerupUtilization)
+    .where(
+      and(
+        inArray(powerupUtilization.meetingId, meetingIds),
+        eq(powerupUtilization.powerup, "role-shield"),
+      ),
+    );
+  const roleShieldedUserIdsByMeetingId = new Map<string, Set<string>>();
+
+  for (const utilization of roleShieldUtilizationRows) {
+    const userIds = roleShieldedUserIdsByMeetingId.get(utilization.meetingId) ?? new Set<string>();
+
+    userIds.add(utilization.userId);
+    roleShieldedUserIdsByMeetingId.set(utilization.meetingId, userIds);
+  }
 
   const userIds = Array.from(
     new Set(
-      utilizationRows.flatMap((utilization) => {
+      rolePresentUtilizationRows.flatMap((utilization) => {
         if (!isRolePresentSettings(utilization.settings)) {
           return [utilization.userId];
         }
@@ -160,7 +182,7 @@ export const getRoleRaffleRolePresents = async (): Promise<RoleRaffleRolePresent
   const usernamesById = new Map(userRows.map((user) => [user.id, user.username]));
   const entriesByMeetingId = new Map<string, RolePresentEntry[]>();
 
-  for (const utilization of utilizationRows) {
+  for (const utilization of rolePresentUtilizationRows) {
     if (!isRolePresentSettings(utilization.settings)) {
       continue;
     }
@@ -171,12 +193,17 @@ export const getRoleRaffleRolePresents = async (): Promise<RoleRaffleRolePresent
       ...entries,
       {
         id: utilization.id,
+        receivingUserId: utilization.settings.receivingUserId,
         receivingUsername:
           usernamesById.get(utilization.settings.receivingUserId) ??
           utilization.settings.receivingUserId,
         giftingUsername: usernamesById.get(utilization.userId) ?? null,
         comment: utilization.settings.comment,
         anonymous: utilization.settings.anonymous,
+        isCounteredByRoleShield:
+          roleShieldedUserIdsByMeetingId
+            .get(utilization.meetingId)
+            ?.has(utilization.settings.receivingUserId) ?? false,
       },
     ]);
   }

@@ -193,6 +193,8 @@ const de = {
     benefactorLabel: "Wohltäter",
     commentLabel: "Kommentar",
     noRolePresentsUsed: "Für dieses Meeting wurden keine Rollen-Geschenke verwendet.",
+    rolePresentCounteredTooltip:
+      "Der Empfänger hat das Rollen-Geschenk mit einem Rollen-Schild gekontert.",
     selectUsersButton: "Benutzer auswählen",
     spinButton: "Drehen!",
     selectUsersTitle: "Benutzer auswählen",

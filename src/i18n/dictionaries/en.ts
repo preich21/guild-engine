@@ -192,6 +192,7 @@ const en = {
     benefactorLabel: "Benefactor",
     commentLabel: "Comment",
     noRolePresentsUsed: "No role presents used for this meeting.",
+    rolePresentCounteredTooltip: "The recipient countered the Role Present using a Role Shield.",
     selectUsersButton: "Select Users",
     spinButton: "Spin!",
     selectUsersTitle: "Select Users",
