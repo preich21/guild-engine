@@ -89,6 +89,15 @@ export const achievements = pgTable("achievements", {
   criteria: jsonb("criteria").$type<AchievementCriteria>().notNull(),
 });
 
+export const performanceMetrics = pgTable("performance_metrics", {
+  id: uuid("id").defaultRandom().notNull().primaryKey(),
+  shortName: varchar("short_name", { length: 255 }).notNull(),
+  question: varchar("question", { length: 255 }).notNull(),
+  type: smallint("type").notNull().default(0),
+  enumPossibilities: varchar("enum_possibilities", { length: 511 }),
+  timestampAdded: timestamp("timestamp_added", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const rules = pgTable(
   "rules",
   {

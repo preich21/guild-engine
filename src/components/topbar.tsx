@@ -39,6 +39,7 @@ type TopbarProps = {
     achievementsLink: string;
     awardAchievementsLink: string;
     manualPointsLink: string;
+    performanceMetricConfigLink: string;
     rulesConfigLink: string;
     languageButton: string;
     english: string;
@@ -127,6 +128,7 @@ export function Topbar({
               achievementsLabel={dictionary.achievementsLink}
               awardAchievementsLabel={dictionary.awardAchievementsLink}
               manualPointsLabel={dictionary.manualPointsLink}
+              performanceMetricConfigLabel={dictionary.performanceMetricConfigLink}
               rulesConfigLabel={dictionary.rulesConfigLink}
               showPointDistribution={isPointSystemEnabled}
               showAchievements={areBadgesEnabled}

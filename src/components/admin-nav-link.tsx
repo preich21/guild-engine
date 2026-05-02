@@ -21,6 +21,7 @@ type AdminNavLinkProps = {
   achievementsLabel: string;
   awardAchievementsLabel: string;
   manualPointsLabel: string;
+  performanceMetricConfigLabel: string;
   rulesConfigLabel: string;
   showPointDistribution: boolean;
   showAchievements: boolean;
@@ -45,6 +46,7 @@ export function AdminNavLink({
   achievementsLabel,
   awardAchievementsLabel,
   manualPointsLabel,
+  performanceMetricConfigLabel,
   rulesConfigLabel,
   showPointDistribution,
   showAchievements,
@@ -62,6 +64,7 @@ export function AdminNavLink({
   const achievementsPath = `${adminBasePath}/achievements`;
   const awardAchievementsPath = `${adminBasePath}/award-achievements`;
   const manualPointsPath = `${adminBasePath}/manual-points`;
+  const performanceMetricConfigPath = `${adminBasePath}/performance-metric-config`;
   const rulesConfigPath = `${adminBasePath}/rules-config`;
 
   const isAdminRoute =
@@ -74,6 +77,7 @@ export function AdminNavLink({
   const isAchievementsActive = normalizedPath === achievementsPath;
   const isAwardAchievementsActive = normalizedPath === awardAchievementsPath;
   const isManualPointsActive = normalizedPath === manualPointsPath;
+  const isPerformanceMetricConfigActive = normalizedPath === performanceMetricConfigPath;
   const isRulesConfigActive = normalizedPath === rulesConfigPath;
 
   return (
@@ -149,6 +153,16 @@ export function AdminNavLink({
             {isManualPointsActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
           </DropdownMenuItem>
         ) : null}
+        <DropdownMenuItem
+          onClick={() => router.push(performanceMetricConfigPath)}
+          aria-current={isPerformanceMetricConfigActive ? "page" : undefined}
+          className={cn(isPerformanceMetricConfigActive && "text-foreground")}
+        >
+          <span>{performanceMetricConfigLabel}</span>
+          {isPerformanceMetricConfigActive ? (
+            <Check className="ml-auto" aria-hidden="true" />
+          ) : null}
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => router.push(rulesConfigPath)}
           aria-current={isRulesConfigActive ? "page" : undefined}
