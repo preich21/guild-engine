@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, lte } from "drizzle-orm";
 
 import {
   getLeaderboard,
@@ -8,18 +8,31 @@ import {
   type LeaderboardEntry,
   type TeamLeaderboardEntry,
 } from "@/app/[lang]/leaderboard/actions";
-import { achievements, guildMeetings, pointDistribution, userAchievements, userPointSubmissions } from "@/db/schema";
+import {
+  achievements,
+  guildMeetings,
+  performanceMetrics,
+  powerupUtilization,
+  trackedContributions,
+  userAchievements,
+} from "@/db/schema";
+import type { TrackedContributionDataEntry } from "@/db/schema";
 import type { AchievementCriteria } from "@/lib/achievements";
 import {
-  calculateSubmissionPoints,
   compareAchievementValue,
-  getPointDistributionForTimestamp,
   qualifiesForDefinedAchievement,
   type GuildMeetingForAchievementEvaluation,
-  type PointDistributionForAchievementEvaluation,
   type UserSubmissionForAchievementEvaluation,
 } from "@/lib/achievement-evaluation-core";
 import { db } from "@/lib/db";
+import {
+  calculateTrackedContributionDataPoints,
+  getPointMultiplicatorFactor,
+  getPointMultiplicatorFactors,
+  parseNonNegativeInteger,
+  type PerformanceMetricPointConfig,
+  type PointMultiplicatorFactors,
+} from "@/lib/point-calculation";
 
 type AchievementCandidate = {
   id: string;
@@ -30,6 +43,78 @@ type AchievementCandidate = {
 type CurrentUserForAchievementEvaluation = {
   id: string;
   teamId: string;
+};
+
+type PerformanceMetricForAchievementEvaluation = PerformanceMetricPointConfig & {
+  shortName: string;
+};
+
+type AchievementMetricRole =
+  | "attendance"
+  | "protocol"
+  | "moderation"
+  | "workingGroup"
+  | "twl"
+  | "presentations";
+
+type TrackedContributionForAchievementEvaluation = {
+  guildMeetingId: string;
+  guildMeetingTimestamp: Date;
+  data: TrackedContributionDataEntry[];
+};
+
+type PointMultiplicatorUtilizationForAchievementEvaluation = {
+  meetingId: string;
+  powerup: string;
+};
+
+const achievementMetricAliases: Record<AchievementMetricRole, string[]> = {
+  attendance: ["attendance", "anwesenheit"],
+  protocol: ["protocol", "protokoll"],
+  moderation: ["moderation"],
+  workingGroup: ["workinggroup", "workinggroups", "arbeitsgruppe", "arbeitsgruppen"],
+  twl: ["twl"],
+  presentations: ["presentation", "presentations", "vortrag", "vortraege", "vorträge"],
+};
+
+const normalizeMetricName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replaceAll("ä", "ae")
+    .replaceAll("ö", "oe")
+    .replaceAll("ü", "ue")
+    .replaceAll("ß", "ss")
+    .replace(/[^a-z0-9]/g, "");
+
+const getAchievementMetricRole = (shortName: string): AchievementMetricRole | null => {
+  const normalizedShortName = normalizeMetricName(shortName);
+
+  for (const [role, aliases] of Object.entries(achievementMetricAliases)) {
+    if (aliases.includes(normalizedShortName)) {
+      return role as AchievementMetricRole;
+    }
+  }
+
+  return null;
+};
+
+const parseTrackedContributionData = (value: unknown): TrackedContributionDataEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+
+    const maybeEntry = entry as Record<string, unknown>;
+
+    return typeof maybeEntry.id === "string"
+      ? [{ id: maybeEntry.id, value: parseNonNegativeInteger(maybeEntry.value) ?? 0 }]
+      : [];
+  });
 };
 
 const loadUnearnedAchievements = async (userId: string): Promise<AchievementCandidate[]> =>
@@ -61,58 +146,143 @@ const loadPastGuildMeetings = async (): Promise<GuildMeetingForAchievementEvalua
     .where(lte(guildMeetings.timestamp, new Date()))
     .orderBy(desc(guildMeetings.timestamp), desc(guildMeetings.id));
 
-const loadPointDistributionsForAchievementEvaluation = async (): Promise<
-  PointDistributionForAchievementEvaluation[]
+const loadPerformanceMetricsForAchievementEvaluation = async (): Promise<
+  PerformanceMetricForAchievementEvaluation[]
 > =>
   db
     .select({
-      activeFrom: pointDistribution.activeFrom,
-      attendanceVirtual: pointDistribution.attendanceVirtual,
-      attendanceOnSite: pointDistribution.attendanceOnSite,
-      protocolForced: pointDistribution.protocolForced,
-      protocolVoluntarily: pointDistribution.protocolVoluntarily,
-      moderation: pointDistribution.moderation,
-      workingGroup: pointDistribution.workingGroup,
-      twl: pointDistribution.twl,
-      presentation: pointDistribution.presentation,
+      id: performanceMetrics.id,
+      shortName: performanceMetrics.shortName,
+      type: performanceMetrics.type,
+      points: performanceMetrics.points,
     })
-    .from(pointDistribution)
-    .orderBy(desc(pointDistribution.activeFrom), desc(pointDistribution.id));
+    .from(performanceMetrics)
+    .orderBy(asc(performanceMetrics.timestampAdded), asc(performanceMetrics.shortName), asc(performanceMetrics.id));
 
-const loadAllPastUserSubmissions = async (
+const toAchievementSubmission = (
+  contribution: TrackedContributionForAchievementEvaluation,
+  metricsById: ReadonlyMap<string, PerformanceMetricForAchievementEvaluation>,
+  metricRolesById: ReadonlyMap<string, AchievementMetricRole>,
+  pointMultiplicatorFactors: PointMultiplicatorFactors,
+  pointMultiplicatorPowerupsByMeetingId: ReadonlyMap<string, string>,
+): UserSubmissionForAchievementEvaluation => {
+  const pointMultiplicatorFactor = getPointMultiplicatorFactor(
+    pointMultiplicatorPowerupsByMeetingId.get(contribution.guildMeetingId),
+    pointMultiplicatorFactors,
+  );
+  const submission: UserSubmissionForAchievementEvaluation = {
+    guildMeetingId: contribution.guildMeetingId,
+    guildMeetingTimestamp: contribution.guildMeetingTimestamp,
+    attendance: 0,
+    protocol: 0,
+    moderation: false,
+    workingGroup: false,
+    twl: 0,
+    presentations: 0,
+    points: calculateTrackedContributionDataPoints(
+      contribution.data,
+      metricsById,
+      pointMultiplicatorFactor,
+    ),
+  };
+
+  for (const entry of contribution.data) {
+    const metricRole = metricRolesById.get(entry.id);
+    const value = parseNonNegativeInteger(entry.value) ?? 0;
+
+    switch (metricRole) {
+      case "attendance":
+        submission.attendance = value;
+        break;
+      case "protocol":
+        submission.protocol = value;
+        break;
+      case "moderation":
+        submission.moderation ||= value > 0;
+        break;
+      case "workingGroup":
+        submission.workingGroup ||= value > 0;
+        break;
+      case "twl":
+        submission.twl += value;
+        break;
+      case "presentations":
+        submission.presentations += value;
+        break;
+    }
+  }
+
+  return submission;
+};
+
+const loadAllPastTrackedContributions = async (
   userId: string,
 ): Promise<UserSubmissionForAchievementEvaluation[]> => {
-  const [submissionRows, pointDistributions] = await Promise.all([
+  const [contributionRows, metricRows, pointMultiplicatorRows, pointMultiplicatorFactors] =
+    await Promise.all([
     db
       .select({
-        guildMeetingId: userPointSubmissions.guildMeetingId,
+        guildMeetingId: trackedContributions.meetingId,
         guildMeetingTimestamp: guildMeetings.timestamp,
-        attendance: userPointSubmissions.attendance,
-        protocol: userPointSubmissions.protocol,
-        moderation: userPointSubmissions.moderation,
-        workingGroup: userPointSubmissions.workingGroup,
-        twl: userPointSubmissions.twl,
-        presentations: userPointSubmissions.presentations,
+        data: trackedContributions.data,
       })
-      .from(userPointSubmissions)
-      .innerJoin(guildMeetings, eq(guildMeetings.id, userPointSubmissions.guildMeetingId))
+      .from(trackedContributions)
+      .innerJoin(guildMeetings, eq(guildMeetings.id, trackedContributions.meetingId))
       .where(
         and(
-          eq(userPointSubmissions.userId, userId),
+          eq(trackedContributions.userId, userId),
           lte(guildMeetings.timestamp, new Date()),
         ),
       )
       .orderBy(desc(guildMeetings.timestamp), desc(guildMeetings.id)),
-    loadPointDistributionsForAchievementEvaluation(),
+    loadPerformanceMetricsForAchievementEvaluation(),
+    db
+      .select({
+        meetingId: powerupUtilization.meetingId,
+        powerup: powerupUtilization.powerup,
+      })
+      .from(powerupUtilization)
+      .where(
+        and(
+          eq(powerupUtilization.userId, userId),
+          like(powerupUtilization.powerup, "%-point-multiplicator"),
+        ),
+      )
+      .orderBy(desc(powerupUtilization.usageTimestamp)),
+    getPointMultiplicatorFactors(),
   ]);
 
-  return submissionRows.map((submission) => ({
-    ...submission,
-    points: calculateSubmissionPoints(
-      submission,
-      getPointDistributionForTimestamp(pointDistributions, submission.guildMeetingTimestamp),
+  const metricsById = new Map(metricRows.map((metric) => [metric.id, metric]));
+  const metricRolesById = new Map(
+    metricRows.flatMap((metric) => {
+      const role = getAchievementMetricRole(metric.shortName);
+
+      return role === null ? [] : [[metric.id, role] as const];
+    }),
+  );
+  const pointMultiplicatorPowerupsByMeetingId = (
+    pointMultiplicatorRows as PointMultiplicatorUtilizationForAchievementEvaluation[]
+  ).reduce((powerupsByMeetingId, row) => {
+    if (!powerupsByMeetingId.has(row.meetingId)) {
+      powerupsByMeetingId.set(row.meetingId, row.powerup);
+    }
+
+    return powerupsByMeetingId;
+  }, new Map<string, string>());
+
+  return contributionRows.map((contribution) =>
+    toAchievementSubmission(
+      {
+        guildMeetingId: contribution.guildMeetingId,
+        guildMeetingTimestamp: contribution.guildMeetingTimestamp,
+        data: parseTrackedContributionData(contribution.data),
+      },
+      metricsById,
+      metricRolesById,
+      pointMultiplicatorFactors,
+      pointMultiplicatorPowerupsByMeetingId,
     ),
-  }));
+  );
 };
 
 
@@ -141,7 +311,7 @@ export const evaluateAchievementsForUser = async (
 
     if (criteria.mode === "defined") {
       allPastGuildMeetingsPromise ??= loadPastGuildMeetings();
-      allPastSubmissionsPromise ??= loadAllPastUserSubmissions(user.id);
+      allPastSubmissionsPromise ??= loadAllPastTrackedContributions(user.id);
 
       if (
         await qualifiesForDefinedAchievement(

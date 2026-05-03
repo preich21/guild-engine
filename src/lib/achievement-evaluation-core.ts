@@ -25,18 +25,6 @@ export type GuildMeetingForAchievementEvaluation = {
   timestamp: Date;
 };
 
-export type PointDistributionForAchievementEvaluation = {
-  activeFrom: Date;
-  attendanceVirtual: number;
-  attendanceOnSite: number;
-  protocolForced: number;
-  protocolVoluntarily: number;
-  moderation: number;
-  workingGroup: number;
-  twl: number;
-  presentation: number;
-};
-
 type AchievementTimeFrameRange = {
   start: Date;
   endExclusive: Date;
@@ -121,41 +109,6 @@ const getAchievementTimeFrameRange = (
       }
     : null;
 };
-
-export const calculateSubmissionPoints = (
-  submission: Pick<
-    UserSubmissionForAchievementEvaluation,
-    "attendance" | "protocol" | "moderation" | "workingGroup" | "twl" | "presentations"
-  >,
-  distribution: PointDistributionForAchievementEvaluation | null,
-): number => {
-  if (!distribution) {
-    return 0;
-  }
-
-  return (
-    (submission.attendance === 1
-      ? distribution.attendanceVirtual
-      : submission.attendance === 2
-        ? distribution.attendanceOnSite
-        : 0) +
-    (submission.protocol === 1
-      ? distribution.protocolForced
-      : submission.protocol === 2
-        ? distribution.protocolVoluntarily
-        : 0) +
-    (submission.moderation ? distribution.moderation : 0) +
-    (submission.workingGroup ? distribution.workingGroup : 0) +
-    submission.twl * distribution.twl +
-    submission.presentations * distribution.presentation
-  );
-};
-
-export const getPointDistributionForTimestamp = (
-  distributions: PointDistributionForAchievementEvaluation[],
-  timestamp: Date,
-): PointDistributionForAchievementEvaluation | null =>
-  distributions.find((distribution) => distribution.activeFrom <= timestamp) ?? null;
 
 export const submissionMatchesMetric = (
   submission: UserSubmissionForAchievementEvaluation,

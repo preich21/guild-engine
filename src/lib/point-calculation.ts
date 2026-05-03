@@ -29,15 +29,26 @@ type LoadUserPointTotalsOptions = {
   startDate?: string | null;
 };
 
-const pointMultiplicatorPowerupIds = [
+export type PerformanceMetricPointConfig = {
+  id: string;
+  type: number;
+  points: string | null;
+};
+
+export type TrackedContributionPointEntry = {
+  id: unknown;
+  value: unknown;
+};
+
+export const pointMultiplicatorPowerupIds = [
   "small-point-multiplicator",
   "medium-point-multiplicator",
   "large-point-multiplicator",
 ] as const;
 
-type PointMultiplicatorPowerupId = (typeof pointMultiplicatorPowerupIds)[number];
+export type PointMultiplicatorPowerupId = (typeof pointMultiplicatorPowerupIds)[number];
 
-type PointMultiplicatorFactors = Record<PointMultiplicatorPowerupId, number>;
+export type PointMultiplicatorFactors = Record<PointMultiplicatorPowerupId, number>;
 
 const parsePointMultiplicatorFactor = (value: unknown): number => {
   const factor = typeof value === "number" ? value : Number(value);
@@ -45,7 +56,79 @@ const parsePointMultiplicatorFactor = (value: unknown): number => {
   return Number.isFinite(factor) && factor >= 1 ? factor : 1;
 };
 
-const getPointMultiplicatorFactors = async (): Promise<PointMultiplicatorFactors> => {
+export const parseNonNegativeInteger = (value: unknown): number | null => {
+  if (typeof value === "number") {
+    return Number.isInteger(value) && value >= 0 ? value : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return /^[0-9]+$/.test(trimmedValue) ? Number(trimmedValue) : null;
+};
+
+export const calculateTrackedContributionEntryPoints = (
+  entry: TrackedContributionPointEntry,
+  metric: PerformanceMetricPointConfig | null | undefined,
+): number => {
+  if (!metric) {
+    return 0;
+  }
+
+  const contributionValue = parseNonNegativeInteger(entry.value);
+
+  if (contributionValue === null) {
+    return 0;
+  }
+
+  if (metric.type === 1) {
+    const pointsPerUnit = parseNonNegativeInteger(metric.points);
+
+    return pointsPerUnit === null ? 0 : pointsPerUnit * contributionValue;
+  }
+
+  if (metric.type !== 0 || metric.points === null) {
+    return 0;
+  }
+
+  const enumPoints = metric.points.split(";")[contributionValue];
+
+  return parseNonNegativeInteger(enumPoints) ?? 0;
+};
+
+export const calculateTrackedContributionDataPoints = (
+  data: TrackedContributionPointEntry[],
+  metricsById: ReadonlyMap<string, PerformanceMetricPointConfig>,
+  pointMultiplicatorFactor = 1,
+): number =>
+  data.reduce((total, entry) => {
+    if (typeof entry.id !== "string") {
+      return total;
+    }
+
+    return total + calculateTrackedContributionEntryPoints(entry, metricsById.get(entry.id));
+  }, 0) * pointMultiplicatorFactor;
+
+export const getPointMultiplicatorFactor = (
+  powerup: string | null | undefined,
+  factors: PointMultiplicatorFactors,
+): number => {
+  switch (powerup) {
+    case "small-point-multiplicator":
+      return factors["small-point-multiplicator"];
+    case "medium-point-multiplicator":
+      return factors["medium-point-multiplicator"];
+    case "large-point-multiplicator":
+      return factors["large-point-multiplicator"];
+    default:
+      return 1;
+  }
+};
+
+export const getPointMultiplicatorFactors = async (): Promise<PointMultiplicatorFactors> => {
   const featureConfig = await loadCurrentFeatureConfig();
 
   return Object.fromEntries(
