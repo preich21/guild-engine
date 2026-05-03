@@ -16,14 +16,12 @@ type AdminNavLinkProps = {
   lang: Locale;
   label: string;
   featureConfigLabel: string;
-  pointDistributionLabel: string;
   guildMeetingsLabel: string;
   achievementsLabel: string;
   awardAchievementsLabel: string;
   manualPointsLabel: string;
   performanceMetricConfigLabel: string;
   rulesConfigLabel: string;
-  showPointDistribution: boolean;
   showAchievements: boolean;
   showAwardAchievements: boolean;
   showManualPoints: boolean;
@@ -41,14 +39,12 @@ export function AdminNavLink({
   lang,
   label,
   featureConfigLabel,
-  pointDistributionLabel,
   guildMeetingsLabel,
   achievementsLabel,
   awardAchievementsLabel,
   manualPointsLabel,
   performanceMetricConfigLabel,
   rulesConfigLabel,
-  showPointDistribution,
   showAchievements,
   showAwardAchievements,
   showManualPoints,
@@ -59,7 +55,6 @@ export function AdminNavLink({
   const normalizedPath = normalizePath(pathname);
   const adminBasePath = `/${lang}/admin`;
   const featureConfigPath = `${adminBasePath}/feature-config`;
-  const pointDistributionPath = `${adminBasePath}/point-distribution`;
   const guildMeetingsPath = `${adminBasePath}/guild-meetings`;
   const achievementsPath = `${adminBasePath}/achievements`;
   const awardAchievementsPath = `${adminBasePath}/award-achievements`;
@@ -72,7 +67,6 @@ export function AdminNavLink({
     normalizedPath.startsWith(`${adminBasePath}/`);
 
   const isFeatureConfigActive = normalizedPath === featureConfigPath;
-  const isPointDistributionActive = normalizedPath === pointDistributionPath;
   const isGuildMeetingsActive = normalizedPath === guildMeetingsPath;
   const isAchievementsActive = normalizedPath === achievementsPath;
   const isAwardAchievementsActive = normalizedPath === awardAchievementsPath;
@@ -105,16 +99,6 @@ export function AdminNavLink({
           <span>{featureConfigLabel}</span>
           {isFeatureConfigActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
         </DropdownMenuItem>
-        {showPointDistribution ? (
-          <DropdownMenuItem
-            onClick={() => router.push(pointDistributionPath)}
-            aria-current={isPointDistributionActive ? "page" : undefined}
-            className={cn(isPointDistributionActive && "text-foreground")}
-          >
-            <span>{pointDistributionLabel}</span>
-            {isPointDistributionActive ? <Check className="ml-auto" aria-hidden="true" /> : null}
-          </DropdownMenuItem>
-        ) : null}
         <DropdownMenuItem
           onClick={() => router.push(guildMeetingsPath)}
           aria-current={isGuildMeetingsActive ? "page" : undefined}

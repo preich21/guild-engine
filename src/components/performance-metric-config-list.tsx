@@ -8,6 +8,7 @@ import type {
   CreatePerformanceMetricActionState,
   PerformanceMetricEntry,
 } from "@/app/[lang]/admin/performance-metric-config/actions";
+import { useFeatureEnabled } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -39,6 +40,9 @@ type PerformanceMetricConfigListProps = {
     typeLabel: string;
     enumPossibilitiesLabel: string;
     enumPossibilitiesPlaceholder: string;
+    enumPointsLabel: string;
+    enumPointsPlaceholder: string;
+    integerPointsLabel: string;
     shortNamePlaceholder: string;
     questionPlaceholder: string;
     idLabel: string;
@@ -58,6 +62,7 @@ type DraftPerformanceMetric = {
   question: string;
   type: "0" | "1";
   enumPossibilities: string;
+  points: string;
 };
 
 const initialState: CreatePerformanceMetricActionState = { status: "idle" };
@@ -67,6 +72,7 @@ const defaultDraft = (): DraftPerformanceMetric => ({
   question: "",
   type: "0",
   enumPossibilities: "",
+  points: "",
 });
 
 const getTypeLabel = (
@@ -84,6 +90,22 @@ const getTypeLabel = (
   return dictionary.typeUnknown;
 };
 
+const splitSemicolonValues = (value: string) =>
+  value
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+
+const isNonNegativeIntegerString = (value: string) => {
+  if (!/^\d+$/.test(value)) {
+    return false;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isSafeInteger(parsed) && parsed >= 0;
+};
+
 export function PerformanceMetricConfigList({
   lang,
   rows,
@@ -92,6 +114,7 @@ export function PerformanceMetricConfigList({
 }: PerformanceMetricConfigListProps) {
   const formId = useId();
   const router = useRouter();
+  const pointSystemEnabled = Boolean(useFeatureEnabled("point-system"));
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [draft, setDraft] = useState<DraftPerformanceMetric>(() => defaultDraft());
   const [state, formAction, pending] = useActionState(
@@ -110,12 +133,23 @@ export function PerformanceMetricConfigList({
   );
 
   const isEnumType = draft.type === "0";
+  const enumPossibilityValues = splitSemicolonValues(draft.enumPossibilities);
+  const enumPointValues = splitSemicolonValues(draft.points);
+  const isPointsValid =
+    !pointSystemEnabled ||
+    (isEnumType
+      ? enumPointValues.length > 0 &&
+        enumPointValues.length === enumPossibilityValues.length &&
+        enumPointValues.every(isNonNegativeIntegerString)
+      : isNonNegativeIntegerString(draft.points));
   const isFormValid =
     draft.shortName.trim() !== "" &&
     draft.shortName.length <= 30 &&
     draft.question.trim() !== "" &&
     draft.question.length <= 255 &&
-    (!isEnumType || (draft.enumPossibilities.trim() !== "" && draft.enumPossibilities.length <= 511));
+    (!isEnumType || (draft.enumPossibilities.trim() !== "" && draft.enumPossibilities.length <= 511)) &&
+    draft.points.length <= 255 &&
+    isPointsValid;
 
   const handleStartCreate = () => {
     setDraft(defaultDraft());
@@ -212,7 +246,7 @@ export function PerformanceMetricConfigList({
                           value={draft.type}
                           onValueChange={(value) => {
                             if (value === "0" || value === "1") {
-                              setDraft((current) => ({ ...current, type: value }));
+                              setDraft((current) => ({ ...current, type: value, points: value === "1" ? "0" : "" }));
                             }
                           }}
                         >
@@ -247,6 +281,54 @@ export function PerformanceMetricConfigList({
                       disabled={pending}
                     />
                   </div>
+                ) : null}
+
+                {pointSystemEnabled ? (
+                  isEnumType ? (
+                    <div className="space-y-2">
+                      <Label htmlFor={`${formId}-points`}>{dictionary.enumPointsLabel}</Label>
+                      <Textarea
+                        id={`${formId}-points`}
+                        name="points"
+                        maxLength={255}
+                        rows={1}
+                        className="min-h-8 resize-y"
+                        value={draft.points}
+                        onChange={(event) =>
+                          setDraft((current) => ({
+                            ...current,
+                            points: event.target.value,
+                          }))
+                        }
+                        placeholder={dictionary.enumPointsPlaceholder}
+                        required
+                        disabled={pending}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor={`${formId}-points`}>{dictionary.integerPointsLabel}</Label>
+                      <Input
+                        id={`${formId}-points`}
+                        name="points"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={draft.points}
+                        onChange={(event) => {
+                          const nextValue = event.target.valueAsNumber;
+                          setDraft((current) => ({
+                            ...current,
+                            points: Number.isNaN(nextValue)
+                              ? "0"
+                              : String(Math.max(0, Math.trunc(nextValue))),
+                          }));
+                        }}
+                        required
+                        disabled={pending}
+                      />
+                    </div>
+                  )
                 ) : null}
 
                 <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -300,6 +382,10 @@ export function PerformanceMetricConfigList({
                 <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                   <dt className="font-medium text-foreground">{dictionary.enumPossibilitiesLabel}:</dt>
                   <dd className="break-words text-muted-foreground">{row.enumPossibilities ?? "--"}</dd>
+                </div>
+                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+                  <dt className="font-medium text-foreground">{dictionary.integerPointsLabel}:</dt>
+                  <dd className="break-words text-muted-foreground">{row.points ?? "--"}</dd>
                 </div>
                 <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                   <dt className="font-medium text-foreground">{dictionary.timestampAddedLabel}:</dt>

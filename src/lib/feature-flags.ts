@@ -277,10 +277,6 @@ export const isRouteEnabled = (
     return isFeatureEnabled(state, "cooperative-progress-bar");
   }
 
-  if (isPathOrChild(pathname, `/${lang}/admin/point-distribution`)) {
-    return isFeatureEnabled(state, "point-system");
-  }
-
   if (isPathOrChild(pathname, `/${lang}/admin/manual-points`)) {
     return isFeatureEnabled(state, "point-system");
   }

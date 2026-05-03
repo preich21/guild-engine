@@ -34,7 +34,6 @@ type TopbarProps = {
     rulesLink: string;
     adminLink: string;
     featureConfigLink: string;
-    pointDistributionLink: string;
     guildMeetingsLink: string;
     achievementsLink: string;
     awardAchievementsLink: string;
@@ -123,14 +122,12 @@ export function Topbar({
               lang={lang}
               label={dictionary.adminLink}
               featureConfigLabel={dictionary.featureConfigLink}
-              pointDistributionLabel={dictionary.pointDistributionLink}
               guildMeetingsLabel={dictionary.guildMeetingsLink}
               achievementsLabel={dictionary.achievementsLink}
               awardAchievementsLabel={dictionary.awardAchievementsLink}
               manualPointsLabel={dictionary.manualPointsLink}
               performanceMetricConfigLabel={dictionary.performanceMetricConfigLink}
               rulesConfigLabel={dictionary.rulesConfigLink}
-              showPointDistribution={isPointSystemEnabled}
               showAchievements={areBadgesEnabled}
               showAwardAchievements={areBadgesEnabled}
               showManualPoints={isPointSystemEnabled}
