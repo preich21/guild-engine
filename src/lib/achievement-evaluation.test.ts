@@ -4,6 +4,7 @@ import test from "node:test";
 import { type AchievementCriteria } from "@/lib/achievements";
 import {
   compareAchievementValue,
+  qualifiesForFeatureAchievementValue,
   qualifiesForDefinedAchievement,
 } from "@/lib/achievement-evaluation-core";
 
@@ -177,4 +178,60 @@ test("defined count aggregates enum metric matches inside the selected timeframe
     ),
     true,
   );
+});
+
+test("feature achievement points require a sum larger than the configured value", () => {
+  const criteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    mode: "feature",
+    feature: "points",
+    value: 100,
+    powerup: null,
+    timeFrame: null,
+  };
+
+  assert.equal(qualifiesForFeatureAchievementValue(criteria, 100), false);
+  assert.equal(qualifiesForFeatureAchievementValue(criteria, 101), true);
+});
+
+test("feature achievement leaderboard positions require the configured rank or better", () => {
+  const individualCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    mode: "feature",
+    feature: "individual-leaderboard-position",
+    value: 3,
+    powerup: null,
+    timeFrame: null,
+  };
+  const teamCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    ...individualCriteria,
+    feature: "team-leaderboard-position",
+  };
+
+  assert.equal(qualifiesForFeatureAchievementValue(individualCriteria, 4), false);
+  assert.equal(qualifiesForFeatureAchievementValue(individualCriteria, 3), true);
+  assert.equal(qualifiesForFeatureAchievementValue(teamCriteria, 1), true);
+});
+
+test("feature achievement level, achievement count, and powerup usage require the configured value or more", () => {
+  const levelCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    mode: "feature",
+    feature: "level",
+    value: 5,
+    powerup: null,
+    timeFrame: null,
+  };
+  const achievementsCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    ...levelCriteria,
+    feature: "achievements-count",
+  };
+  const powerupCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    ...levelCriteria,
+    feature: "powerup-usage",
+    powerup: "role-shield",
+  };
+
+  assert.equal(qualifiesForFeatureAchievementValue(levelCriteria, 4), false);
+  assert.equal(qualifiesForFeatureAchievementValue(levelCriteria, 5), true);
+  assert.equal(qualifiesForFeatureAchievementValue(achievementsCriteria, 6), true);
+  assert.equal(qualifiesForFeatureAchievementValue(powerupCriteria, 5), true);
+  assert.equal(qualifiesForFeatureAchievementValue(powerupCriteria, null), false);
 });

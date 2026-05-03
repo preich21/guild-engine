@@ -11,6 +11,9 @@
         "de": "Übersetzung erfasster Leistungsmetriken in Punktwerte. Die Punkteverteilung ist auf einer eigenen Admin-Seite konfigurierbar."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "points"
+      },
       "prerequisites": [],
       "configuration": []
     },
@@ -25,6 +28,9 @@
         "de": "Zeigt die gesammelten Punkte einzelner Benutzerinnen und Benutzer und sortiert alle nach ihrer Gesamtpunktzahl."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "individual-leaderboard-position"
+      },
       "prerequisites": [
         {
           "message": {
@@ -80,6 +86,9 @@
         "de": "Zeigt die gesammelten Punkte von Benutzergruppen und sortiert diese Gruppen nach ihrer Gesamtpunktzahl."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "team-leaderboard-position"
+      },
       "prerequisites": [
         {
           "message": {
@@ -151,6 +160,9 @@
         "de": "Level-Fortschritt pro Benutzerin oder Benutzer basierend auf den gesammelten Punkten."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "level"
+      },
       "prerequisites": [
         {
           "message": {
@@ -210,6 +222,9 @@
         "de": "Vergabesystem für Abzeichen basierend auf beliebigen anderen Funktionen. Abzeichen sind auf einer eigenen Admin-Seite konfigurierbar."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "achievements-count"
+      },
       "prerequisites": [],
       "configuration": []
     },
@@ -224,6 +239,9 @@
         "de": "Ein Fortschrittsbalken auf Basis der gesammelten Punkte aller Benutzerinnen und Benutzer."
       },
       "defaultEnabled": true,
+      "achievementable": {
+        "type": "powerup-usage"
+      },
       "prerequisites": [
         {
           "message": {
@@ -449,6 +467,7 @@
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem kleinen Faktor zu multiplizieren."
           },
           "defaultValue": true,
+          "achievementable": true,
           "prerequisites": [
             {
               "tooltip": {
@@ -497,6 +516,7 @@
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem mittleren Faktor zu multiplizieren."
           },
           "defaultValue": true,
+          "achievementable": true,
           "prerequisites": [
             {
               "tooltip": {
@@ -545,6 +565,7 @@
             "de": "Erlaubt es einem Benutzer, seine erhaltenen Punkte für ein Meeting mit einem großen Faktor zu multiplizieren."
           },
           "defaultValue": true,
+          "achievementable": true,
           "prerequisites": [
             {
               "tooltip": {
@@ -593,6 +614,7 @@
             "de": "Erlaubt es einem Benutzer, ein Meeting zu überspringen ohne seine Serie zu unterbrechen."
           },
           "defaultValue": true,
+          "achievementable": true,
           "prerequisites": [
             {
               "tooltip": {
@@ -644,7 +666,8 @@
             "en": "Allows a user to force another user to receive a specific role for one meeting. Can be countered with a \"Role Shield\" powerup.",
             "de": "Erlaubt es einem Benutzer, einen anderen Benutzer dazu zu zwingen, eine bestimmte Rolle für ein Meeting zu erhalten. Kann mit einem \"Rollen-Schild\" Powerup gekontert werden."
           },
-          "defaultValue": true
+          "defaultValue": true,
+          "achievementable": true
         },
         {
           "id": "role-present-frequency",
@@ -670,6 +693,7 @@
             "de": "Erlaubt es einem Benutzer, sich im Voraus aus einer Rollenverlosung zu befreien oder ein \"Rollen-Geschenk\" Powerup zu kontern."
           },
           "defaultValue": true,
+          "achievementable": true,
           "prerequisites": [
             {
               "tooltip": {

@@ -1,3 +1,10 @@
+import {
+  getAchievementableFeatures,
+  getAchievementablePowerups,
+  type AchievementableFeatureId,
+  type FeatureConfigState,
+} from "@/lib/feature-flags";
+
 export const ACHIEVEMENT_TITLE_MAX_LENGTH = 255;
 export const ACHIEVEMENT_IMAGE_MAX_LENGTH = 65535;
 export const ACHIEVEMENT_IMAGE_SIZE = 84;
@@ -10,6 +17,7 @@ export const ACHIEVEMENT_LEADERBOARDS = ["individual", "team"] as const;
 export type AchievementCriteriaType = (typeof ACHIEVEMENT_CRITERIA_TYPES)[number];
 export type AchievementOperator = (typeof ACHIEVEMENT_OPERATORS)[number];
 export type AchievementLeaderboard = (typeof ACHIEVEMENT_LEADERBOARDS)[number];
+export type AchievementFeature = AchievementableFeatureId;
 
 export type AchievementPerformanceMetric = {
   id: string;
@@ -47,6 +55,13 @@ export type AchievementCriteria =
       count: number;
     }
   | {
+      mode: "feature";
+      feature: AchievementFeature;
+      value: number;
+      powerup: string | null;
+      timeFrame: AchievementTimeFrame | null;
+    }
+  | {
       mode: "position";
       leaderboard: AchievementLeaderboard;
       operator: AchievementOperator;
@@ -65,6 +80,14 @@ export type AchievementCriteriaInput =
       timeFrameFrom: string;
       timeFrameTo: string;
       count: string;
+    }
+  | {
+      mode: "feature";
+      feature: string;
+      value: string;
+      powerup: string;
+      timeFrameFrom: string;
+      timeFrameTo: string;
     }
   | {
       mode: "position";
@@ -176,6 +199,15 @@ export const toAchievementCriteriaInput = (criteria: AchievementCriteria): Achie
           timeFrameTo: isAchievementTimeFrame(criteria.timeFrame) ? criteria.timeFrame.to : "",
           count: String(criteria.count),
         }
+      : criteria.mode === "feature"
+        ? {
+            mode: "feature",
+            feature: criteria.feature,
+            value: String(criteria.value),
+            powerup: criteria.powerup ?? "",
+            timeFrameFrom: isAchievementTimeFrame(criteria.timeFrame) ? criteria.timeFrame.from : "",
+            timeFrameTo: isAchievementTimeFrame(criteria.timeFrame) ? criteria.timeFrame.to : "",
+          }
       : {
           mode: "position",
           leaderboard: criteria.leaderboard,
@@ -243,6 +275,24 @@ export const parseAchievementCriteriaInput = (value: string): AchievementCriteri
           count: parsed.count,
         };
       }
+    }
+
+    if (
+      parsed.mode === "feature" &&
+      typeof parsed.feature === "string" &&
+      typeof parsed.value === "string" &&
+      typeof parsed.powerup === "string" &&
+      typeof parsed.timeFrameFrom === "string" &&
+      typeof parsed.timeFrameTo === "string"
+    ) {
+      return {
+        mode: "feature",
+        feature: parsed.feature,
+        value: parsed.value,
+        powerup: parsed.powerup,
+        timeFrameFrom: parsed.timeFrameFrom,
+        timeFrameTo: parsed.timeFrameTo,
+      };
     }
 
     if (
@@ -339,6 +389,27 @@ const normalizeAchievementCriteria = (criteria: AchievementCriteriaInput): Achie
         : "individual",
       operator: isAchievementOperator(criteria.operator) ? criteria.operator : "<=",
       position: Number.isInteger(parsedPosition) ? parsedPosition : Number.NaN,
+    };
+  }
+
+  if (criteria.mode === "feature") {
+    const trimmedValue = criteria.value.trim();
+    const parsedValue = /^\d+$/.test(trimmedValue) ? Number.parseInt(trimmedValue, 10) : Number.NaN;
+    const timeFrameFrom = criteria.timeFrameFrom.trim();
+    const timeFrameTo = criteria.timeFrameTo.trim();
+    const normalizedTimeFrame =
+      timeFrameFrom !== "" &&
+      timeFrameTo !== "" &&
+      isValidAchievementTimeFrame(timeFrameFrom, timeFrameTo)
+        ? { from: timeFrameFrom, to: timeFrameTo }
+        : null;
+
+    return {
+      mode: "feature",
+      feature: criteria.feature.trim() as AchievementFeature,
+      value: Number.isInteger(parsedValue) ? parsedValue : Number.NaN,
+      powerup: criteria.powerup.trim() === "" ? null : criteria.powerup.trim(),
+      timeFrame: normalizedTimeFrame,
     };
   }
 
@@ -444,9 +515,45 @@ const hasValidDefinedCriteria = (
   );
 };
 
+const hasValidFeatureCriteria = (
+  input: AchievementInput,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+  featureConfigState?: FeatureConfigState,
+) => {
+  const availableFeatures = featureConfigState
+    ? getAchievementableFeatures(featureConfigState).map((feature) => feature.type)
+    : null;
+  const availablePowerups = featureConfigState
+    ? getAchievementablePowerups(featureConfigState).map((powerup) => powerup.id)
+    : null;
+
+  if (
+    !Number.isInteger(criteria.value) ||
+    criteria.value < 0 ||
+    (availableFeatures !== null && !availableFeatures.includes(criteria.feature)) ||
+    !isValidAchievementTimeFrame(
+      input.criteria.mode === "feature" ? input.criteria.timeFrameFrom.trim() : "",
+      input.criteria.mode === "feature" ? input.criteria.timeFrameTo.trim() : "",
+    )
+  ) {
+    return false;
+  }
+
+  if (criteria.feature === "powerup-usage") {
+    return (
+      typeof criteria.powerup === "string" &&
+      criteria.powerup.length > 0 &&
+      (availablePowerups === null || availablePowerups.includes(criteria.powerup))
+    );
+  }
+
+  return criteria.powerup === null;
+};
+
 export const validateAchievementInput = (
   input: AchievementInput,
   performanceMetrics?: AchievementPerformanceMetric[],
+  featureConfigState?: FeatureConfigState,
 ) => {
   const normalized = normalizeAchievementInput(input);
   const hasValidCriteria =
@@ -454,6 +561,8 @@ export const validateAchievementInput = (
       ? true
       : normalized.criteria.mode === "defined"
         ? hasValidDefinedCriteria(input, normalized.criteria, performanceMetrics)
+        : normalized.criteria.mode === "feature"
+          ? hasValidFeatureCriteria(input, normalized.criteria, featureConfigState)
         : isAchievementLeaderboard(normalized.criteria.leaderboard) &&
           isAchievementOperator(normalized.criteria.operator) &&
           Number.isInteger(normalized.criteria.position) &&

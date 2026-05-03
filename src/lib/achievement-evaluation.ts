@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import {
   getLeaderboard,
@@ -9,9 +9,11 @@ import {
   type TeamLeaderboardEntry,
 } from "@/app/[lang]/leaderboard/actions";
 import {
+  activatedStreakFreezes,
   achievements,
   guildMeetings,
   performanceMetrics,
+  powerupUtilization,
   trackedContributions,
   userAchievements,
 } from "@/db/schema";
@@ -19,12 +21,23 @@ import type { TrackedContributionDataEntry } from "@/db/schema";
 import type { AchievementCriteria } from "@/lib/achievements";
 import {
   compareAchievementValue,
+  qualifiesForFeatureAchievementValue,
   qualifiesForDefinedAchievement,
   type GuildMeetingForAchievementEvaluation,
   type UserSubmissionForAchievementEvaluation,
 } from "@/lib/achievement-evaluation-core";
 import { db } from "@/lib/db";
-import { parseNonNegativeInteger } from "@/lib/point-calculation";
+import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
+import {
+  getAchievementableFeatures,
+  getAchievementablePowerups,
+} from "@/lib/feature-flags";
+import { getUserLevelProgress } from "@/lib/level-system";
+import {
+  loadUserPointTotals,
+  parseNonNegativeInteger,
+} from "@/lib/point-calculation";
+import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 
 type AchievementCandidate = {
   id: string;
@@ -47,6 +60,11 @@ type TrackedContributionForAchievementEvaluation = {
   guildMeetingId: string;
   guildMeetingTimestamp: Date;
   data: TrackedContributionDataEntry[];
+};
+
+type AchievementFeatureTimeFrameOptions = {
+  startDate: string | null;
+  endDate: string | null;
 };
 
 const parseTrackedContributionData = (value: unknown): TrackedContributionDataEntry[] => {
@@ -163,6 +181,152 @@ const loadAllPastTrackedContributions = async (
   );
 };
 
+const getFeatureTimeFrameOptions = (
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+): AchievementFeatureTimeFrameOptions => ({
+  startDate: criteria.timeFrame?.from ?? null,
+  endDate: criteria.timeFrame?.to ?? null,
+});
+
+const loadUserPointsForFeatureAchievement = async (
+  userId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const totals = await loadUserPointTotals({
+    userIds: [userId],
+    ...getFeatureTimeFrameOptions(criteria),
+  });
+
+  return totals[0]?.totalPoints ?? 0;
+};
+
+const loadIndividualLeaderboardPositionForFeatureAchievement = async (
+  userId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const { startDate, endDate } = getFeatureTimeFrameOptions(criteria);
+  const leaderboard = await getLeaderboard({
+    startDate,
+    endDate,
+  });
+
+  return rankLeaderboardEntries(leaderboard).find((entry) => entry.userId === userId)?.rank ?? null;
+};
+
+const loadTeamLeaderboardPositionForFeatureAchievement = async (
+  teamId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const { startDate, endDate } = getFeatureTimeFrameOptions(criteria);
+  const leaderboard = await getTeamLeaderboard({
+    "start-date": startDate,
+    "end-date": endDate,
+  });
+
+  return rankLeaderboardEntries(leaderboard).find((entry) => entry.teamId === teamId)?.rank ?? null;
+};
+
+const loadAchievementCountForFeatureAchievement = async (
+  userId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const { startDate, endDate } = getFeatureTimeFrameOptions(criteria);
+  const startCondition =
+    startDate === null ? sql`` : sql`and ${userAchievements.timestamp}::date >= ${startDate}::date`;
+  const endCondition =
+    endDate === null ? sql`` : sql`and ${userAchievements.timestamp}::date <= ${endDate}::date`;
+  const result = await db.execute<{ count: number | string }>(sql`
+    select count(*)::integer as count
+    from ${userAchievements}
+    where ${userAchievements.userId} = ${userId}
+      ${startCondition}
+      ${endCondition}
+  `);
+
+  return Number(result.rows[0]?.count ?? 0);
+};
+
+const loadPowerupUsageForFeatureAchievement = async (
+  userId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  if (!criteria.powerup) {
+    return null;
+  }
+
+  const { startDate, endDate } = getFeatureTimeFrameOptions(criteria);
+
+  if (criteria.powerup === "streak-freeze") {
+    const startCondition =
+      startDate === null ? sql`` : sql`and ${activatedStreakFreezes.timestamp}::date >= ${startDate}::date`;
+    const endCondition =
+      endDate === null ? sql`` : sql`and ${activatedStreakFreezes.timestamp}::date <= ${endDate}::date`;
+    const result = await db.execute<{ count: number | string }>(sql`
+      select count(*)::integer as count
+      from ${activatedStreakFreezes}
+      where ${activatedStreakFreezes.userId} = ${userId}
+        ${startCondition}
+        ${endCondition}
+    `);
+
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  const startCondition =
+    startDate === null ? sql`` : sql`and ${powerupUtilization.usageTimestamp}::date >= ${startDate}::date`;
+  const endCondition =
+    endDate === null ? sql`` : sql`and ${powerupUtilization.usageTimestamp}::date <= ${endDate}::date`;
+  const result = await db.execute<{ count: number | string }>(sql`
+    select count(*)::integer as count
+    from ${powerupUtilization}
+    where ${powerupUtilization.userId} = ${userId}
+      and ${powerupUtilization.powerup} = ${criteria.powerup}
+      ${startCondition}
+      ${endCondition}
+  `);
+
+  return Number(result.rows[0]?.count ?? 0);
+};
+
+const loadFeatureAchievementValue = async (
+  user: CurrentUserForAchievementEvaluation,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  switch (criteria.feature) {
+    case "points":
+      return loadUserPointsForFeatureAchievement(user.id, criteria);
+    case "individual-leaderboard-position":
+      return loadIndividualLeaderboardPositionForFeatureAchievement(user.id, criteria);
+    case "team-leaderboard-position":
+      return loadTeamLeaderboardPositionForFeatureAchievement(user.teamId, criteria);
+    case "level":
+      return (await getUserLevelProgress(user.id))?.currentLevel ?? 0;
+    case "achievements-count":
+      return loadAchievementCountForFeatureAchievement(user.id, criteria);
+    case "powerup-usage":
+      return loadPowerupUsageForFeatureAchievement(user.id, criteria);
+  }
+};
+
+const isFeatureAchievementCurrentlyAvailable = async (
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const featureConfig = await getCurrentFeatureConfig();
+  const availableFeatures = getAchievementableFeatures(featureConfig.state).map((feature) => feature.type);
+
+  if (!availableFeatures.includes(criteria.feature)) {
+    return false;
+  }
+
+  if (criteria.feature !== "powerup-usage") {
+    return true;
+  }
+
+  const availablePowerups = getAchievementablePowerups(featureConfig.state).map((powerup) => powerup.id);
+
+  return typeof criteria.powerup === "string" && availablePowerups.includes(criteria.powerup);
+};
+
 
 export const evaluateAchievementsForUser = async (
   user: CurrentUserForAchievementEvaluation,
@@ -196,6 +360,20 @@ export const evaluateAchievementsForUser = async (
           criteria,
           await allPastGuildMeetingsPromise,
           await allPastSubmissionsPromise,
+        )
+      ) {
+        qualifyingAchievementIds.push(achievement.id);
+      }
+
+      continue;
+    }
+
+    if (criteria.mode === "feature") {
+      if (
+        (await isFeatureAchievementCurrentlyAvailable(criteria)) &&
+        qualifiesForFeatureAchievementValue(
+          criteria,
+          await loadFeatureAchievementValue(user, criteria),
         )
       ) {
         qualifyingAchievementIds.push(achievement.id);

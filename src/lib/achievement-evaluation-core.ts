@@ -42,6 +42,27 @@ export const compareAchievementValue = (
   }
 };
 
+export const qualifiesForFeatureAchievementValue = (
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+  value: number | null,
+): boolean => {
+  if (value === null) {
+    return false;
+  }
+
+  switch (criteria.feature) {
+    case "points":
+      return value > criteria.value;
+    case "individual-leaderboard-position":
+    case "team-leaderboard-position":
+      return value <= criteria.value;
+    case "level":
+    case "achievements-count":
+    case "powerup-usage":
+      return value >= criteria.value;
+  }
+};
+
 const subtractAchievementDuration = (
   referenceDate: Date,
   duration: AchievementParsedDuration,

@@ -27,6 +27,7 @@ type RawUserPointTotal = {
 type LoadUserPointTotalsOptions = {
   userIds?: string[];
   startDate?: string | null;
+  endDate?: string | null;
 };
 
 export type PerformanceMetricPointConfig = {
@@ -169,6 +170,7 @@ export const parsePointCalculationStartDate = (value: unknown): string | null =>
 export const loadUserPointTotals = async ({
   userIds,
   startDate = null,
+  endDate = null,
 }: LoadUserPointTotalsOptions = {}): Promise<UserPointTotal[]> => {
   const uniqueUserIds = userIds === undefined ? null : Array.from(new Set(userIds));
 
@@ -183,8 +185,12 @@ export const loadUserPointTotals = async ({
       : sql`where u.id in (${sql.join(uniqueUserIds.map((userId) => sql`${userId}`), sql`, `)})`;
   const pointStartDateCondition =
     startDate === null ? sql`` : sql`and gm.timestamp::date >= ${startDate}::date`;
+  const pointEndDateCondition =
+    endDate === null ? sql`` : sql`and gm.timestamp::date <= ${endDate}::date`;
   const manualPointStartDateCondition =
     startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
+  const manualPointEndDateCondition =
+    endDate === null ? sql`` : sql`and mp.timestamp::date <= ${endDate}::date`;
 
   const result = await db.execute(sql<RawUserPointTotal>`
     with selected_users as (
@@ -208,6 +214,7 @@ export const loadUserPointTotals = async ({
           on gm.id = tc.meeting_id
           and gm.timestamp <= now()
           ${pointStartDateCondition}
+          ${pointEndDateCondition}
       ) on tc.user_id = su.id
       left join lateral (
         select coalesce(
@@ -274,6 +281,7 @@ export const loadUserPointTotals = async ({
       from selected_users su
       left join ${manualPoints} mp on mp.user_id = su.id
         ${manualPointStartDateCondition}
+        ${manualPointEndDateCondition}
       group by su.id
     )
     select

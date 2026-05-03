@@ -10,6 +10,14 @@ export type FeatureConfigState = Record<
   }
 >;
 
+export type AchievementableFeatureId =
+  | "points"
+  | "individual-leaderboard-position"
+  | "team-leaderboard-position"
+  | "level"
+  | "achievements-count"
+  | "powerup-usage";
+
 type CatalogSetting = {
   id: string;
   type:
@@ -23,8 +31,10 @@ type CatalogSetting = {
     | "streak-valid-values"
     | "switch";
   defaultValue?: FeatureConfigValue;
+  achievementable?: boolean;
   min?: number;
   options?: Array<{ value: string }>;
+  prerequisites?: Requirement[];
 };
 
 type RequirementCondition =
@@ -41,6 +51,9 @@ type Requirement = {
 type CatalogFeature = {
   id: string;
   defaultEnabled?: boolean;
+  achievementable?: {
+    type: AchievementableFeatureId;
+  };
   prerequisites?: Requirement[];
   configuration?: CatalogSetting[];
 };
@@ -110,7 +123,7 @@ export const mergeFeatureConfigState = (
   );
 };
 
-const evaluateRequirementCondition = (
+export const evaluateRequirementCondition = (
   condition: RequirementCondition,
   state: FeatureConfigState,
 ): boolean => {
@@ -134,11 +147,19 @@ const evaluateRequirementCondition = (
   return !evaluateRequirementCondition(condition.not, state);
 };
 
-const areFeaturePrerequisitesMet = (
+export const areFeaturePrerequisitesMet = (
   feature: CatalogFeature,
   state: FeatureConfigState,
 ) =>
   (feature.prerequisites ?? []).every((requirement) =>
+    evaluateRequirementCondition(requirement.condition, state),
+  );
+
+const areSettingPrerequisitesMet = (
+  setting: CatalogSetting,
+  state: FeatureConfigState,
+) =>
+  (setting.prerequisites ?? []).every((requirement) =>
     evaluateRequirementCondition(requirement.condition, state),
   );
 
@@ -180,6 +201,12 @@ export const applyFeaturePrerequisites = (
 export const isFeatureEnabled = (state: FeatureConfigState, featureId: string) =>
   state[featureId]?.enabled;
 
+export const isFeatureAvailable = (state: FeatureConfigState, featureId: string) => {
+  const feature = catalog.features.find((entry) => entry.id === featureId);
+
+  return Boolean(feature && isFeatureEnabled(state, featureId) && areFeaturePrerequisitesMet(feature, state));
+};
+
 export const getFeatureSettingValue = (
   state: FeatureConfigState,
   featureId: string,
@@ -192,6 +219,63 @@ export const isFeatureSettingEnabled = (
   settingId: string,
 ) => getFeatureSettingValue(state, featureId, settingId) === true;
 
+export const isFeatureSettingAvailable = (
+  state: FeatureConfigState,
+  featureId: string,
+  settingId: string,
+) => {
+  const feature = catalog.features.find((entry) => entry.id === featureId);
+  const setting = feature?.configuration?.find((entry) => entry.id === settingId);
+
+  return Boolean(
+    feature &&
+    setting &&
+    isFeatureAvailable(state, featureId) &&
+    isFeatureSettingEnabled(state, featureId, settingId) &&
+    areSettingPrerequisitesMet(setting, state),
+  );
+};
+
+export const getAchievementableFeatures = (state: FeatureConfigState) => {
+  const powerups = catalog.features.find((feature) => feature.id === "powerups");
+
+  return catalog.features.flatMap((feature) => {
+    if (!feature.achievementable || !isFeatureAvailable(state, feature.id)) {
+      return [];
+    }
+
+    if (
+      feature.achievementable.type === "powerup-usage" &&
+      (powerups?.configuration ?? []).every(
+        (setting) => !setting.achievementable || !isFeatureSettingAvailable(state, "powerups", setting.id),
+      )
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        featureId: feature.id,
+        type: feature.achievementable.type,
+      },
+    ];
+  });
+};
+
+export const getAchievementablePowerups = (state: FeatureConfigState) => {
+  const powerups = catalog.features.find((feature) => feature.id === "powerups");
+
+  return (powerups?.configuration ?? []).flatMap((setting) =>
+    setting.achievementable && isFeatureSettingAvailable(state, "powerups", setting.id)
+      ? [
+          {
+            id: setting.id,
+          },
+        ]
+      : [],
+  );
+};
+
 export const getEnabledPowerupIds = (state: FeatureConfigState) =>
   [
     "streak-freeze",
@@ -200,7 +284,7 @@ export const getEnabledPowerupIds = (state: FeatureConfigState) =>
     "large-point-multiplicator",
     "role-shield",
     "role-present",
-  ].filter((powerupId) => isFeatureSettingEnabled(state, "powerups", powerupId));
+  ].filter((powerupId) => isFeatureSettingAvailable(state, "powerups", powerupId));
 
 export const isRoleRaffleEnabled = (state: FeatureConfigState) =>
   isFeatureEnabled(state, "minigames") &&

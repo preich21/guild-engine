@@ -5,6 +5,7 @@ import { CalendarIcon, ChevronDown, Pencil, Plus, Trash2, Upload } from "lucide-
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import featureConfiguration from "@/config/feature-configuration.json";
 import type {
   AchievementEntry,
   AchievementPerformanceMetricEntry,
@@ -23,8 +24,10 @@ import {
   type AchievementCriteria,
   type AchievementCriteriaInput,
   type AchievementCriteriaType,
+  type AchievementFeature,
   type AchievementLeaderboard,
 } from "@/lib/achievements";
+import { useFeatureConfig } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +52,11 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import type { Locale } from "@/i18n/config";
+import {
+  getAchievementableFeatures,
+  getAchievementablePowerups,
+  type AchievementableFeatureId,
+} from "@/lib/feature-flags";
 
 type DraftAchievement = {
   title: string;
@@ -84,7 +92,17 @@ type AchievementsTableProps = {
     descriptionPlaceholder: string;
     manualAwardedLabel: string;
     basedOnMetricsLabel: string;
+    basedOnFeatureLabel: string;
     basedOnPositionLabel: string;
+    featureLabel: string;
+    featurePoints: string;
+    featureIndividualLeaderboardPosition: string;
+    featureTeamLeaderboardPosition: string;
+    featureLevel: string;
+    featureAchievementsCount: string;
+    featurePowerupUsage: string;
+    valueLabel: string;
+    powerupLabel: string;
     metricLabel: string;
     validValuesLabel: string;
     validValuesAtLeastLabel: string;
@@ -110,6 +128,7 @@ type AchievementsTableProps = {
     allTimeLabel: string;
     manualAwardedSummary: string;
     basedOnMetricsSummary: string;
+    basedOnFeatureSummary: string;
     basedOnPositionSummary: string;
     cancelButton: string;
     saveButton: string;
@@ -150,6 +169,26 @@ const defaultDefinedCriteria = (
   timeFrameTo: "",
   count: "",
 });
+
+const defaultFeatureCriteria = (
+  features: Array<{ type: AchievementableFeatureId }>,
+  powerups: Array<{ id: string }>,
+): Extract<AchievementCriteriaInput, { mode: "feature" }> => {
+  const feature = features[0]?.type ?? "";
+
+  return {
+    mode: "feature",
+    feature,
+    value: "0",
+    powerup: feature === "powerup-usage" ? powerups[0]?.id ?? "" : "",
+    timeFrameFrom: "",
+    timeFrameTo: "",
+  };
+};
+
+type LocalizedText = Record<Locale, string>;
+
+const localize = (value: LocalizedText, lang: Locale) => value[lang] ?? value.en;
 
 const resizeImageToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -217,6 +256,24 @@ export function AchievementsTable({
   deleteAction,
   dictionary,
 }: AchievementsTableProps) {
+  const { state: featureConfigState } = useFeatureConfig();
+  const achievementableFeatures = useMemo(
+    () => getAchievementableFeatures(featureConfigState),
+    [featureConfigState],
+  );
+  const achievementablePowerups = useMemo(
+    () => getAchievementablePowerups(featureConfigState),
+    [featureConfigState],
+  );
+  const powerupLabels = useMemo(() => {
+    const powerupFeature = featureConfiguration.features.find((feature) => feature.id === "powerups");
+
+    return Object.fromEntries(
+      (powerupFeature?.configuration ?? []).flatMap((setting) =>
+        "label" in setting ? [[setting.id, localize(setting.label as LocalizedText, lang)]] : [],
+      ),
+    );
+  }, [lang]);
   const performanceMetricsById = useMemo(
     () => new Map(performanceMetrics.map((metric) => [metric.id, metric])),
     [performanceMetrics],
@@ -228,6 +285,14 @@ export function AchievementsTable({
   const criteriaTypeLabels: Record<AchievementCriteriaType, string> = {
     count: dictionary.typeCount,
     streak: dictionary.typeStreak,
+  };
+  const featureLabels: Record<AchievementableFeatureId, string> = {
+    points: dictionary.featurePoints,
+    "individual-leaderboard-position": dictionary.featureIndividualLeaderboardPosition,
+    "team-leaderboard-position": dictionary.featureTeamLeaderboardPosition,
+    level: dictionary.featureLevel,
+    "achievements-count": dictionary.featureAchievementsCount,
+    "powerup-usage": dictionary.featurePowerupUsage,
   };
   const leaderboardLabels: Record<AchievementLeaderboard, string> = {
     individual: dictionary.leaderboardIndividual,
@@ -265,7 +330,7 @@ export function AchievementsTable({
   const [isUpdatePending, startUpdateTransition] = useTransition();
 
   const isBusy = createPending || isDeletePending || isUpdatePending;
-  const validation = validateAchievementInput(draft, performanceMetrics);
+  const validation = validateAchievementInput(draft, performanceMetrics, featureConfigState);
   const isFormValid = validation.isValid && !imageError;
 
   const resetEditorState = () => {
@@ -369,6 +434,8 @@ export function AchievementsTable({
       criteria:
         value === "defined"
           ? defaultDefinedCriteria(performanceMetrics)
+          : value === "feature"
+            ? defaultFeatureCriteria(achievementableFeatures, achievementablePowerups)
           : { mode: "manual" },
     }));
   };
@@ -480,6 +547,73 @@ export function AchievementsTable({
     });
   };
 
+  const handleFeatureCriteriaChange = <
+    Key extends keyof Extract<AchievementCriteriaInput, { mode: "feature" }>,
+  >(
+    key: Key,
+    value: Extract<AchievementCriteriaInput, { mode: "feature" }>[Key],
+  ) => {
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "feature") {
+        return currentDraft;
+      }
+
+      return {
+        ...currentDraft,
+        criteria: {
+          ...currentDraft.criteria,
+          [key]: value,
+        },
+      };
+    });
+  };
+
+  const handleFeatureChange = (feature: AchievementFeature) => {
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "feature") {
+        return currentDraft;
+      }
+
+      return {
+        ...currentDraft,
+        criteria: {
+          ...currentDraft.criteria,
+          feature,
+          powerup: feature === "powerup-usage" ? achievementablePowerups[0]?.id ?? "" : "",
+        },
+      };
+    });
+  };
+
+  const handleFeatureTimeFrameChange = (
+    key: "timeFrameFrom" | "timeFrameTo",
+    value: string,
+  ) => {
+    setDraft((currentDraft) => {
+      if (currentDraft.criteria.mode !== "feature") {
+        return currentDraft;
+      }
+
+      const nextCriteria = {
+        ...currentDraft.criteria,
+        [key]: value,
+      };
+
+      if (
+        key === "timeFrameFrom" &&
+        nextCriteria.timeFrameTo !== "" &&
+        !isValidAchievementTimeFrame(nextCriteria.timeFrameFrom, nextCriteria.timeFrameTo)
+      ) {
+        nextCriteria.timeFrameTo = "";
+      }
+
+      return {
+        ...currentDraft,
+        criteria: nextCriteria,
+      };
+    });
+  };
+
   const renderSingleSelect = <Value extends string>({
     value,
     values,
@@ -537,7 +671,10 @@ export function AchievementsTable({
   };
 
   const formatCriteriaTimeFrame = (criteria: AchievementCriteria) => {
-    if (criteria.mode !== "defined" || !criteria.timeFrame) {
+    if (
+      (criteria.mode !== "defined" && criteria.mode !== "feature") ||
+      !criteria.timeFrame
+    ) {
       return dictionary.allTimeLabel;
     }
 
@@ -566,11 +703,17 @@ export function AchievementsTable({
   const renderEditorCard = (mode: "create" | "edit") => {
     const idPrefix = mode === "create" ? "new-achievement" : `edit-achievement-${editingAchievementId ?? "draft"}`;
     const definedCriteria = draft.criteria.mode === "defined" ? draft.criteria : null;
+    const featureCriteria = draft.criteria.mode === "feature" ? draft.criteria : null;
     const selectedFromDate =
       definedCriteria?.timeFrameFrom ? parseAchievementDateKey(definedCriteria.timeFrameFrom) ?? undefined : undefined;
     const selectedToDate =
       definedCriteria?.timeFrameTo ? parseAchievementDateKey(definedCriteria.timeFrameTo) ?? undefined : undefined;
     const minimumToDate = selectedFromDate ? addDays(selectedFromDate, 1) : undefined;
+    const selectedFeatureFromDate =
+      featureCriteria?.timeFrameFrom ? parseAchievementDateKey(featureCriteria.timeFrameFrom) ?? undefined : undefined;
+    const selectedFeatureToDate =
+      featureCriteria?.timeFrameTo ? parseAchievementDateKey(featureCriteria.timeFrameTo) ?? undefined : undefined;
+    const minimumFeatureToDate = selectedFeatureFromDate ? addDays(selectedFeatureFromDate, 1) : undefined;
     const selectedPerformanceMetric = definedCriteria
       ? performanceMetricsById.get(definedCriteria.metric)
       : undefined;
@@ -584,6 +727,9 @@ export function AchievementsTable({
       definedCriteria && definedCriteria.type === "count"
         ? isValidAchievementTimeFrame(definedCriteria.timeFrameFrom, definedCriteria.timeFrameTo)
         : true;
+    const isFeatureTimeFrameValid = featureCriteria
+      ? isValidAchievementTimeFrame(featureCriteria.timeFrameFrom, featureCriteria.timeFrameTo)
+      : true;
 
     return (
       <Card className="border border-border bg-background">
@@ -670,6 +816,12 @@ export function AchievementsTable({
                 <RadioGroupItem id={`${idPrefix}-criteria-defined`} value="defined" />
                 <Label htmlFor={`${idPrefix}-criteria-defined`}>{dictionary.basedOnMetricsLabel}</Label>
               </div>
+              {achievementableFeatures.length > 0 ? (
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem id={`${idPrefix}-criteria-feature`} value="feature" />
+                  <Label htmlFor={`${idPrefix}-criteria-feature`}>{dictionary.basedOnFeatureLabel}</Label>
+                </div>
+              ) : null}
             </RadioGroup>
 
             {draft.criteria.mode === "defined" ? (
@@ -854,6 +1006,135 @@ export function AchievementsTable({
                     ) : null}
                   </div>
                 ) : null}
+              </div>
+            ) : null}
+
+            {draft.criteria.mode === "feature" ? (
+              <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
+                <div className="space-y-2">
+                  <Label>{dictionary.featureLabel}</Label>
+                  {renderSingleSelect({
+                    value: draft.criteria.feature as AchievementFeature,
+                    values: achievementableFeatures.map((feature) => feature.type),
+                    valueLabels: featureLabels,
+                    label: dictionary.featureLabel,
+                    disabled: isBusy || achievementableFeatures.length === 0,
+                    onValueChange: handleFeatureChange,
+                  })}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`${idPrefix}-feature-value`}>{dictionary.valueLabel}</Label>
+                  <Input
+                    id={`${idPrefix}-feature-value`}
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    value={draft.criteria.value}
+                    disabled={isBusy}
+                    onChange={(event) => handleFeatureCriteriaChange("value", event.target.value)}
+                  />
+                </div>
+
+                {draft.criteria.feature === "powerup-usage" ? (
+                  <div className="space-y-2">
+                    <Label>{dictionary.powerupLabel}</Label>
+                    {renderSingleSelect({
+                      value: draft.criteria.powerup,
+                      values: achievementablePowerups.map((powerup) => powerup.id),
+                      valueLabels: powerupLabels,
+                      label: dictionary.powerupLabel,
+                      disabled: isBusy || achievementablePowerups.length === 0,
+                      onValueChange: (value) => handleFeatureCriteriaChange("powerup", value),
+                    })}
+                  </div>
+                ) : null}
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">{dictionary.timeFrameLabel}</Label>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>{dictionary.timeFrameFromLabel}</Label>
+                      <Popover
+                        open={openDatePicker === `${idPrefix}-feature-from`}
+                        onOpenChange={(open) => setOpenDatePicker(open ? `${idPrefix}-feature-from` : null)}
+                      >
+                        <PopoverTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-between"
+                              disabled={isBusy}
+                            >
+                              <span>{featureCriteria ? formatDateLabel(featureCriteria.timeFrameFrom) : dictionary.datePickerPlaceholder}</span>
+                              <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                            </Button>
+                          }
+                        />
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedFeatureFromDate}
+                            onSelect={(date) => {
+                              if (!date) {
+                                return;
+                              }
+
+                              handleFeatureTimeFrameChange("timeFrameFrom", toDateKey(date));
+                              setOpenDatePicker(null);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{dictionary.timeFrameToLabel}</Label>
+                      <Popover
+                        open={openDatePicker === `${idPrefix}-feature-to`}
+                        onOpenChange={(open) => setOpenDatePicker(open ? `${idPrefix}-feature-to` : null)}
+                      >
+                        <PopoverTrigger
+                          render={
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-between"
+                              disabled={isBusy || !selectedFeatureFromDate}
+                            >
+                              <span>{featureCriteria ? formatDateLabel(featureCriteria.timeFrameTo) : dictionary.datePickerPlaceholder}</span>
+                              <CalendarIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                            </Button>
+                          }
+                        />
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedFeatureToDate}
+                            onSelect={(date) => {
+                              if (!date) {
+                                return;
+                              }
+
+                              handleFeatureTimeFrameChange("timeFrameTo", toDateKey(date));
+                              setOpenDatePicker(null);
+                            }}
+                            disabled={(date) => Boolean(minimumFeatureToDate && date < minimumFeatureToDate)}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {!isFeatureTimeFrameValid ? (
+                    <p className="text-sm text-destructive">{dictionary.timeFrameInvalid}</p>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -1046,6 +1327,27 @@ export function AchievementsTable({
                           {formatCriteriaTimeFrame(row.criteria)}
                         </p>
                       ) : null}
+                    </div>
+                  ) : row.criteria.mode === "feature" ? (
+                    <div className="space-y-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
+                      <p>
+                        <span className="font-medium text-foreground">{dictionary.basedOnFeatureSummary}: </span>
+                        {featureLabels[row.criteria.feature]}
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground">{dictionary.valueLabel}: </span>
+                        {row.criteria.value}
+                      </p>
+                      {row.criteria.feature === "powerup-usage" && row.criteria.powerup ? (
+                        <p>
+                          <span className="font-medium text-foreground">{dictionary.powerupLabel}: </span>
+                          {powerupLabels[row.criteria.powerup] ?? row.criteria.powerup}
+                        </p>
+                      ) : null}
+                      <p>
+                        <span className="font-medium text-foreground">{dictionary.timeFrameLabel}: </span>
+                        {formatCriteriaTimeFrame(row.criteria)}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">

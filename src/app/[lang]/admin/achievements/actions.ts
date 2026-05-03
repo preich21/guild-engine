@@ -14,6 +14,7 @@ import {
 } from "@/lib/achievements";
 import { hasLocale } from "@/i18n/config";
 import { db } from "@/lib/db";
+import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 
 export type AchievementEntry = {
   id: string;
@@ -99,7 +100,10 @@ export const createAchievement = async (
     return { status: "error" };
   }
 
-  const availableMetrics = await getAchievementPerformanceMetrics();
+  const [availableMetrics, featureConfig] = await Promise.all([
+    getAchievementPerformanceMetrics(),
+    getCurrentFeatureConfig(),
+  ]);
   const validation = validateAchievementInput(
     {
       title,
@@ -108,6 +112,7 @@ export const createAchievement = async (
       criteria,
     },
     availableMetrics,
+    featureConfig.state,
   );
 
   if (!validation.isValid) {
@@ -142,8 +147,11 @@ export const updateAchievement = async (
     return false;
   }
 
-  const availableMetrics = await getAchievementPerformanceMetrics();
-  const validation = validateAchievementInput(input, availableMetrics);
+  const [availableMetrics, featureConfig] = await Promise.all([
+    getAchievementPerformanceMetrics(),
+    getCurrentFeatureConfig(),
+  ]);
+  const validation = validateAchievementInput(input, availableMetrics, featureConfig.state);
 
   if (!validation.isValid) {
     return false;

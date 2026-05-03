@@ -51,11 +51,13 @@ export type TeamLeaderboardEntry = {
 
 export type IndividualLeaderboardConfig = {
   startDate?: unknown;
+  endDate?: unknown;
   showDashboard?: unknown;
 };
 
 export type TeamLeaderboardConfig = {
   "start-date"?: unknown;
+  "end-date"?: unknown;
   aggregation?: unknown;
 };
 
@@ -84,7 +86,8 @@ export const getLeaderboard = async (
   config: IndividualLeaderboardConfig = {},
 ): Promise<LeaderboardEntry[]> => {
   const startDate = parsePointCalculationStartDate(config.startDate);
-  const pointTotals = await loadUserPointTotals({ startDate });
+  const endDate = parsePointCalculationStartDate(config.endDate);
+  const pointTotals = await loadUserPointTotals({ startDate, endDate });
   const totalPointsByUserId = new Map(
     pointTotals.map((entry) => [entry.userId, entry.totalPoints]),
   );
@@ -154,8 +157,9 @@ export const getTeamLeaderboard = async (
   config: TeamLeaderboardConfig = {},
 ): Promise<TeamLeaderboardEntry[]> => {
   const startDate = parsePointCalculationStartDate(config["start-date"]);
+  const endDate = parsePointCalculationStartDate(config["end-date"]);
   const aggregation = parseTeamLeaderboardAggregation(config.aggregation);
-  const pointTotals = await loadUserPointTotals({ startDate });
+  const pointTotals = await loadUserPointTotals({ startDate, endDate });
   const totalPointsByUserId = new Map(
     pointTotals.map((entry) => [entry.userId, entry.totalPoints]),
   );
