@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Flame } from "lucide-react";
+import { getStreakDisplayState, getStreakFlameClassName } from "@/lib/streak-ui";
 
 type StreakIndicatorProps = {
   initialCount: number;
@@ -21,12 +22,12 @@ export function StreakIndicator({
   const [hasPendingRecentMeeting] = useState(initialHasPendingRecentMeeting);
   const [latestMeetingWasStreakFreeze] = useState(initialLatestMeetingWasStreakFreeze);
 
-  const highlightFlame = count > 0 && !hasPendingRecentMeeting;
-  const flameClassName = latestMeetingWasStreakFreeze
-    ? "size-4 text-sky-400"
-    : highlightFlame
-      ? "size-4 text-orange-500"
-      : "size-4 text-muted-foreground";
+  const state = getStreakDisplayState({
+    count,
+    hasPendingRecentMeeting,
+    latestMeetingWasStreakFreeze,
+  });
+  const flameClassName = getStreakFlameClassName(state);
 
   return (
     <div

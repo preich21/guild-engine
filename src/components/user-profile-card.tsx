@@ -50,6 +50,7 @@ import featureConfiguration from "@/config/feature-configuration.json";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import type { UserProfileData, UserProfilePowerups } from "@/lib/user-profile";
+import { getStreakCardClassName, getStreakDisplayState } from "@/lib/streak-ui";
 
 export type UserProfileDictionary = {
   heading: string;
@@ -207,14 +208,6 @@ const getPlacementCardClassName = (rank: number) => {
   return "bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-400 text-zinc-950 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-900 dark:text-white";
 };
 
-const getStreakCardClassName = (count: number, hasPendingRecentMeeting: boolean) => {
-  if (count > 0 && !hasPendingRecentMeeting) {
-    return "bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 text-zinc-950 dark:from-orange-400 dark:via-orange-500 dark:to-amber-500 dark:text-white";
-  }
-
-  return "bg-gradient-to-br from-zinc-200 via-zinc-300 to-zinc-400 text-zinc-950 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-900 dark:text-white";
-};
-
 const getUserInitials = (username: string) => username.slice(0, 2).toUpperCase();
 
 export function UserProfileCard({
@@ -234,6 +227,11 @@ export function UserProfileCard({
   const leaderboardHref = `/${lang}/leaderboard/individual?highlight=${profile.userId}#leaderboard-user-${profile.userId}`;
   const fullProfileHref = `/${lang}/user/${profile.userId}`;
   const powerupItems = getPowerupItems(profile.powerups, lang, dictionary, enabledPowerupIds);
+  const streakDisplayState = getStreakDisplayState({
+    count: profile.attendanceStreak.count,
+    hasPendingRecentMeeting: profile.attendanceStreak.hasPendingRecentMeeting,
+    latestMeetingWasStreakFreeze: profile.attendanceStreak.latestMeetingWasStreakFreeze,
+  });
 
   return (
     <section className={cn("space-y-6 p-4 sm:p-6", mode === "page" && "px-0 py-0")}>
@@ -339,10 +337,7 @@ export function UserProfileCard({
             <Card
               className={cn(
                 "border-0 shadow-lg ring-1 ring-black/5",
-                getStreakCardClassName(
-                  profile.attendanceStreak.count,
-                  profile.attendanceStreak.hasPendingRecentMeeting,
-                ),
+                getStreakCardClassName(streakDisplayState, profile.attendanceStreak.count),
               )}
             >
               <CardContent className="flex min-h-40 flex-col justify-between p-6">
