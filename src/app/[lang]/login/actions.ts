@@ -70,7 +70,7 @@ export const loginWithEntra = async (
   const featureConfig = await loadCurrentFeatureConfig();
   const homePath = getHomePageHref(locale, featureConfig.homePagePath, null);
   const defaultRedirectPath =
-    homePath === `/${locale}/login` ? `/${locale}/rules` : homePath;
+    homePath === `/${locale}/login` ? `/${locale}/user` : homePath;
 
   await signIn("microsoft-entra-id", {
     redirectTo: getSafePostLoginPath(locale, nextPath, defaultRedirectPath),
