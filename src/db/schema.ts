@@ -216,6 +216,11 @@ export const powerupUtilization = pgTable(
   (table) => [
     index("powerup_utilization_meeting_id_idx").on(table.meetingId),
     index("powerup_utilization_user_id_idx").on(table.userId),
+    index("powerup_utilization_user_meeting_usage_idx").on(
+      table.userId,
+      table.meetingId,
+      table.usageTimestamp,
+    ),
   ],
 );
 
@@ -269,6 +274,7 @@ export const trackedContributions = pgTable(
   (table) => [
     index("tracked_contributions_user_id_idx").on(table.userId),
     index("tracked_contributions_meeting_id_idx").on(table.meetingId),
+    index("tracked_contributions_meeting_user_idx").on(table.meetingId, table.userId),
     uniqueIndex("tracked_contributions_user_meeting_idx").on(table.userId, table.meetingId),
   ],
 );

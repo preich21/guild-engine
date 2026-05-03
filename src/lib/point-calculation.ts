@@ -5,9 +5,9 @@ import { sql } from "drizzle-orm";
 import {
   guildMeetings,
   manualPoints,
-  pointDistribution,
+  performanceMetrics,
   powerupUtilization,
-  userPointSubmissions,
+  trackedContributions,
   users,
 } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -109,58 +109,64 @@ export const loadUserPointTotals = async ({
       from ${users} u
       ${selectedUserCondition}
     ),
-    submission_points as (
+    tracked_contribution_points as (
       select
         su.id as user_id,
         coalesce(
           sum(
-            (
-              case ups.attendance
-                when 1 then coalesce(pd.attendance_virtual, 0)
-                when 2 then coalesce(pd.attendance_on_site, 0)
-                else 0
-              end
-              + case ups.protocol
-                  when 1 then coalesce(pd.protocol_forced, 0)
-                  when 2 then coalesce(pd.protocol_voluntarily, 0)
-                  else 0
-                end
-              + case
-                  when ups.moderation then coalesce(pd.moderation, 0)
-                  else 0
-                end
-              + case
-                  when ups.working_group then coalesce(pd.working_group, 0)
-                  else 0
-                end
-              + (coalesce(ups.twl, 0) * coalesce(pd.twl, 0))
-              + (coalesce(ups.presentations, 0) * coalesce(pd.presentation, 0))
-            )
-            * coalesce(pum.factor, 1)
+            coalesce(tcp.points, 0) * coalesce(pum.factor, 1)
           ),
           0
         )::integer as total_points
       from selected_users su
-      left join ${userPointSubmissions} ups on ups.user_id = su.id
-      left join ${guildMeetings} gm
-        on gm.id = ups.guild_meeting_id
-        and gm.timestamp <= now()
-        ${pointStartDateCondition}
+      left join (
+        ${trackedContributions} tc
+        inner join ${guildMeetings} gm
+          on gm.id = tc.meeting_id
+          and gm.timestamp <= now()
+          ${pointStartDateCondition}
+      ) on tc.user_id = su.id
       left join lateral (
-        select
-          attendance_virtual,
-          attendance_on_site,
-          protocol_forced,
-          protocol_voluntarily,
-          moderation,
-          working_group,
-          twl,
-          presentation
-        from ${pointDistribution} pd
-        where pd.active_from <= gm.timestamp
-        order by pd.active_from desc
-        limit 1
-      ) pd on true
+        select coalesce(
+          sum(
+            case
+              when pm.type = 1
+                and parsed_contribution.metric_value is not null
+                and trim(coalesce(pm.points, '')) ~ '^[0-9]+$'
+                then trim(pm.points)::integer * parsed_contribution.metric_value
+              when pm.type = 0
+                and parsed_contribution.metric_value is not null
+                and trim(
+                  split_part(
+                    coalesce(pm.points, ''),
+                    ';',
+                    parsed_contribution.metric_value + 1
+                  )
+                ) ~ '^[0-9]+$'
+                then trim(
+                  split_part(
+                    coalesce(pm.points, ''),
+                    ';',
+                    parsed_contribution.metric_value + 1
+                  )
+                )::integer
+              else 0
+            end
+          ),
+          0
+        )::numeric as points
+        from jsonb_array_elements(coalesce(tc.data, '[]'::jsonb)) contribution(value)
+        left join lateral (
+          select
+            contribution.value->>'id' as metric_id,
+            case
+              when contribution.value->>'value' ~ '^[0-9]+$'
+                then (contribution.value->>'value')::integer
+            end as metric_value
+        ) parsed_contribution on true
+        left join ${performanceMetrics} pm
+          on pm.id::text = parsed_contribution.metric_id
+      ) tcp on true
       left join lateral (
         select
           case pu.powerup
@@ -190,11 +196,11 @@ export const loadUserPointTotals = async ({
     select
       su.id as "userId",
       (
-        coalesce(sp.total_points, 0)
+        coalesce(tcp.total_points, 0)
         + coalesce(mpt.total_points, 0)
       )::integer as "totalPoints"
     from selected_users su
-    left join submission_points sp on sp.user_id = su.id
+    left join tracked_contribution_points tcp on tcp.user_id = su.id
     left join manual_points_totals mpt on mpt.user_id = su.id
   `);
 
