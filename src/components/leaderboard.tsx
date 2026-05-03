@@ -1,6 +1,7 @@
 import type { LeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
 
 import { AchievementStack } from "@/components/achievement-stack";
+import { LevelBar } from "@/components/level-bar";
 import { StreakIndicator } from "@/components/streak-indicator";
 import { UserProfilePopover } from "@/components/user-profile-popover";
 import type { UserProfileDictionary } from "@/components/user-profile-card";
@@ -21,6 +22,7 @@ type LeaderboardProps = {
   showPowerups: boolean;
   enabledPowerupIds: string[];
   showStreaks: boolean;
+  showLevels: boolean;
   dictionary: {
     heading: string;
     empty: string;
@@ -56,6 +58,7 @@ export function Leaderboard({
   showPowerups,
   enabledPowerupIds,
   showStreaks,
+  showLevels,
   dictionary,
 }: LeaderboardProps) {
   const rankedEntries = rankLeaderboardEntries(entries)
@@ -113,9 +116,19 @@ export function Leaderboard({
                           <span className="min-w-0 truncate">{entry.username}</span>
                         </UserProfilePopover>
                       </TableCell>
-                      {showAchievements ? (
-                        <TableCell className="hidden w-40 sm:table-cell">
-                          <AchievementStack achievements={entry.achievements} />
+                      {showLevels ? (
+                        <TableCell className="hidden w-32 sm:table-cell">
+                          {entry.levelProgress ? (
+                            <LevelBar
+                              lang={lang}
+                              progress={entry.levelProgress}
+                              variant="topbar"
+                              dictionary={{
+                                levelLabel: dictionary.profile.levelLabel,
+                                progressTooltip: dictionary.profile.levelProgressTooltip,
+                              }}
+                            />
+                          ) : null}
                         </TableCell>
                       ) : null}
                       {showStreaks ? (
@@ -128,6 +141,11 @@ export function Leaderboard({
                             }
                             label={dictionary.streakLabel}
                           />
+                        </TableCell>
+                      ) : null}
+                      {showAchievements ? (
+                        <TableCell className="hidden w-full sm:table-cell sm:max-w-40">
+                          <AchievementStack achievements={entry.achievements} />
                         </TableCell>
                       ) : null}
                       <TableCell className="w-24 text-right tabular-nums">{entry.totalPoints}</TableCell>
