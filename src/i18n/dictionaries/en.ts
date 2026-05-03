@@ -246,6 +246,7 @@ const en = {
       idLabel: "id",
       dateLabel: "Date",
       timeLabel: "Time",
+      trackedContributionsLabel: "Tracked contributions",
       newCardTitle: "Add new meeting",
       datePickerButton: "Select meeting date",
       datePickerPlaceholder: "Select date",

@@ -250,6 +250,7 @@ const de = {
       idLabel: "id",
       dateLabel: "Datum",
       timeLabel: "Uhrzeit",
+      trackedContributionsLabel: "Erfasste Beiträge",
       newCardTitle: "Neues Meeting hinzufügen",
       datePickerButton: "Meeting-Datum auswählen",
       datePickerPlaceholder: "Datum auswählen",

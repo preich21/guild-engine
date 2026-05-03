@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 export type GuildMeetingEntry = {
   id: string;
   timestamp: string;
+  trackedContributionCount: number;
   hasTrackedContributions: boolean;
 };
 
@@ -85,11 +86,16 @@ export const getGuildMeetingEntries = async (): Promise<GuildMeetingEntry[]> => 
     contributionRows.map((row) => [row.meetingId, Number(row.contributionCount)]),
   );
 
-  return meetingRows.map((row) => ({
-    id: row.id,
-    timestamp: row.timestamp.toISOString(),
-    hasTrackedContributions: (contributionCountByMeetingId.get(row.id) ?? 0) > 0,
-  }));
+  return meetingRows.map((row) => {
+    const trackedContributionCount = contributionCountByMeetingId.get(row.id) ?? 0;
+
+    return {
+      id: row.id,
+      timestamp: row.timestamp.toISOString(),
+      trackedContributionCount,
+      hasTrackedContributions: trackedContributionCount > 0,
+    };
+  });
 };
 
 export const createGuildMeeting = async (

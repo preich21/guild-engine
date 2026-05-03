@@ -40,6 +40,7 @@ type GuildMeetingsTableProps = {
     idLabel: string;
     dateLabel: string;
     timeLabel: string;
+    trackedContributionsLabel: string;
     newCardTitle: string;
     datePickerButton: string;
     datePickerPlaceholder: string;
@@ -393,6 +394,10 @@ export function GuildMeetingsTable({
                   <span className="font-medium text-foreground">{dictionary.dateLabel}: </span>
                   {formatMeetingTimestamp(row.timestamp)}
                 </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{dictionary.trackedContributionsLabel}: </span>
+                  {row.trackedContributionCount}
+                </p>
               </CardContent>
             </Card>
           );
@@ -408,4 +413,3 @@ export function GuildMeetingsTable({
     </section>
   );
 }
-
