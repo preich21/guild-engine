@@ -61,11 +61,7 @@ export const { handlers, auth, signIn, signOut, unstable_update: updateSession }
     session({ session, token }) {
       const externalId = token.externalId;
 
-      if (typeof externalId === "string") {
-        if (!session.user) {
-          session.user = {};
-        }
-
+      if (typeof externalId === "string" && session.user) {
         (session.user as { externalId?: string }).externalId = externalId;
       }
 
