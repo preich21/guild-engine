@@ -6,6 +6,7 @@ import {
   type AchievementOperator,
   type AchievementParsedDuration,
 } from "@/lib/achievements";
+import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 
 export type UserSubmissionForAchievementEvaluation = {
   guildMeetingId: string;
@@ -62,6 +63,30 @@ export const qualifiesForFeatureAchievementValue = (
       return value >= criteria.value;
   }
 };
+
+export const hasAchievementTimeFrameStarted = (
+  criteria: AchievementCriteria,
+  now: Date = new Date(),
+): boolean => {
+  if (criteria.mode !== "defined" && criteria.mode !== "feature") {
+    return true;
+  }
+
+  if (!isAchievementTimeFrame(criteria.timeFrame)) {
+    return true;
+  }
+
+  const fromDate = parseAchievementDateKey(criteria.timeFrame.from);
+
+  return fromDate === null || fromDate <= now;
+};
+
+export const getPositivePointLeaderboardPosition = <Entry extends { totalPoints: number }>(
+  entries: Entry[],
+  matchesEntry: (entry: Entry) => boolean,
+): number | null =>
+  rankLeaderboardEntries(entries.filter((entry) => entry.totalPoints > 0))
+    .find(matchesEntry)?.rank ?? null;
 
 const subtractAchievementDuration = (
   referenceDate: Date,

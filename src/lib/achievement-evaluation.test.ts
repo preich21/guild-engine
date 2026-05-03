@@ -4,6 +4,8 @@ import test from "node:test";
 import { type AchievementCriteria } from "@/lib/achievements";
 import {
   compareAchievementValue,
+  getPositivePointLeaderboardPosition,
+  hasAchievementTimeFrameStarted,
   qualifiesForFeatureAchievementValue,
   qualifiesForDefinedAchievement,
 } from "@/lib/achievement-evaluation-core";
@@ -234,4 +236,60 @@ test("feature achievement level, achievement count, and powerup usage require th
   assert.equal(qualifiesForFeatureAchievementValue(achievementsCriteria, 6), true);
   assert.equal(qualifiesForFeatureAchievementValue(powerupCriteria, 5), true);
   assert.equal(qualifiesForFeatureAchievementValue(powerupCriteria, null), false);
+});
+
+test("achievements with a future from date are not evaluated yet", () => {
+  const now = new Date("2026-05-03T12:00:00.000Z");
+  const futureDefinedCriteria: Extract<AchievementCriteria, { mode: "defined" }> = {
+    mode: "defined",
+    metric: pointsMetricId,
+    validValues: 1,
+    type: "count",
+    timeFrame: {
+      from: "2026-05-04",
+      to: "2026-06-01",
+    },
+    operator: ">=",
+    count: 1,
+  };
+  const startedFeatureCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    mode: "feature",
+    feature: "points",
+    value: 10,
+    powerup: null,
+    timeFrame: {
+      from: "2026-05-03",
+      to: "2026-06-01",
+    },
+  };
+  const allTimeFeatureCriteria: Extract<AchievementCriteria, { mode: "feature" }> = {
+    ...startedFeatureCriteria,
+    timeFrame: null,
+  };
+
+  assert.equal(hasAchievementTimeFrameStarted(futureDefinedCriteria, now), false);
+  assert.equal(hasAchievementTimeFrameStarted(startedFeatureCriteria, now), true);
+  assert.equal(hasAchievementTimeFrameStarted(allTimeFeatureCriteria, now), true);
+});
+
+test("leaderboard achievement positions ignore zero point entries", () => {
+  const entries = [
+    { userId: "zero-a", totalPoints: 0 },
+    { userId: "zero-b", totalPoints: 0 },
+    { userId: "second", totalPoints: 5 },
+    { userId: "first", totalPoints: 10 },
+  ].sort((first, second) => second.totalPoints - first.totalPoints);
+
+  assert.equal(
+    getPositivePointLeaderboardPosition(entries, (entry) => entry.userId === "zero-a"),
+    null,
+  );
+  assert.equal(
+    getPositivePointLeaderboardPosition(entries, (entry) => entry.userId === "first"),
+    1,
+  );
+  assert.equal(
+    getPositivePointLeaderboardPosition(entries, (entry) => entry.userId === "second"),
+    2,
+  );
 });

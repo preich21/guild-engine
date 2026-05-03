@@ -21,6 +21,8 @@ import type { TrackedContributionDataEntry } from "@/db/schema";
 import type { AchievementCriteria } from "@/lib/achievements";
 import {
   compareAchievementValue,
+  getPositivePointLeaderboardPosition,
+  hasAchievementTimeFrameStarted,
   qualifiesForFeatureAchievementValue,
   qualifiesForDefinedAchievement,
   type GuildMeetingForAchievementEvaluation,
@@ -37,7 +39,6 @@ import {
   loadUserPointTotals,
   parseNonNegativeInteger,
 } from "@/lib/point-calculation";
-import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 
 type AchievementCandidate = {
   id: string;
@@ -210,7 +211,7 @@ const loadIndividualLeaderboardPositionForFeatureAchievement = async (
     endDate,
   });
 
-  return rankLeaderboardEntries(leaderboard).find((entry) => entry.userId === userId)?.rank ?? null;
+  return getPositivePointLeaderboardPosition(leaderboard, (entry) => entry.userId === userId);
 };
 
 const loadTeamLeaderboardPositionForFeatureAchievement = async (
@@ -223,7 +224,7 @@ const loadTeamLeaderboardPositionForFeatureAchievement = async (
     "end-date": endDate,
   });
 
-  return rankLeaderboardEntries(leaderboard).find((entry) => entry.teamId === teamId)?.rank ?? null;
+  return getPositivePointLeaderboardPosition(leaderboard, (entry) => entry.teamId === teamId);
 };
 
 const loadAchievementCountForFeatureAchievement = async (
@@ -351,6 +352,10 @@ export const evaluateAchievementsForUser = async (
       continue;
     }
 
+    if (!hasAchievementTimeFrameStarted(criteria)) {
+      continue;
+    }
+
     if (criteria.mode === "defined") {
       allPastGuildMeetingsPromise ??= loadPastGuildMeetings();
       allPastSubmissionsPromise ??= loadAllPastTrackedContributions(user.id);
@@ -386,7 +391,7 @@ export const evaluateAchievementsForUser = async (
 
     if (criteria.leaderboard === "individual") {
       individualLeaderboardPromise ??= getLeaderboard();
-      const leaderboard = await individualLeaderboardPromise;
+      const leaderboard = (await individualLeaderboardPromise).filter((entry) => entry.totalPoints > 0);
       const entryIndex = leaderboard.findIndex((entry) => entry.userId === user.id);
 
       if (entryIndex >= 0 && compareAchievementValue(entryIndex, criteria.operator, targetPosition)) {
@@ -397,7 +402,7 @@ export const evaluateAchievementsForUser = async (
     }
 
     teamLeaderboardPromise ??= getTeamLeaderboard();
-    const teamLeaderboard = await teamLeaderboardPromise;
+    const teamLeaderboard = (await teamLeaderboardPromise).filter((entry) => entry.totalPoints > 0);
     const entryIndex = teamLeaderboard.findIndex((entry) => entry.teamId === user.teamId);
 
     if (entryIndex >= 0 && compareAchievementValue(entryIndex, criteria.operator, targetPosition)) {
