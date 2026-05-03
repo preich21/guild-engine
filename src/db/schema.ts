@@ -60,23 +60,6 @@ export const users = pgTable(
   (table) => [index("users_team_id_idx").on(table.teamId)],
 );
 
-export const pointDistribution = pgTable(
-  "point_distribution",
-  {
-    id: uuid("id").defaultRandom().notNull().primaryKey(),
-    activeFrom: timestamp("active_from", { withTimezone: true }).notNull().defaultNow(),
-    attendanceVirtual: smallint("attendance_virtual").notNull(),
-    attendanceOnSite: smallint("attendance_on_site").notNull(),
-    protocolForced: smallint("protocol_forced").notNull(),
-    protocolVoluntarily: smallint("protocol_voluntarily").notNull(),
-    moderation: smallint("moderation").notNull(),
-    workingGroup: smallint("working_group").notNull(),
-    twl: smallint("twl").notNull(),
-    presentation: smallint("presentation").notNull(),
-  },
-  (table) => [index("point_distribution_active_from_idx").on(table.activeFrom)],
-);
-
 export const guildMeetings = pgTable(
   "guild_meetings",
   {
