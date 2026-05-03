@@ -335,9 +335,10 @@ const en = {
       noUsers: "No users available.",
       noAchievements: "No achievements.",
       editButtonAriaLabel: "Edit awarded achievements",
-      dialogTitle: "Edit achievement of user {username} [{userId}]",
+      dialogTitle: "Edit achievements of user {username} [{userId}]",
       dialogDescription:
         "A user may be awarded achievements again if we take some away from them but they still qualify for them the next time they log in to the app.",
+      showManualOnlyLabel: "Show only manually assignable",
       cancelButton: "Cancel",
       saveButton: "Save",
       saveError: "Could not update the user's achievements. Please try again.",

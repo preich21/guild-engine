@@ -339,9 +339,10 @@ const de = {
       noUsers: "Keine Benutzer verfügbar.",
       noAchievements: "Keine Erfolge.",
       editButtonAriaLabel: "Vergebene Erfolge bearbeiten",
-      dialogTitle: "Erfolg von Benutzer {username} [{userId}] bearbeiten",
+      dialogTitle: "Erfolge von Benutzer {username} [{userId}] bearbeiten",
       dialogDescription:
         "Ein Benutzer kann Erfolge erneut erhalten, wenn wir ihm welche wegnehmen, er beim nächsten Login aber weiterhin die Kriterien dafür erfüllt.",
+      showManualOnlyLabel: "Nur manuell vergebbare anzeigen",
       cancelButton: "Abbrechen",
       saveButton: "Speichern",
       saveError: "Die Erfolge des Benutzers konnten nicht aktualisiert werden. Bitte versuche es erneut.",

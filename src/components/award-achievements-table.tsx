@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   ScrollArea,
@@ -27,6 +28,8 @@ import {
   ScrollAreaViewport,
   ScrollBar,
 } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { Locale } from "@/i18n/config";
 
@@ -56,6 +59,7 @@ type AwardAchievementsTableProps = {
     confirmQuestion: string;
     confirmYesButton: string;
     confirmNoButton: string;
+    showManualOnlyLabel: string;
   };
 };
 
@@ -76,6 +80,7 @@ export function AwardAchievementsTable({
   const [userRows, setUserRows] = useState(rows);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedAchievementIds, setSelectedAchievementIds] = useState<string[]>([]);
+  const [showManualOnly, setShowManualOnly] = useState(true);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -119,9 +124,18 @@ export function AwardAchievementsTable({
   );
   const hasPendingChanges = achievementsToAward.length > 0 || achievementsToRemove.length > 0;
 
+  const visibleAchievements = useMemo(
+    () =>
+      showManualOnly
+        ? achievements.filter((achievement) => achievement.criteria.mode === "manual")
+        : achievements,
+    [achievements, showManualOnly],
+  );
+
   const handleOpenEditor = (user: AwardAchievementUserRow) => {
     setEditingUserId(user.id);
     setSelectedAchievementIds(user.achievements.map((achievement) => achievement.id));
+    setShowManualOnly(true);
     setIsConfirmOpen(false);
     setSaveError(false);
     setSaveSuccess(false);
@@ -130,6 +144,7 @@ export function AwardAchievementsTable({
   const handleCloseEditor = () => {
     setEditingUserId(null);
     setSelectedAchievementIds([]);
+    setShowManualOnly(true);
     setIsConfirmOpen(false);
     setSaveError(false);
   };
@@ -233,7 +248,7 @@ export function AwardAchievementsTable({
       </div>
 
       <Dialog open={Boolean(editingUser)} onOpenChange={(open) => (!open ? handleCloseEditor() : undefined)}>
-        <DialogContent className="w-[min(95vw,48rem)]">
+        <DialogContent className="flex max-h-[85vh] w-[min(95vw,48rem)] flex-col">
           {editingUser ? (
             <>
               <DialogHeader>
@@ -246,65 +261,80 @@ export function AwardAchievementsTable({
                 <DialogDescription>{dictionary.dialogDescription}</DialogDescription>
               </DialogHeader>
 
-              <ScrollArea className="max-h-[55vh] rounded-lg border border-border bg-background">
-                <ScrollAreaViewport>
-                  <ScrollAreaContent className="p-3">
-                    <div className="space-y-3">
-                      {achievements.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-                          {dictionary.noAchievements}
-                        </div>
-                      ) : (
-                        achievements.map((achievement) => {
-                          const isChecked = selectedAchievementIdSet.has(achievement.id);
+              <Separator className="my-4" />
 
-                          return (
-                            <div
-                              key={achievement.id}
-                              className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
-                            >
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={(checked) =>
-                                  handleCheckedChange(achievement.id, checked)
-                                }
-                                aria-label={achievement.title}
-                                className="mt-1"
-                                disabled={isSaving}
-                              />
-                              <div className="min-w-0 flex-1 space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
-                                    <Image
-                                      src={achievement.image}
-                                      alt=""
-                                      fill
-                                      sizes="48px"
-                                      unoptimized
-                                      className="object-cover"
-                                    />
+              <div className="flex min-h-0 flex-1 flex-col space-y-3">
+                <div className="flex items-center justify-end gap-2">
+                  <Label htmlFor="manual-only-achievements" className="text-sm text-muted-foreground">
+                    {dictionary.showManualOnlyLabel}
+                  </Label>
+                  <Switch
+                    id="manual-only-achievements"
+                    checked={showManualOnly}
+                    onCheckedChange={(checked) => setShowManualOnly(checked)}
+                    disabled={isSaving}
+                  />
+                </div>
+                <ScrollArea className="min-h-0 flex-1 rounded-lg border border-border bg-background">
+                  <ScrollAreaViewport className="max-h-[40vh]">
+                    <ScrollAreaContent className="p-3">
+                      <div className="space-y-3">
+                        {visibleAchievements.length === 0 ? (
+                          <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                            {dictionary.noAchievements}
+                          </div>
+                        ) : (
+                          visibleAchievements.map((achievement) => {
+                            const isChecked = selectedAchievementIdSet.has(achievement.id);
+
+                            return (
+                              <div
+                                key={achievement.id}
+                                className="flex items-start gap-3 rounded-lg border border-border bg-card p-3"
+                              >
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) =>
+                                    handleCheckedChange(achievement.id, checked)
+                                  }
+                                  aria-label={achievement.title}
+                                  className="mt-1"
+                                  disabled={isSaving}
+                                />
+                                <div className="min-w-0 flex-1 space-y-2">
+                                  <div className="flex items-center gap-3">
+                                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
+                                      <Image
+                                        src={achievement.image}
+                                        alt=""
+                                        fill
+                                        sizes="48px"
+                                        unoptimized
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-medium text-foreground">
+                                        {achievement.title}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-foreground">
-                                      {achievement.title}
+                                  {achievement.description ? (
+                                    <p className="text-sm text-muted-foreground">
+                                      {achievement.description}
                                     </p>
-                                  </div>
+                                  ) : null}
                                 </div>
-                                {achievement.description ? (
-                                  <p className="text-sm text-muted-foreground">
-                                    {achievement.description}
-                                  </p>
-                                ) : null}
                               </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </ScrollAreaContent>
-                </ScrollAreaViewport>
-                <ScrollBar orientation="vertical" />
-              </ScrollArea>
+                            );
+                          })
+                        )}
+                      </div>
+                    </ScrollAreaContent>
+                  </ScrollAreaViewport>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
+              </div>
 
               <DialogFooter>
                 <Button

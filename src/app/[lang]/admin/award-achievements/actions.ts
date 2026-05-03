@@ -7,12 +7,14 @@ import { requireAdminAccess } from "@/app/[lang]/admin/actions";
 import { achievements, userAchievements, users } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { db } from "@/lib/db";
+import type { AchievementCriteria } from "@/lib/achievements";
 
 export type AwardAchievement = {
   id: string;
   title: string;
   description: string | null;
   image: string;
+  criteria: AchievementCriteria;
 };
 
 export type AwardAchievementUserRow = {
@@ -39,6 +41,7 @@ export const getAwardAchievementsData = async (): Promise<AwardAchievementsData>
         title: achievements.title,
         description: achievements.description,
         image: achievements.image,
+        criteria: achievements.criteria,
       })
       .from(achievements)
       .orderBy(asc(achievements.title), asc(achievements.id)),
