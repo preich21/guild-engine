@@ -1,15 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { requireAdminAccess } from "@/app/[lang]/admin/actions";
-import { achievements } from "@/db/schema";
+import { achievements, performanceMetrics } from "@/db/schema";
 import {
   parseAchievementCriteriaInput,
   validateAchievementInput,
   type AchievementInput,
   type AchievementCriteria,
+  type AchievementPerformanceMetric,
 } from "@/lib/achievements";
 import { hasLocale } from "@/i18n/config";
 import { db } from "@/lib/db";
@@ -21,6 +22,8 @@ export type AchievementEntry = {
   image: string;
   criteria: AchievementCriteria;
 };
+
+export type AchievementPerformanceMetricEntry = AchievementPerformanceMetric;
 
 export type CreateAchievementActionState = {
   status: "idle" | "success" | "error";
@@ -54,6 +57,22 @@ export const getAchievements = async (): Promise<AchievementEntry[]> => {
     .orderBy(achievements.title, achievements.id);
 };
 
+export const getAchievementPerformanceMetrics = async (): Promise<
+  AchievementPerformanceMetricEntry[]
+> => {
+  await requireAdminAccess();
+
+  return db
+    .select({
+      id: performanceMetrics.id,
+      shortName: performanceMetrics.shortName,
+      type: performanceMetrics.type,
+      enumPossibilities: performanceMetrics.enumPossibilities,
+    })
+    .from(performanceMetrics)
+    .orderBy(asc(performanceMetrics.shortName), asc(performanceMetrics.id));
+};
+
 export const createAchievement = async (
   previousState: CreateAchievementActionState = initialState,
   formData: FormData,
@@ -80,12 +99,16 @@ export const createAchievement = async (
     return { status: "error" };
   }
 
-  const validation = validateAchievementInput({
-    title,
-    description,
-    image,
-    criteria,
-  });
+  const availableMetrics = await getAchievementPerformanceMetrics();
+  const validation = validateAchievementInput(
+    {
+      title,
+      description,
+      image,
+      criteria,
+    },
+    availableMetrics,
+  );
 
   if (!validation.isValid) {
     return { status: "error" };
@@ -119,7 +142,8 @@ export const updateAchievement = async (
     return false;
   }
 
-  const validation = validateAchievementInput(input);
+  const availableMetrics = await getAchievementPerformanceMetrics();
+  const validation = validateAchievementInput(input, availableMetrics);
 
   if (!validation.isValid) {
     return false;

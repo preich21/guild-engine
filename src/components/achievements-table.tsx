@@ -2,37 +2,35 @@
 
 import Image from "next/image";
 import { CalendarIcon, ChevronDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
   AchievementEntry,
+  AchievementPerformanceMetricEntry,
   CreateAchievementActionState,
 } from "@/app/[lang]/admin/achievements/actions";
 import {
   ACHIEVEMENT_CRITERIA_TYPES,
   ACHIEVEMENT_IMAGE_SIZE,
-  ACHIEVEMENT_LEADERBOARDS,
-  ACHIEVEMENT_METRICS,
-  ACHIEVEMENT_OPERATORS,
   ACHIEVEMENT_TITLE_MAX_LENGTH,
   getDefaultAchievementCriteriaInput,
   isValidAchievementTimeFrame,
   parseAchievementDateKey,
+  splitEnumPossibilities,
   toAchievementCriteriaInput,
   validateAchievementInput,
   type AchievementCriteria,
   type AchievementCriteriaInput,
   type AchievementCriteriaType,
   type AchievementLeaderboard,
-  type AchievementMetric,
-  type AchievementOperator,
 } from "@/lib/achievements";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -62,6 +60,7 @@ type DraftAchievement = {
 type AchievementsTableProps = {
   lang: Locale;
   rows: AchievementEntry[];
+  performanceMetrics: AchievementPerformanceMetricEntry[];
   createAction: (
     state: CreateAchievementActionState,
     formData: FormData,
@@ -87,17 +86,9 @@ type AchievementsTableProps = {
     basedOnMetricsLabel: string;
     basedOnPositionLabel: string;
     metricLabel: string;
-    metricPoints: string;
-    metricAttendanceAny: string;
-    metricAttendanceVirtually: string;
-    metricAttendanceOnSite: string;
-    metricProtocolForced: string;
-    metricProtocolVoluntary: string;
-    metricProtocolAny: string;
-    metricModeration: string;
-    metricWorkingGroup: string;
-    metricTwl: string;
-    metricPresentations: string;
+    validValuesLabel: string;
+    validValuesAtLeastLabel: string;
+    validValuesPlaceholder: string;
     typeLabel: string;
     typePlaceholder: string;
     typeCount: string;
@@ -111,8 +102,6 @@ type AchievementsTableProps = {
     countLabel: string;
     streakDurationLabel: string;
     countPlaceholder: string;
-    minimumPointsLabel: string;
-    minimumPointsPlaceholder: string;
     leaderboardLabel: string;
     leaderboardIndividual: string;
     leaderboardTeam: string;
@@ -147,21 +136,19 @@ const defaultDraftAchievement = (): DraftAchievement => ({
   criteria: getDefaultAchievementCriteriaInput(),
 });
 
-const defaultDefinedCriteria = (): Extract<AchievementCriteriaInput, { mode: "defined" }> => ({
+const getDefaultValidValuesInput = (metric: AchievementPerformanceMetricEntry | undefined) =>
+  metric?.type === 0 ? [] : "0";
+
+const defaultDefinedCriteria = (
+  performanceMetrics: AchievementPerformanceMetricEntry[],
+): Extract<AchievementCriteriaInput, { mode: "defined" }> => ({
   mode: "defined",
-  metric: ACHIEVEMENT_METRICS[0],
+  metric: performanceMetrics[0]?.id ?? "",
+  validValues: getDefaultValidValuesInput(performanceMetrics[0]),
   type: ACHIEVEMENT_CRITERIA_TYPES[0],
   timeFrameFrom: "",
   timeFrameTo: "",
   count: "",
-  minimumPoints: "",
-});
-
-const defaultPositionCriteria = (): Extract<AchievementCriteriaInput, { mode: "position" }> => ({
-  mode: "position",
-  leaderboard: ACHIEVEMENT_LEADERBOARDS[0],
-  operator: "<=",
-  position: "",
 });
 
 const resizeImageToBase64 = (file: File): Promise<string> =>
@@ -224,24 +211,20 @@ const addDays = (value: Date, days: number) => {
 export function AchievementsTable({
   lang,
   rows,
+  performanceMetrics,
   createAction,
   updateAction,
   deleteAction,
   dictionary,
 }: AchievementsTableProps) {
-  const metricLabels: Record<AchievementMetric, string> = {
-    points: dictionary.metricPoints,
-    attendanceAny: dictionary.metricAttendanceAny,
-    attendanceVirtually: dictionary.metricAttendanceVirtually,
-    attendanceOnSite: dictionary.metricAttendanceOnSite,
-    protocolForced: dictionary.metricProtocolForced,
-    protocolVoluntary: dictionary.metricProtocolVoluntary,
-    protocolAny: dictionary.metricProtocolAny,
-    moderation: dictionary.metricModeration,
-    workingGroup: dictionary.metricWorkingGroup,
-    twl: dictionary.metricTwl,
-    presentations: dictionary.metricPresentations,
-  };
+  const performanceMetricsById = useMemo(
+    () => new Map(performanceMetrics.map((metric) => [metric.id, metric])),
+    [performanceMetrics],
+  );
+  const metricLabels = useMemo(
+    () => Object.fromEntries(performanceMetrics.map((metric) => [metric.id, metric.shortName])),
+    [performanceMetrics],
+  );
   const criteriaTypeLabels: Record<AchievementCriteriaType, string> = {
     count: dictionary.typeCount,
     streak: dictionary.typeStreak,
@@ -282,7 +265,7 @@ export function AchievementsTable({
   const [isUpdatePending, startUpdateTransition] = useTransition();
 
   const isBusy = createPending || isDeletePending || isUpdatePending;
-  const validation = validateAchievementInput(draft);
+  const validation = validateAchievementInput(draft, performanceMetrics);
   const isFormValid = validation.isValid && !imageError;
 
   const resetEditorState = () => {
@@ -385,10 +368,8 @@ export function AchievementsTable({
       ...currentDraft,
       criteria:
         value === "defined"
-          ? defaultDefinedCriteria()
-          : value === "position"
-            ? defaultPositionCriteria()
-            : { mode: "manual" },
+          ? defaultDefinedCriteria(performanceMetrics)
+          : { mode: "manual" },
     }));
   };
 
@@ -413,21 +394,19 @@ export function AchievementsTable({
     });
   };
 
-  const handleDefinedMetricChange = (value: AchievementMetric) => {
+  const handleDefinedMetricChange = (value: string) => {
     setDraft((currentDraft) => {
       if (currentDraft.criteria.mode !== "defined") {
         return currentDraft;
       }
+      const selectedMetric = performanceMetricsById.get(value);
 
       return {
         ...currentDraft,
         criteria: {
           ...currentDraft.criteria,
           metric: value,
-          minimumPoints:
-            currentDraft.criteria.type === "streak" && value === "points"
-              ? currentDraft.criteria.minimumPoints
-              : "",
+          validValues: getDefaultValidValuesInput(selectedMetric),
         },
       };
     });
@@ -447,10 +426,6 @@ export function AchievementsTable({
           type: value,
           timeFrameFrom: value === "count" ? currentDraft.criteria.timeFrameFrom : "",
           timeFrameTo: value === "count" ? currentDraft.criteria.timeFrameTo : "",
-          minimumPoints:
-            value === "streak" && currentDraft.criteria.metric === "points"
-              ? currentDraft.criteria.minimumPoints
-              : "",
         },
       };
     });
@@ -485,22 +460,21 @@ export function AchievementsTable({
     });
   };
 
-  const handlePositionCriteriaChange = <
-    Key extends keyof Extract<AchievementCriteriaInput, { mode: "position" }>,
-  >(
-    key: Key,
-    value: Extract<AchievementCriteriaInput, { mode: "position" }>[Key],
-  ) => {
+  const handleDefinedValidValueToggle = (index: number, checked: boolean) => {
     setDraft((currentDraft) => {
-      if (currentDraft.criteria.mode !== "position") {
+      if (currentDraft.criteria.mode !== "defined" || !Array.isArray(currentDraft.criteria.validValues)) {
         return currentDraft;
       }
+
+      const nextValues = checked
+        ? [...currentDraft.criteria.validValues, index]
+        : currentDraft.criteria.validValues.filter((entry) => entry !== index);
 
       return {
         ...currentDraft,
         criteria: {
           ...currentDraft.criteria,
-          [key]: value,
+          validValues: [...new Set(nextValues)].sort((first, second) => first - second),
         },
       };
     });
@@ -532,7 +506,7 @@ export function AchievementsTable({
             aria-label={label}
             title={label}
           >
-            <span>{valueLabels[value]}</span>
+            <span>{valueLabels[value] ?? label}</span>
             <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
           </Button>
         }
@@ -574,6 +548,21 @@ export function AchievementsTable({
     return `${formatDateLabel(criteria.timeFrame.from)} - ${formatDateLabel(criteria.timeFrame.to)}`;
   };
 
+  const formatCriteriaValidValues = (
+    criteria: Extract<AchievementCriteria, { mode: "defined" }>,
+  ) => {
+    const metric = performanceMetricsById.get(criteria.metric);
+
+    if (Array.isArray(criteria.validValues)) {
+      const options = splitEnumPossibilities(metric?.enumPossibilities);
+      return criteria.validValues
+        .map((entry) => options[entry] ?? String(entry))
+        .join(", ");
+    }
+
+    return String(criteria.validValues);
+  };
+
   const renderEditorCard = (mode: "create" | "edit") => {
     const idPrefix = mode === "create" ? "new-achievement" : `edit-achievement-${editingAchievementId ?? "draft"}`;
     const definedCriteria = draft.criteria.mode === "defined" ? draft.criteria : null;
@@ -582,6 +571,15 @@ export function AchievementsTable({
     const selectedToDate =
       definedCriteria?.timeFrameTo ? parseAchievementDateKey(definedCriteria.timeFrameTo) ?? undefined : undefined;
     const minimumToDate = selectedFromDate ? addDays(selectedFromDate, 1) : undefined;
+    const selectedPerformanceMetric = definedCriteria
+      ? performanceMetricsById.get(definedCriteria.metric)
+      : undefined;
+    const selectedMetricEnumOptions = splitEnumPossibilities(selectedPerformanceMetric?.enumPossibilities);
+    const selectedValidValueLabels = Array.isArray(definedCriteria?.validValues)
+      ? definedCriteria.validValues
+          .map((entry) => selectedMetricEnumOptions[entry])
+          .filter((entry): entry is string => Boolean(entry))
+      : [];
     const isDefinedTimeFrameValid =
       definedCriteria && definedCriteria.type === "count"
         ? isValidAchievementTimeFrame(definedCriteria.timeFrameFrom, definedCriteria.timeFrameTo)
@@ -672,10 +670,6 @@ export function AchievementsTable({
                 <RadioGroupItem id={`${idPrefix}-criteria-defined`} value="defined" />
                 <Label htmlFor={`${idPrefix}-criteria-defined`}>{dictionary.basedOnMetricsLabel}</Label>
               </div>
-              <div className="flex items-center gap-3">
-                <RadioGroupItem id={`${idPrefix}-criteria-position`} value="position" />
-                <Label htmlFor={`${idPrefix}-criteria-position`}>{dictionary.basedOnPositionLabel}</Label>
-              </div>
             </RadioGroup>
 
             {draft.criteria.mode === "defined" ? (
@@ -683,14 +677,67 @@ export function AchievementsTable({
                 <div className="space-y-2">
                   <Label>{dictionary.metricLabel}</Label>
                   {renderSingleSelect({
-                    value: draft.criteria.metric as AchievementMetric,
-                    values: ACHIEVEMENT_METRICS,
+                    value: draft.criteria.metric,
+                    values: performanceMetrics.map((metric) => metric.id),
                     valueLabels: metricLabels,
                     label: dictionary.metricLabel,
-                    disabled: isBusy,
+                    disabled: isBusy || performanceMetrics.length === 0,
                     onValueChange: handleDefinedMetricChange,
                   })}
                 </div>
+
+                {selectedPerformanceMetric?.type === 0 ? (
+                  <div className="space-y-2">
+                    <Label>{dictionary.validValuesLabel}</Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        disabled={isBusy || selectedMetricEnumOptions.length === 0}
+                        render={
+                          <Button type="button" variant="outline" className="w-full justify-between">
+                            <span className="min-w-0 truncate">
+                              {selectedValidValueLabels.length > 0
+                                ? selectedValidValueLabels.join(", ")
+                                : dictionary.validValuesPlaceholder}
+                            </span>
+                            <ChevronDown className="size-4 text-muted-foreground" aria-hidden="true" />
+                          </Button>
+                        }
+                      />
+                      <DropdownMenuContent align="start" className="min-w-(--anchor-width)">
+                        {selectedMetricEnumOptions.map((option, index) => (
+                          <DropdownMenuCheckboxItem
+                            key={`${option}-${index}`}
+                            checked={
+                              Array.isArray(definedCriteria?.validValues) &&
+                              definedCriteria.validValues.includes(index)
+                            }
+                            onCheckedChange={(checked) => handleDefinedValidValueToggle(index, checked)}
+                          >
+                            {option}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor={`${idPrefix}-valid-values`}>{dictionary.validValuesAtLeastLabel}</Label>
+                    <Input
+                      id={`${idPrefix}-valid-values`}
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      value={
+                        typeof draft.criteria.validValues === "string"
+                          ? draft.criteria.validValues
+                          : "0"
+                      }
+                      disabled={isBusy || !selectedPerformanceMetric}
+                      onChange={(event) => handleDefinedCriteriaChange("validValues", event.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>{dictionary.typeLabel}</Label>
@@ -720,23 +767,6 @@ export function AchievementsTable({
                     onChange={(event) => handleDefinedCriteriaChange("count", event.target.value)}
                   />
                 </div>
-
-                {draft.criteria.type === "streak" && draft.criteria.metric === "points" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor={`${idPrefix}-minimum-points`}>{dictionary.minimumPointsLabel}</Label>
-                    <Input
-                      id={`${idPrefix}-minimum-points`}
-                      type="number"
-                      min={1}
-                      step={1}
-                      inputMode="numeric"
-                      value={draft.criteria.minimumPoints}
-                      placeholder={dictionary.minimumPointsPlaceholder}
-                      disabled={isBusy}
-                      onChange={(event) => handleDefinedCriteriaChange("minimumPoints", event.target.value)}
-                    />
-                  </div>
-                ) : null}
 
                 {draft.criteria.type === "count" ? (
                   <div className="space-y-4">
@@ -827,54 +857,6 @@ export function AchievementsTable({
               </div>
             ) : null}
 
-            {draft.criteria.mode === "position" ? (
-              <div className="space-y-4 rounded-lg border border-border bg-muted/20 p-4">
-                <div className="space-y-2">
-                  <Label>{dictionary.leaderboardLabel}</Label>
-                  {renderSingleSelect({
-                    value: draft.criteria.leaderboard as AchievementLeaderboard,
-                    values: ACHIEVEMENT_LEADERBOARDS,
-                    valueLabels: leaderboardLabels,
-                    label: dictionary.leaderboardLabel,
-                    disabled: isBusy,
-                    onValueChange: (value) => handlePositionCriteriaChange("leaderboard", value),
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{dictionary.operatorLabel}</Label>
-                  {renderSingleSelect({
-                    value: draft.criteria.operator as AchievementOperator,
-                    values: ACHIEVEMENT_OPERATORS,
-                    valueLabels: {
-                      "<": "<",
-                      "<=": "<=",
-                      "==": "==",
-                      ">=": ">=",
-                      ">": ">",
-                    },
-                    label: dictionary.operatorLabel,
-                    disabled: isBusy,
-                    onValueChange: (value) => handlePositionCriteriaChange("operator", value),
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor={`${idPrefix}-position`}>{dictionary.positionLabel}</Label>
-                  <Input
-                    id={`${idPrefix}-position`}
-                    type="number"
-                    min={1}
-                    step={1}
-                    inputMode="numeric"
-                    value={draft.criteria.position}
-                    placeholder={dictionary.positionPlaceholder}
-                    disabled={isBusy}
-                    onChange={(event) => handlePositionCriteriaChange("position", event.target.value)}
-                  />
-                </div>
-              </div>
-            ) : null}
           </fieldset>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -1042,7 +1024,11 @@ export function AchievementsTable({
                     <div className="space-y-2 rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
                       <p>
                         <span className="font-medium text-foreground">{dictionary.basedOnMetricsSummary}: </span>
-                        {metricLabels[row.criteria.metric]}
+                        {metricLabels[row.criteria.metric] ?? row.criteria.metric}
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground">{dictionary.validValuesLabel}: </span>
+                        {formatCriteriaValidValues(row.criteria)}
                       </p>
                       <p>
                         <span className="font-medium text-foreground">{dictionary.typeLabel}: </span>
@@ -1054,12 +1040,6 @@ export function AchievementsTable({
                         </span>
                         {row.criteria.count}
                       </p>
-                      {row.criteria.type === "streak" && row.criteria.metric === "points" && row.criteria.minimumPoints ? (
-                        <p>
-                          <span className="font-medium text-foreground">{dictionary.minimumPointsLabel}: </span>
-                          {row.criteria.minimumPoints}
-                        </p>
-                      ) : null}
                       {row.criteria.type === "count" ? (
                         <p>
                           <span className="font-medium text-foreground">{dictionary.timeFrameLabel}: </span>

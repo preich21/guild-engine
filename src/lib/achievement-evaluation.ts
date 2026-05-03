@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, isNull, like, lte } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lte } from "drizzle-orm";
 
 import {
   getLeaderboard,
@@ -12,7 +12,6 @@ import {
   achievements,
   guildMeetings,
   performanceMetrics,
-  powerupUtilization,
   trackedContributions,
   userAchievements,
 } from "@/db/schema";
@@ -25,14 +24,7 @@ import {
   type UserSubmissionForAchievementEvaluation,
 } from "@/lib/achievement-evaluation-core";
 import { db } from "@/lib/db";
-import {
-  calculateTrackedContributionDataPoints,
-  getPointMultiplicatorFactor,
-  getPointMultiplicatorFactors,
-  parseNonNegativeInteger,
-  type PerformanceMetricPointConfig,
-  type PointMultiplicatorFactors,
-} from "@/lib/point-calculation";
+import { parseNonNegativeInteger } from "@/lib/point-calculation";
 
 type AchievementCandidate = {
   id: string;
@@ -45,58 +37,16 @@ type CurrentUserForAchievementEvaluation = {
   teamId: string;
 };
 
-type PerformanceMetricForAchievementEvaluation = PerformanceMetricPointConfig & {
+type PerformanceMetricForAchievementEvaluation = {
+  id: string;
   shortName: string;
+  type: number;
 };
-
-type AchievementMetricRole =
-  | "attendance"
-  | "protocol"
-  | "moderation"
-  | "workingGroup"
-  | "twl"
-  | "presentations";
 
 type TrackedContributionForAchievementEvaluation = {
   guildMeetingId: string;
   guildMeetingTimestamp: Date;
   data: TrackedContributionDataEntry[];
-};
-
-type PointMultiplicatorUtilizationForAchievementEvaluation = {
-  meetingId: string;
-  powerup: string;
-};
-
-const achievementMetricAliases: Record<AchievementMetricRole, string[]> = {
-  attendance: ["attendance", "anwesenheit"],
-  protocol: ["protocol", "protokoll"],
-  moderation: ["moderation"],
-  workingGroup: ["workinggroup", "workinggroups", "arbeitsgruppe", "arbeitsgruppen"],
-  twl: ["twl"],
-  presentations: ["presentation", "presentations", "vortrag", "vortraege", "vorträge"],
-};
-
-const normalizeMetricName = (value: string): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replaceAll("ä", "ae")
-    .replaceAll("ö", "oe")
-    .replaceAll("ü", "ue")
-    .replaceAll("ß", "ss")
-    .replace(/[^a-z0-9]/g, "");
-
-const getAchievementMetricRole = (shortName: string): AchievementMetricRole | null => {
-  const normalizedShortName = normalizeMetricName(shortName);
-
-  for (const [role, aliases] of Object.entries(achievementMetricAliases)) {
-    if (aliases.includes(normalizedShortName)) {
-      return role as AchievementMetricRole;
-    }
-  }
-
-  return null;
 };
 
 const parseTrackedContributionData = (value: unknown): TrackedContributionDataEntry[] => {
@@ -154,7 +104,6 @@ const loadPerformanceMetricsForAchievementEvaluation = async (): Promise<
       id: performanceMetrics.id,
       shortName: performanceMetrics.shortName,
       type: performanceMetrics.type,
-      points: performanceMetrics.points,
     })
     .from(performanceMetrics)
     .orderBy(asc(performanceMetrics.timestampAdded), asc(performanceMetrics.shortName), asc(performanceMetrics.id));
@@ -162,53 +111,16 @@ const loadPerformanceMetricsForAchievementEvaluation = async (): Promise<
 const toAchievementSubmission = (
   contribution: TrackedContributionForAchievementEvaluation,
   metricsById: ReadonlyMap<string, PerformanceMetricForAchievementEvaluation>,
-  metricRolesById: ReadonlyMap<string, AchievementMetricRole>,
-  pointMultiplicatorFactors: PointMultiplicatorFactors,
-  pointMultiplicatorPowerupsByMeetingId: ReadonlyMap<string, string>,
 ): UserSubmissionForAchievementEvaluation => {
-  const pointMultiplicatorFactor = getPointMultiplicatorFactor(
-    pointMultiplicatorPowerupsByMeetingId.get(contribution.guildMeetingId),
-    pointMultiplicatorFactors,
-  );
   const submission: UserSubmissionForAchievementEvaluation = {
     guildMeetingId: contribution.guildMeetingId,
     guildMeetingTimestamp: contribution.guildMeetingTimestamp,
-    attendance: 0,
-    protocol: 0,
-    moderation: false,
-    workingGroup: false,
-    twl: 0,
-    presentations: 0,
-    points: calculateTrackedContributionDataPoints(
-      contribution.data,
-      metricsById,
-      pointMultiplicatorFactor,
-    ),
+    metricValues: {},
   };
 
   for (const entry of contribution.data) {
-    const metricRole = metricRolesById.get(entry.id);
-    const value = parseNonNegativeInteger(entry.value) ?? 0;
-
-    switch (metricRole) {
-      case "attendance":
-        submission.attendance = value;
-        break;
-      case "protocol":
-        submission.protocol = value;
-        break;
-      case "moderation":
-        submission.moderation ||= value > 0;
-        break;
-      case "workingGroup":
-        submission.workingGroup ||= value > 0;
-        break;
-      case "twl":
-        submission.twl += value;
-        break;
-      case "presentations":
-        submission.presentations += value;
-        break;
+    if (metricsById.has(entry.id)) {
+      submission.metricValues[entry.id] = parseNonNegativeInteger(entry.value) ?? 0;
     }
   }
 
@@ -218,8 +130,7 @@ const toAchievementSubmission = (
 const loadAllPastTrackedContributions = async (
   userId: string,
 ): Promise<UserSubmissionForAchievementEvaluation[]> => {
-  const [contributionRows, metricRows, pointMultiplicatorRows, pointMultiplicatorFactors] =
-    await Promise.all([
+  const [contributionRows, metricRows] = await Promise.all([
     db
       .select({
         guildMeetingId: trackedContributions.meetingId,
@@ -236,39 +147,9 @@ const loadAllPastTrackedContributions = async (
       )
       .orderBy(desc(guildMeetings.timestamp), desc(guildMeetings.id)),
     loadPerformanceMetricsForAchievementEvaluation(),
-    db
-      .select({
-        meetingId: powerupUtilization.meetingId,
-        powerup: powerupUtilization.powerup,
-      })
-      .from(powerupUtilization)
-      .where(
-        and(
-          eq(powerupUtilization.userId, userId),
-          like(powerupUtilization.powerup, "%-point-multiplicator"),
-        ),
-      )
-      .orderBy(desc(powerupUtilization.usageTimestamp)),
-    getPointMultiplicatorFactors(),
   ]);
 
   const metricsById = new Map(metricRows.map((metric) => [metric.id, metric]));
-  const metricRolesById = new Map(
-    metricRows.flatMap((metric) => {
-      const role = getAchievementMetricRole(metric.shortName);
-
-      return role === null ? [] : [[metric.id, role] as const];
-    }),
-  );
-  const pointMultiplicatorPowerupsByMeetingId = (
-    pointMultiplicatorRows as PointMultiplicatorUtilizationForAchievementEvaluation[]
-  ).reduce((powerupsByMeetingId, row) => {
-    if (!powerupsByMeetingId.has(row.meetingId)) {
-      powerupsByMeetingId.set(row.meetingId, row.powerup);
-    }
-
-    return powerupsByMeetingId;
-  }, new Map<string, string>());
 
   return contributionRows.map((contribution) =>
     toAchievementSubmission(
@@ -278,9 +159,6 @@ const loadAllPastTrackedContributions = async (
         data: parseTrackedContributionData(contribution.data),
       },
       metricsById,
-      metricRolesById,
-      pointMultiplicatorFactors,
-      pointMultiplicatorPowerupsByMeetingId,
     ),
   );
 };
@@ -359,6 +237,7 @@ export const evaluateAchievementsForUser = async (
       qualifyingAchievementIds.map((achievementId) => ({
         userId: user.id,
         achievementId,
+        timestamp: new Date(),
       })),
     )
     .onConflictDoNothing({

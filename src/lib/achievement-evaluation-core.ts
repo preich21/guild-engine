@@ -3,7 +3,6 @@ import {
   parseAchievementDateKey,
   parseAchievementDuration,
   type AchievementCriteria,
-  type AchievementMetric,
   type AchievementOperator,
   type AchievementParsedDuration,
 } from "@/lib/achievements";
@@ -11,13 +10,7 @@ import {
 export type UserSubmissionForAchievementEvaluation = {
   guildMeetingId: string;
   guildMeetingTimestamp: Date;
-  attendance: number;
-  protocol: number;
-  moderation: boolean;
-  workingGroup: boolean;
-  twl: number;
-  presentations: number;
-  points: number;
+  metricValues: Record<string, number>;
 };
 
 export type GuildMeetingForAchievementEvaluation = {
@@ -110,57 +103,21 @@ const getAchievementTimeFrameRange = (
     : null;
 };
 
-export const submissionMatchesMetric = (
+export const submissionMatchesCriteriaMetric = (
   submission: UserSubmissionForAchievementEvaluation,
-  metric: AchievementMetric,
+  criteria: Extract<AchievementCriteria, { mode: "defined" }>,
 ): boolean => {
-  switch (metric) {
-    case "attendanceAny":
-      return submission.attendance !== 0;
-    case "attendanceVirtually":
-      return submission.attendance === 1;
-    case "attendanceOnSite":
-      return submission.attendance === 2;
-    case "protocolAny":
-      return submission.protocol !== 0;
-    case "protocolForced":
-      return submission.protocol === 1;
-    case "protocolVoluntary":
-      return submission.protocol === 2;
-    case "moderation":
-      return submission.moderation;
-    case "workingGroup":
-      return submission.workingGroup;
-    case "twl":
-      return submission.twl > 0;
-    case "presentations":
-      return submission.presentations > 0;
-    case "points":
-      return submission.points > 0;
+  if (!Object.prototype.hasOwnProperty.call(submission.metricValues, criteria.metric)) {
+    return false;
   }
-};
 
-export const getMetricValue = (
-  submission: UserSubmissionForAchievementEvaluation,
-  metric: AchievementMetric,
-): number => {
-  switch (metric) {
-    case "points":
-      return submission.points;
-    case "attendanceAny":
-    case "attendanceVirtually":
-    case "attendanceOnSite":
-    case "protocolAny":
-    case "protocolForced":
-    case "protocolVoluntary":
-    case "moderation":
-    case "workingGroup":
-      return submissionMatchesMetric(submission, metric) ? 1 : 0;
-    case "twl":
-      return submission.twl;
-    case "presentations":
-      return submission.presentations;
+  const value = submission.metricValues[criteria.metric] ?? 0;
+
+  if (Array.isArray(criteria.validValues)) {
+    return criteria.validValues.includes(value);
   }
+
+  return value >= criteria.validValues;
 };
 
 const filterGuildMeetingsWithinTimeFrame = (
@@ -243,17 +200,13 @@ export const qualifiesForDefinedAchievement = async (
         return false;
       }
 
-      if (criteria.metric === "points") {
-        return submission.points >= (criteria.minimumPoints ?? criteria.count);
-      }
-
-      return submissionMatchesMetric(submission, criteria.metric);
+      return submissionMatchesCriteriaMetric(submission, criteria);
     });
   }
 
   const relevantSubmissions = filterSubmissionsWithinTimeFrame(allPastSubmissions, criteria.timeFrame, now);
   const metricTotal = relevantSubmissions.reduce(
-    (total, submission) => total + getMetricValue(submission, criteria.metric),
+    (total, submission) => total + (submissionMatchesCriteriaMetric(submission, criteria) ? 1 : 0),
     0,
   );
 

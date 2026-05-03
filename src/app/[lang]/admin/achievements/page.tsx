@@ -4,6 +4,7 @@ import {
   createAchievement,
   deleteAchievement,
   getAchievements,
+  getAchievementPerformanceMetrics,
   updateAchievement,
 } from "@/app/[lang]/admin/achievements/actions";
 import { AchievementsTable } from "@/components/achievements-table";
@@ -28,7 +29,11 @@ export default async function AdminAchievementsPage({
     notFound();
   }
 
-  const [dictionary, entries] = await Promise.all([getDictionary(lang), getAchievements()]);
+  const [dictionary, entries, performanceMetrics] = await Promise.all([
+    getDictionary(lang),
+    getAchievements(),
+    getAchievementPerformanceMetrics(),
+  ]);
 
   return (
     <main className="flex flex-1 justify-center bg-background px-4 py-8 sm:px-6 sm:py-12">
@@ -36,6 +41,7 @@ export default async function AdminAchievementsPage({
         <AchievementsTable
           lang={lang}
           rows={entries}
+          performanceMetrics={performanceMetrics}
           createAction={createAchievement}
           updateAction={updateAchievement}
           deleteAction={deleteAchievement}

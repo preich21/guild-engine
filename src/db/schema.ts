@@ -146,7 +146,7 @@ export const userAchievements = pgTable(
       .references(() => users.id),
     achievementId: uuid("achievement_id")
       .notNull()
-      .references(() => achievements.id),
+      .references(() => achievements.id, { onDelete: "cascade" }),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

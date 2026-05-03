@@ -2,29 +2,21 @@ export const ACHIEVEMENT_TITLE_MAX_LENGTH = 255;
 export const ACHIEVEMENT_IMAGE_MAX_LENGTH = 65535;
 export const ACHIEVEMENT_IMAGE_SIZE = 84;
 
-export const ACHIEVEMENT_METRICS = [
-  "points",
-  "attendanceAny",
-  "attendanceVirtually",
-  "attendanceOnSite",
-  "protocolForced",
-  "protocolVoluntary",
-  "protocolAny",
-  "moderation",
-  "workingGroup",
-  "twl",
-  "presentations",
-] as const;
-
 export const ACHIEVEMENT_CRITERIA_TYPES = ["count", "streak"] as const;
 
 export const ACHIEVEMENT_OPERATORS = ["<", "<=", "==", ">=", ">"] as const;
 export const ACHIEVEMENT_LEADERBOARDS = ["individual", "team"] as const;
 
-export type AchievementMetric = (typeof ACHIEVEMENT_METRICS)[number];
 export type AchievementCriteriaType = (typeof ACHIEVEMENT_CRITERIA_TYPES)[number];
 export type AchievementOperator = (typeof ACHIEVEMENT_OPERATORS)[number];
 export type AchievementLeaderboard = (typeof ACHIEVEMENT_LEADERBOARDS)[number];
+
+export type AchievementPerformanceMetric = {
+  id: string;
+  shortName: string;
+  type: number;
+  enumPossibilities: string | null;
+};
 
 export type AchievementTimeFrame = {
   from: string;
@@ -47,12 +39,12 @@ export type AchievementCriteria =
     }
   | {
       mode: "defined";
-      metric: AchievementMetric;
+      metric: string;
+      validValues: number | number[];
       type: AchievementCriteriaType;
       timeFrame: AchievementTimeFrame | string | null;
       operator: AchievementOperator;
       count: number;
-      minimumPoints: number | null;
     }
   | {
       mode: "position";
@@ -68,11 +60,11 @@ export type AchievementCriteriaInput =
   | {
       mode: "defined";
       metric: string;
+      validValues: string | number[];
       type: string;
       timeFrameFrom: string;
       timeFrameTo: string;
       count: string;
-      minimumPoints: string;
     }
   | {
       mode: "position";
@@ -97,9 +89,6 @@ const durationUnits = [
 ] as const;
 
 const dateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
-
-const isAchievementMetric = (value: string): value is AchievementMetric =>
-  ACHIEVEMENT_METRICS.includes(value as AchievementMetric);
 
 const isAchievementCriteriaType = (value: string): value is AchievementCriteriaType =>
   ACHIEVEMENT_CRITERIA_TYPES.includes(value as AchievementCriteriaType);
@@ -144,6 +133,12 @@ export const isAchievementTimeFrame = (value: unknown): value is AchievementTime
   return typeof maybeTimeFrame.from === "string" && typeof maybeTimeFrame.to === "string";
 };
 
+export const splitEnumPossibilities = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+
 export const isValidAchievementTimeFrame = (
   from: string,
   to: string,
@@ -173,11 +168,13 @@ export const toAchievementCriteriaInput = (criteria: AchievementCriteria): Achie
       ? {
           mode: "defined",
           metric: criteria.metric,
+          validValues: Array.isArray(criteria.validValues)
+            ? criteria.validValues
+            : String(criteria.validValues),
           type: criteria.type,
           timeFrameFrom: isAchievementTimeFrame(criteria.timeFrame) ? criteria.timeFrame.from : "",
           timeFrameTo: isAchievementTimeFrame(criteria.timeFrame) ? criteria.timeFrame.to : "",
           count: String(criteria.count),
-          minimumPoints: criteria.minimumPoints ? String(criteria.minimumPoints) : "",
         }
       : {
           mode: "position",
@@ -204,19 +201,31 @@ export const parseAchievementCriteriaInput = (value: string): AchievementCriteri
       typeof parsed.type === "string" &&
       typeof parsed.count === "string"
     ) {
+      const validValues =
+        typeof parsed.validValues === "string"
+          ? parsed.validValues
+          : typeof parsed.validValues === "number"
+            ? String(parsed.validValues)
+            : Array.isArray(parsed.validValues) && parsed.validValues.every((entry) => typeof entry === "number")
+              ? parsed.validValues
+              : null;
+
+      if (validValues === null) {
+        return null;
+      }
+
       if (
         typeof parsed.timeFrameFrom === "string" &&
-        typeof parsed.timeFrameTo === "string" &&
-        typeof parsed.minimumPoints === "string"
+        typeof parsed.timeFrameTo === "string"
       ) {
         return {
           mode: "defined",
           metric: parsed.metric,
+          validValues,
           type: parsed.type,
           timeFrameFrom: parsed.timeFrameFrom,
           timeFrameTo: parsed.timeFrameTo,
           count: parsed.count,
-          minimumPoints: parsed.minimumPoints,
         };
       }
 
@@ -227,16 +236,11 @@ export const parseAchievementCriteriaInput = (value: string): AchievementCriteri
         return {
           mode: "defined",
           metric: parsed.metric,
+          validValues,
           type: parsed.type,
           timeFrameFrom: "",
           timeFrameTo: "",
           count: parsed.count,
-          minimumPoints:
-            typeof parsed.minimumPoints === "string"
-              ? parsed.minimumPoints
-              : typeof parsed.minimumPoints === "number"
-                ? String(parsed.minimumPoints)
-                : "",
         };
       }
     }
@@ -340,15 +344,10 @@ const normalizeAchievementCriteria = (criteria: AchievementCriteriaInput): Achie
 
   const trimmedCount = criteria.count.trim();
   const parsedCount = /^[1-9]\d*$/.test(trimmedCount) ? Number.parseInt(trimmedCount, 10) : Number.NaN;
-  const trimmedMinimumPoints = criteria.minimumPoints.trim();
-  const parsedMinimumPoints =
-    /^[1-9]\d*$/.test(trimmedMinimumPoints) ? Number.parseInt(trimmedMinimumPoints, 10) : Number.NaN;
-  const normalizedMetric =
-    criteria.metric === "attendance"
-      ? "attendanceAny"
-      : isAchievementMetric(criteria.metric)
-        ? criteria.metric
-        : "attendanceAny";
+  const trimmedValidValue =
+    typeof criteria.validValues === "string" ? criteria.validValues.trim() : "";
+  const parsedValidValue =
+    /^\d+$/.test(trimmedValidValue) ? Number.parseInt(trimmedValidValue, 10) : Number.NaN;
   const normalizedType = isAchievementCriteriaType(criteria.type) ? criteria.type : "count";
   const timeFrameFrom = criteria.timeFrameFrom.trim();
   const timeFrameTo = criteria.timeFrameTo.trim();
@@ -362,15 +361,18 @@ const normalizeAchievementCriteria = (criteria: AchievementCriteriaInput): Achie
 
   return {
     mode: "defined",
-    metric: normalizedMetric,
+    metric: criteria.metric.trim(),
+    validValues: Array.isArray(criteria.validValues)
+      ? [...new Set(criteria.validValues.filter((entry) => Number.isInteger(entry) && entry >= 0))].sort(
+          (first, second) => first - second,
+        )
+      : Number.isInteger(parsedValidValue)
+        ? parsedValidValue
+        : Number.NaN,
     type: normalizedType,
     timeFrame: normalizedType === "streak" ? null : normalizedTimeFrame,
     operator: ">=",
     count: Number.isInteger(parsedCount) ? parsedCount : Number.NaN,
-    minimumPoints:
-      normalizedType === "streak" && normalizedMetric === "points" && Number.isInteger(parsedMinimumPoints)
-        ? parsedMinimumPoints
-        : null,
   };
 };
 
@@ -388,26 +390,70 @@ export const normalizeAchievementInput = (input: AchievementInput) => {
   };
 };
 
-export const validateAchievementInput = (input: AchievementInput) => {
+const hasValidDefinedCriteria = (
+  input: AchievementInput,
+  criteria: Extract<AchievementCriteria, { mode: "defined" }>,
+  performanceMetrics?: AchievementPerformanceMetric[],
+) => {
+  const metric = performanceMetrics?.find((entry) => entry.id === criteria.metric);
+
+  if (
+    criteria.metric.length === 0 ||
+    (performanceMetrics !== undefined && !metric) ||
+    !isAchievementCriteriaType(criteria.type) ||
+    criteria.operator !== ">=" ||
+    !Number.isInteger(criteria.count) ||
+    criteria.count <= 0
+  ) {
+    return false;
+  }
+
+  if (
+    criteria.type === "count" &&
+    !isValidAchievementTimeFrame(
+      input.criteria.mode === "defined" ? input.criteria.timeFrameFrom.trim() : "",
+      input.criteria.mode === "defined" ? input.criteria.timeFrameTo.trim() : "",
+    )
+  ) {
+    return false;
+  }
+
+  if (!metric) {
+    return (
+      (typeof criteria.validValues === "number" &&
+        Number.isInteger(criteria.validValues) &&
+        criteria.validValues >= 0) ||
+      (Array.isArray(criteria.validValues) && criteria.validValues.length > 0)
+    );
+  }
+
+  if (metric.type === 1) {
+    return (
+      typeof criteria.validValues === "number" &&
+      Number.isInteger(criteria.validValues) &&
+      criteria.validValues >= 0
+    );
+  }
+
+  const enumOptions = splitEnumPossibilities(metric.enumPossibilities);
+
+  return (
+    Array.isArray(criteria.validValues) &&
+    criteria.validValues.length > 0 &&
+    criteria.validValues.every((entry) => Number.isInteger(entry) && entry >= 0 && entry < enumOptions.length)
+  );
+};
+
+export const validateAchievementInput = (
+  input: AchievementInput,
+  performanceMetrics?: AchievementPerformanceMetric[],
+) => {
   const normalized = normalizeAchievementInput(input);
   const hasValidCriteria =
     normalized.criteria.mode === "manual"
       ? true
       : normalized.criteria.mode === "defined"
-        ? isAchievementMetric(normalized.criteria.metric) &&
-          isAchievementCriteriaType(normalized.criteria.type) &&
-          normalized.criteria.operator === ">=" &&
-          Number.isInteger(normalized.criteria.count) &&
-          normalized.criteria.count > 0 &&
-          (normalized.criteria.type === "streak"
-            ? normalized.criteria.metric !== "points" ||
-              (Number.isInteger(normalized.criteria.minimumPoints) &&
-                normalized.criteria.minimumPoints !== null &&
-                normalized.criteria.minimumPoints > 0)
-            : isValidAchievementTimeFrame(
-                input.criteria.mode === "defined" ? input.criteria.timeFrameFrom.trim() : "",
-                input.criteria.mode === "defined" ? input.criteria.timeFrameTo.trim() : "",
-              ))
+        ? hasValidDefinedCriteria(input, normalized.criteria, performanceMetrics)
         : isAchievementLeaderboard(normalized.criteria.leaderboard) &&
           isAchievementOperator(normalized.criteria.operator) &&
           Number.isInteger(normalized.criteria.position) &&
