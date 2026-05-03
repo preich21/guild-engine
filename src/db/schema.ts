@@ -46,6 +46,7 @@ export const users = pgTable(
   {
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     username: varchar("username", { length: 255 }).notNull(),
+    externalId: varchar("external_id", { length: 255 }),
     profilePicture: varchar("profile_picture", { length: 65535 }),
     description: varchar("description", { length: 1023 }),
     admin: boolean("admin").notNull().default(false),

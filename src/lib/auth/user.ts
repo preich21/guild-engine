@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
+import { getExternalIdFromAuthValue } from "@/lib/auth/external-id";
 export {
   getUserGuildMeetingStreak as getUserGuildMeetingAttendanceStreak,
   type UserStreak as UserAttendanceStreak,
@@ -16,9 +17,10 @@ const isValidUserName = (value: unknown): value is string =>
 
 export const getCurrentUserRecord = async () => {
   const session = await auth();
+  const externalId = getExternalIdFromAuthValue(session);
   const userName = session?.user?.name;
 
-  if (!isValidUserName(userName)) {
+  if (!externalId && !isValidUserName(userName)) {
     return null;
   }
 
@@ -26,13 +28,14 @@ export const getCurrentUserRecord = async () => {
     .select({
       id: users.id,
       username: users.username,
+      externalId: users.externalId,
       profilePicture: users.profilePicture,
       admin: users.admin,
       preferredLang: users.preferredLang,
       teamId: users.teamId,
     })
     .from(users)
-    .where(eq(users.username, userName))
+    .where(externalId ? eq(users.externalId, externalId) : eq(users.username, userName ?? ""))
     .limit(1);
 
   return userRows[0] ?? null;

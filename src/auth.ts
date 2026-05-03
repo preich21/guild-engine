@@ -4,6 +4,8 @@ import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 
 import { areCredentialsValid } from "@/lib/auth/credentials";
+import { getEntraProviderConfig } from "@/lib/auth/entra";
+import { buildExternalId } from "@/lib/auth/external-id";
 
 const providers: Provider[] = [
   Credentials({
@@ -24,18 +26,10 @@ const providers: Provider[] = [
   }),
 ];
 
-if (
-  process.env.AUTH_MICROSOFT_ENTRA_ID_CLIENT_ID &&
-  process.env.AUTH_MICROSOFT_ENTRA_ID_CLIENT_SECRET &&
-  process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER
-) {
-  providers.push(
-    MicrosoftEntraID({
-      clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_CLIENT_ID,
-      clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_CLIENT_SECRET,
-      issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
-    }),
-  );
+const entraConfig = getEntraProviderConfig();
+
+if (entraConfig) {
+  providers.push(MicrosoftEntraID(entraConfig));
 }
 
 export const { handlers, auth, signIn, signOut, unstable_update: updateSession } = NextAuth({
@@ -47,7 +41,15 @@ export const { handlers, auth, signIn, signOut, unstable_update: updateSession }
     strategy: "jwt",
   },
   callbacks: {
-    jwt({ token, trigger, session }) {
+    jwt({ token, trigger, session, account, profile }) {
+      if (account?.provider === "microsoft-entra-id") {
+        const externalId = buildExternalId(profile as { oid?: unknown; tid?: unknown; sub?: unknown } | null);
+
+        if (externalId) {
+          token.externalId = externalId;
+        }
+      }
+
       const updatedName = session?.user?.name;
 
       if (trigger === "update" && typeof updatedName === "string") {
@@ -56,7 +58,18 @@ export const { handlers, auth, signIn, signOut, unstable_update: updateSession }
 
       return token;
     },
+    session({ session, token }) {
+      const externalId = token.externalId;
+
+      if (typeof externalId === "string") {
+        if (!session.user) {
+          session.user = {};
+        }
+
+        (session.user as { externalId?: string }).externalId = externalId;
+      }
+
+      return session;
+    },
   },
 });
-
-

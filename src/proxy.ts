@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { users } from "@/db/schema";
 import { defaultLocale, hasLocale, locales, type Locale } from "@/i18n/config";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { getExternalIdFromAuthValue } from "@/lib/auth/external-id";
 import { db } from "@/lib/db";
 import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref, isRouteEnabled } from "@/lib/feature-flags";
@@ -21,16 +22,17 @@ const getAuthenticatedUsername = (authValue: unknown) => {
 };
 
 const getAuthenticatedUserRecord = async (authValue: unknown) => {
+  const externalId = getExternalIdFromAuthValue(authValue);
   const username = getAuthenticatedUsername(authValue);
 
-  if (!username) {
+  if (!externalId && !username) {
     return null;
   }
 
   const userRows = await db
     .select({ id: users.id, preferredLang: users.preferredLang })
     .from(users)
-    .where(eq(users.username, username))
+    .where(externalId ? eq(users.externalId, externalId) : eq(users.username, username ?? ""))
     .limit(1);
 
   return userRows[0] ?? null;
@@ -84,7 +86,9 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
   }
 
   const isLoginPath = pathname === `/${locale}/login`;
+  const isRegisterPath = pathname === `/${locale}/register`;
   const isAuthenticated = Boolean(request.auth);
+  const userRecord = isAuthenticated ? await getAuthenticatedUserRecord(request.auth) : null;
 
   if (pathname === `/${locale}/protocol-raffle`) {
     const roleRaffleUrl = request.nextUrl.clone();
@@ -101,7 +105,26 @@ export const proxy = auth(async (request: NextRequest & { auth: unknown }) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (isAuthenticated && !userRecord && !isRegisterPath) {
+    const registerUrl = request.nextUrl.clone();
+    registerUrl.pathname = `/${locale}/register`;
+    registerUrl.search = "";
+
+    return NextResponse.redirect(registerUrl);
+  }
+
   const featureConfig = await loadCurrentFeatureConfig();
+
+  if (isAuthenticated && isRegisterPath && userRecord) {
+    const redirectContext = await getAuthenticatedRedirectContext(
+      locale,
+      featureConfig.homePagePath,
+      request.auth,
+    );
+    const redirectPath = getSafePostLoginPath(redirectContext.locale, null, redirectContext.homePath);
+
+    return NextResponse.redirect(new URL(redirectPath, request.url));
+  }
 
   if (isAuthenticated && isLoginPath) {
     const nextPath = request.nextUrl.searchParams.get("next");

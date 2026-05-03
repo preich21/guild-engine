@@ -146,6 +146,14 @@ const de = {
     passwordPlaceholder: "Passwort eingeben",
     submitButton: "Anmelden",
     invalidCredentials: "Ungultiger Benutzername oder Passwort.",
+    entraButton: "Mit Microsoft fortfahren",
+    orDivider: "oder",
+  },
+  register: {
+    heading: "Profil vervollständigen",
+    description: "Ergänze ein paar Angaben, um dein Konto einzurichten.",
+    submitButton: "Profil erstellen",
+    saveError: "Profil konnte nicht erstellt werden. Bitte versuche es erneut.",
   },
   trackContributions: {
     heading: "Beiträge erfassen",

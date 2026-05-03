@@ -9,8 +9,9 @@ import { getSafePostLoginPath } from "@/lib/auth/redirect";
 import { getCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref } from "@/lib/feature-flags";
 import { getPageMetadata } from "@/lib/page-metadata";
+import { isEntraConfigured } from "@/lib/auth/entra";
 
-import { loginWithCredentials } from "./actions";
+import { loginWithCredentials, loginWithEntra } from "./actions";
 
 export async function generateMetadata({
   params,
@@ -42,6 +43,11 @@ export default async function LoginPage({
 
   if (session) {
     const currentUser = await getCurrentUserRecord();
+
+    if (!currentUser) {
+      redirect(`/${lang}/register`);
+    }
+
     const redirectLocale =
       currentUser?.preferredLang && hasLocale(currentUser.preferredLang)
         ? currentUser.preferredLang
@@ -59,6 +65,8 @@ export default async function LoginPage({
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
         <LoginForm
           action={loginWithCredentials.bind(null, lang, nextPath)}
+          entraAction={loginWithEntra.bind(null, lang, nextPath)}
+          entraEnabled={isEntraConfigured()}
           dictionary={dictionary.login}
         />
       </div>

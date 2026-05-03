@@ -145,6 +145,14 @@ const en = {
     passwordPlaceholder: "Enter your password",
     submitButton: "Sign in",
     invalidCredentials: "Invalid username or password.",
+    entraButton: "Continue with Microsoft",
+    orDivider: "or",
+  },
+  register: {
+    heading: "Complete your profile",
+    description: "Tell us a bit about yourself to finish account setup.",
+    submitButton: "Create profile",
+    saveError: "Could not create your profile. Please try again.",
   },
   trackContributions: {
     heading: "Track Contributions",

@@ -7,6 +7,7 @@ import { signIn } from "@/auth";
 import { users } from "@/db/schema";
 import { hasLocale, type Locale } from "@/i18n/config";
 import { getSafePostLoginPath } from "@/lib/auth/redirect";
+import { isEntraConfigured } from "@/lib/auth/entra";
 import { db } from "@/lib/db";
 import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
 import { getHomePageHref } from "@/lib/feature-flags";
@@ -56,4 +57,22 @@ export const loginWithCredentials = async (
   }
 
   return {};
+};
+
+export const loginWithEntra = async (
+  locale: Locale,
+  nextPath: string | null,
+): Promise<void> => {
+  if (!isEntraConfigured()) {
+    return;
+  }
+
+  const featureConfig = await loadCurrentFeatureConfig();
+  const homePath = getHomePageHref(locale, featureConfig.homePagePath, null);
+  const defaultRedirectPath =
+    homePath === `/${locale}/login` ? `/${locale}/rules` : homePath;
+
+  await signIn("microsoft-entra-id", {
+    redirectTo: getSafePostLoginPath(locale, nextPath, defaultRedirectPath),
+  });
 };

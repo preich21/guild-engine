@@ -16,6 +16,7 @@ import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
 import { loadCurrentFeatureConfig } from "@/lib/feature-config-server";
+import type { UserProfileFormState } from "@/lib/user-profile-form";
 import {
   getEnabledPowerupIds,
   getFeatureSettingValue,
@@ -27,9 +28,7 @@ export type ProfileEditTeam = {
   name: string;
 };
 
-export type SaveProfileActionState = {
-  status: "idle" | "success" | "error";
-};
+export type SaveProfileActionState = UserProfileFormState;
 
 export type OpenLootboxActionResult =
   | {
