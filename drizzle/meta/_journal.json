@@ -99,6 +99,13 @@
       "when": 1777819004975,
       "tag": "0013_chilly_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1777838428093,
+      "tag": "0014_narrow_sabra",
+      "breakpoints": true
     }
   ]
 }
