@@ -232,7 +232,7 @@ export const getDefaultEnabledUserPath = (lang: string, state: FeatureConfigStat
   }
 
   if (isFeatureEnabled(state, "point-system")) {
-    return `/${lang}/get-points`;
+    return `/${lang}/track-contributions`;
   }
 
   if (isRoleRaffleEnabled(state)) {
@@ -265,7 +265,7 @@ export const isRouteEnabled = (
     );
   }
 
-  if (isPathOrChild(pathname, `/${lang}/get-points`)) {
+  if (isPathOrChild(pathname, `/${lang}/track-contributions`)) {
     return isFeatureEnabled(state, "point-system");
   }
 

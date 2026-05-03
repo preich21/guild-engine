@@ -31,7 +31,7 @@ const de = {
     leaderboardLink: "Rangliste",
     individualLeaderboardLink: "Individuelle Rangliste",
     teamLeaderboardLink: "Team-Rangliste",
-    getPointsLink: "Punkte Erfassen",
+    trackContributionsLink: "Beiträge erfassen",
     roleRaffleLink: "Rollen-Verlosung",
     rulesLink: "Regeln",
     adminLink: "Admin",
@@ -148,30 +148,14 @@ const de = {
     submitButton: "Anmelden",
     invalidCredentials: "Ungultiger Benutzername oder Passwort.",
   },
-  getPoints: {
-    heading: "Punkte erfassen",
-    attendanceLabel:
-      "Hast du am Gildentreff am {date} teilgenommen (zählt nur, wenn du vor der Rollenverlosung da warst)?",
-    attendanceNo: "Nein",
-    attendanceVirtually: "Ja, virtuell",
-    attendanceOnSite: "Ja, vor Ort",
-    protocolLabel: "Hast du das Protokoll für den Gildentreff am {date} geschrieben?",
-    protocolNo: "Nein",
-    protocolForced: "Ja, gezwungen",
-    protocolVoluntary: "Ja, freiwillig",
-    moderationLabel: "Hast du den Gildentreff am {date} moderiert?",
-    yes: "Ja",
-    no: "Nein",
-    participationLabel:
-      "Hast du in den Wochen vor dem Gildentreff am {date} aktiv in mindestens einer Arbeitsgruppe mitgemacht?",
-    twlPostsLabel:
-      "Hast du in den Wochen vor dem Gildentreff am {date} TWL (Today We Learned) oder Security-News Posts geschrieben?",
-    presentationsLabel:
-      "Hast du während des Gildentreffs am {date} ein Projekt oder ein Konzept vorgestellt?",
+  trackContributions: {
+    heading: "Beiträge erfassen",
     noMeetingError: "Kein passendes Gildentreffen gefunden. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
-    previousMeetingButton: "Vorheriger Gildentreff",
-    nextMeetingButton: "Nächster Gildentreff",
-    meetingDateButton: "Gildentreff-Datum auswählen",
+    noMetrics:
+      "Noch keine Performance-Metriken konfiguriert. Bitte kontaktiere deine Administratorin oder deinen Administrator.",
+    previousMeetingButton: "Vorheriges Meeting",
+    nextMeetingButton: "Nächstes Meeting",
+    meetingDateButton: "Meeting-Datum auswählen",
     loading: "Lädt...",
     lastModified: "Zuletzt geändert",
     never: "Nie",
@@ -180,7 +164,7 @@ const de = {
     saveSuccess: "Erfolgreich gespeichert.",
     saveError: "Speichern fehlgeschlagen. Bitte versuche es erneut.",
     activatedPointMultiplicatorTooltip:
-      "Du hast einen {size} Punkte-Multiplikator aktiviert und bekommst deshalb {factor} Mal so viele Punkte für dieses Treffen.",
+      "Du hast einen {size} Punkte-Multiplikator für dieses Meeting aktiviert. Du erhältst {factor} Mal so viele Punkte.",
     smallPointMultiplicatorSize: "kleinen",
     mediumPointMultiplicatorSize: "mittleren",
     largePointMultiplicatorSize: "großen",
@@ -212,7 +196,7 @@ const de = {
     winnerTitle: "Glückwunsch {username}!",
     winnerDescription: "Du hast die große Ehre, für dieses Meeting die Rolle zu übernehmen.",
     winnerPointSystemDescription:
-      'Du kannst die erzwungene Rollenübernahme im Formular "Punkte Erfassen" eintragen.',
+      'Du kannst die erzwungene Rollenübernahme im Formular "Beiträge erfassen" eintragen.',
     dismissButton: "Schließen",
   },
   rules: {

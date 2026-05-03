@@ -29,7 +29,7 @@ type TopbarProps = {
     leaderboardLink: string;
     individualLeaderboardLink: string;
     teamLeaderboardLink: string;
-    getPointsLink: string;
+    trackContributionsLink: string;
     roleRaffleLink: string;
     rulesLink: string;
     adminLink: string;
@@ -113,7 +113,7 @@ export function Topbar({
             />
           ) : null}
           {isPointSystemEnabled ? (
-            <TopbarNavLink href={`/${lang}/get-points`} label={dictionary.getPointsLink} />
+            <TopbarNavLink href={`/${lang}/track-contributions`} label={dictionary.trackContributionsLink} />
           ) : null}
           {shouldShowRoleRaffle ? (
             <TopbarNavLink href={`/${lang}/role-raffle`} label={dictionary.roleRaffleLink} />

@@ -31,7 +31,7 @@ const en = {
     leaderboardLink: "Leaderboard",
     individualLeaderboardLink: "Individual Leaderboard",
     teamLeaderboardLink: "Team Leaderboard",
-    getPointsLink: "Get Points",
+    trackContributionsLink: "Track Contributions",
     roleRaffleLink: "Role Raffle",
     rulesLink: "Rules",
     adminLink: "Admin",
@@ -147,30 +147,13 @@ const en = {
     submitButton: "Sign in",
     invalidCredentials: "Invalid username or password.",
   },
-  getPoints: {
-    heading: "Get points",
-    attendanceLabel:
-      "Did you attend the guild meeting on {date} (only counts if you arrived before the role raffle)?",
-    attendanceNo: "No",
-    attendanceVirtually: "Yes, virtually",
-    attendanceOnSite: "Yes, on site",
-    protocolLabel: "Did you write the protocol for the guild meeting on {date}?",
-    protocolNo: "No",
-    protocolForced: "Yes, forced",
-    protocolVoluntary: "Yes, voluntarily",
-    moderationLabel: "Did you moderate the guild meeting on {date}?",
-    yes: "Yes",
-    no: "No",
-    participationLabel:
-      "Did you actively participate in at least one working group during the weeks leading up to the guild meeting on {date}?",
-    twlPostsLabel:
-      "Did you write any TWL (Today We Learned) or Security News posts during the weeks leading up to the guild meeting on {date}?",
-    presentationsLabel:
-      "Did you present any project or concept during the guild meeting on {date}?",
+  trackContributions: {
+    heading: "Track Contributions",
     noMeetingError: "No matching guild meeting found. Please contact your administrator.",
-    previousMeetingButton: "Previous guild meeting",
-    nextMeetingButton: "Next guild meeting",
-    meetingDateButton: "Select guild meeting date",
+    noMetrics: "No performance metrics are configured yet. Please contact your administrator.",
+    previousMeetingButton: "Previous Meeting",
+    nextMeetingButton: "Next Meeting",
+    meetingDateButton: "Select meeting date",
     loading: "Loading...",
     lastModified: "Last modified",
     never: "Never",
@@ -179,10 +162,10 @@ const en = {
     saveSuccess: "Saved successfully.",
     saveError: "Could not save your submission. Please try again.",
     activatedPointMultiplicatorTooltip:
-      "You activated a {size} point multiplicator and will therefore get {factor} times the points for this meeting.",
-    smallPointMultiplicatorSize: "small",
-    mediumPointMultiplicatorSize: "medium",
-    largePointMultiplicatorSize: "large",
+      "You activated a {size} Point Multiplicator for this meeting. You will receive {factor} times the points.",
+    smallPointMultiplicatorSize: "Small",
+    mediumPointMultiplicatorSize: "Medium",
+    largePointMultiplicatorSize: "Large",
   },
   roleRaffle: {
     heading: "Role Raffle",
@@ -208,7 +191,8 @@ const en = {
     emptyState: "No raffle entries yet. Select at least two users to populate the wheel of fortune.",
     winnerTitle: "Congratulations {username}!",
     winnerDescription: "You have the great honor to take over the role for this meeting.",
-    winnerPointSystemDescription: 'You may enter taking over the role forcedly in the "Get Points" form.',
+    winnerPointSystemDescription:
+      'You may enter taking over the role forcedly in the "Track Contributions" form.',
     dismissButton: "Dismiss",
   },
   rules: {

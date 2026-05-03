@@ -31,6 +31,11 @@ export type RolePresentPowerupSettings = {
 
 export type PowerupUtilizationSettings = RolePresentPowerupSettings | null;
 
+export type TrackedContributionDataEntry = {
+  id: string;
+  value: number;
+};
+
 export const NO_TEAM_ASSIGNED_TEAM_ID = "00000000-0000-0000-0000-000000000001";
 
 export const teams = pgTable("team", {
@@ -244,6 +249,26 @@ export const manualPoints = pgTable(
   (table) => [
     index("manual_points_user_id_idx").on(table.userId),
     index("manual_points_timestamp_idx").on(table.timestamp),
+  ],
+);
+
+export const trackedContributions = pgTable(
+  "tracked_contributions",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    meetingId: uuid("meeting_id")
+      .notNull()
+      .references(() => guildMeetings.id, { onDelete: "cascade" }),
+    modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull().defaultNow(),
+    data: jsonb("data").$type<TrackedContributionDataEntry[]>().notNull().default([]),
+  },
+  (table) => [
+    index("tracked_contributions_user_id_idx").on(table.userId),
+    index("tracked_contributions_meeting_id_idx").on(table.meetingId),
+    uniqueIndex("tracked_contributions_user_meeting_idx").on(table.userId, table.meetingId),
   ],
 );
 
