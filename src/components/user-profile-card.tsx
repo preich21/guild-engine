@@ -366,7 +366,7 @@ export function UserProfileCard({
                   }
                 />
                 <DialogContent className="w-[min(95vw,42rem)]">
-                  <DialogHeader>
+                  <DialogHeader className="gap-2 mb-4">
                     <DialogTitle>{dictionary.allAchievementsTitle}</DialogTitle>
                     <DialogDescription>{dictionary.allAchievementsDescription}</DialogDescription>
                   </DialogHeader>
@@ -377,7 +377,7 @@ export function UserProfileCard({
                     </p>
                   ) : (
                     <ScrollArea className="max-h-[60vh]">
-                      <ScrollAreaViewport>
+                      <ScrollAreaViewport className="max-h-[60vh]">
                         <ScrollAreaContent className="space-y-3 pr-4">
                           {profile.allAchievements.map((achievement) => {
                             const isEarned = earnedAchievementIds.has(achievement.id);
