@@ -8,18 +8,11 @@ import type {
   CreateGuildMeetingActionState,
   DeleteGuildMeetingResult,
   GuildMeetingEntry,
-} from "@/app/[lang]/admin/guild-meetings/actions";
+} from "@/app/[lang]/admin/meetings/actions";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -29,7 +22,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
 
 type GuildMeetingsTableProps = {
@@ -40,18 +33,13 @@ type GuildMeetingsTableProps = {
     formData: FormData,
   ) => Promise<CreateGuildMeetingActionState>;
   deleteAction: (lang: unknown, id: unknown) => Promise<DeleteGuildMeetingResult>;
-  migrateAndDeleteAction: (
-    lang: unknown,
-    sourceGuildMeetingId: unknown,
-    targetGuildMeetingId: unknown,
-  ) => Promise<boolean>;
   dictionary: {
     heading: string;
     addNewButton: string;
     noEntries: string;
     idLabel: string;
-    dateTimeLabel: string;
-    fixedTimeHint: string;
+    dateLabel: string;
+    timeLabel: string;
     newCardTitle: string;
     datePickerButton: string;
     datePickerPlaceholder: string;
@@ -62,16 +50,9 @@ type GuildMeetingsTableProps = {
     deleteButtonAriaLabel: string;
     deletePopoverTitle: string;
     deletePopoverDescription: string;
-    deleteWithMigrationDescription: string;
-    continueButton: string;
+    deleteDisabledTooltip: string;
     deleteConfirmButton: string;
     deleteError: string;
-    migrationDialogTitle: string;
-    migrationDialogDescription: string;
-    migrationTargetLabel: string;
-    migrationEmptyState: string;
-    migrateAndDeleteButton: string;
-    migrateAndDeleteError: string;
   };
 };
 
@@ -110,24 +91,39 @@ export function GuildMeetingsTable({
   rows,
   createAction,
   deleteAction,
-  migrateAndDeleteAction,
   dictionary,
 }: GuildMeetingsTableProps) {
   const router = useRouter();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [selectedMeetingDate, setSelectedMeetingDate] = useState<string>("");
+  const defaultMeetingTime = useMemo(() => {
+    const firstMeetingTimestamp = rows[0]?.timestamp;
+
+    if (!firstMeetingTimestamp) {
+      return "12:00";
+    }
+
+    const parsed = new Date(firstMeetingTimestamp);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return "12:00";
+    }
+
+    const hour = `${parsed.getUTCHours()}`.padStart(2, "0");
+    const minute = `${parsed.getUTCMinutes()}`.padStart(2, "0");
+    return `${hour}:${minute}`;
+  }, [rows]);
+  const [selectedMeetingTime, setSelectedMeetingTime] = useState<string>(defaultMeetingTime);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [confirmingDeleteRowId, setConfirmingDeleteRowId] = useState<string | null>(null);
-  const [migrationSourceMeetingId, setMigrationSourceMeetingId] = useState<string | null>(null);
-  const [migrationTargetMeetingId, setMigrationTargetMeetingId] = useState<string>("");
   const [deleteError, setDeleteError] = useState(false);
-  const [migrationError, setMigrationError] = useState(false);
   const [state, formAction, createPending] = useActionState(
     async (previousState: CreateGuildMeetingActionState, formData: FormData) => {
       const nextState = await createAction(previousState, formData);
 
       if (nextState.status === "success") {
         setSelectedMeetingDate("");
+        setSelectedMeetingTime(defaultMeetingTime);
         setIsDatePopoverOpen(false);
         setIsAddingNew(false);
         router.refresh();
@@ -138,9 +134,8 @@ export function GuildMeetingsTable({
     initialState,
   );
   const [isDeletePending, startDeleteTransition] = useTransition();
-  const [isMigrationPending, startMigrationTransition] = useTransition();
 
-  const isBusy = createPending || isDeletePending || isMigrationPending;
+  const isBusy = createPending || isDeletePending;
 
   const selectedDate = useMemo(() => {
     if (!selectedMeetingDate) {
@@ -175,6 +170,8 @@ export function GuildMeetingsTable({
     );
   }, [rows]);
 
+  const todayKey = useMemo(() => toDateKey(new Date()), []);
+
   const formatMeetingTimestamp = (timestamp: string) => {
     const parsed = new Date(timestamp);
 
@@ -189,21 +186,15 @@ export function GuildMeetingsTable({
     }).format(parsed);
   };
 
-  const meetingRowsForMigration = useMemo(
-    () => rows.filter((row) => row.id !== migrationSourceMeetingId),
-    [migrationSourceMeetingId, rows],
-  );
-
-
   const handleCancelNewCard = () => {
     setSelectedMeetingDate("");
+    setSelectedMeetingTime(defaultMeetingTime);
     setIsDatePopoverOpen(false);
     setIsAddingNew(false);
   };
 
   const handleDeleteMeeting = (meetingId: string) => {
     setDeleteError(false);
-    setMigrationError(false);
 
     startDeleteTransition(async () => {
       const result = await deleteAction(lang, meetingId);
@@ -214,36 +205,8 @@ export function GuildMeetingsTable({
         return;
       }
 
-      if (result === "hasSubmissions") {
-        setConfirmingDeleteRowId(null);
-        setMigrationSourceMeetingId(meetingId);
-        setMigrationTargetMeetingId("");
-        return;
-      }
-
+      setConfirmingDeleteRowId(null);
       setDeleteError(true);
-    });
-  };
-
-  const handleMigrateAndDelete = () => {
-    if (!migrationSourceMeetingId || !migrationTargetMeetingId) {
-      return;
-    }
-
-    setDeleteError(false);
-    setMigrationError(false);
-
-    startMigrationTransition(async () => {
-      const success = await migrateAndDeleteAction(lang, migrationSourceMeetingId, migrationTargetMeetingId);
-
-      if (!success) {
-        setMigrationError(true);
-        return;
-      }
-
-      setMigrationSourceMeetingId(null);
-      setMigrationTargetMeetingId("");
-      router.refresh();
     });
   };
 
@@ -256,7 +219,7 @@ export function GuildMeetingsTable({
           variant="outline"
           onClick={() => {
             setDeleteError(false);
-            setMigrationError(false);
+            setSelectedMeetingTime(defaultMeetingTime);
             setIsAddingNew(true);
           }}
           disabled={isBusy || isAddingNew}
@@ -275,11 +238,10 @@ export function GuildMeetingsTable({
           <Card className="border border-border bg-background">
             <CardHeader>
               <CardTitle>{dictionary.newCardTitle}</CardTitle>
-              <CardDescription>{dictionary.fixedTimeHint}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-col gap-2">
-                <Label>{dictionary.dateTimeLabel}</Label>
+                <Label>{dictionary.dateLabel}</Label>
                 <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
                   <PopoverTrigger
                     render={
@@ -300,7 +262,10 @@ export function GuildMeetingsTable({
                       mode="single"
                       selected={selectedDate}
                       aria-label={dictionary.datePickerButton}
-                      disabled={(date) => existingMeetingDateSet.has(toDateKey(date))}
+                      disabled={(date) => {
+                        const dateKey = toDateKey(date);
+                        return dateKey < todayKey || existingMeetingDateSet.has(dateKey);
+                      }}
                       onSelect={(date) => {
                         if (!date) {
                           return;
@@ -313,6 +278,18 @@ export function GuildMeetingsTable({
                   </PopoverContent>
                 </Popover>
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="meeting-time">{dictionary.timeLabel}</Label>
+                <Input
+                  id="meeting-time"
+                  name="meetingTime"
+                  type="time"
+                  value={selectedMeetingTime}
+                  onChange={(event) => setSelectedMeetingTime(event.target.value)}
+                  required
+                  className="h-10"
+                />
+              </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <Button
@@ -324,7 +301,11 @@ export function GuildMeetingsTable({
                 >
                   {dictionary.cancelButton}
                 </Button>
-                <Button type="submit" disabled={isBusy || selectedMeetingDate === ""} className="w-full sm:w-auto">
+                <Button
+                  type="submit"
+                  disabled={isBusy || selectedMeetingDate === "" || selectedMeetingTime === ""}
+                  className="w-full sm:w-auto"
+                >
                   {dictionary.saveButton}
                 </Button>
               </div>
@@ -337,71 +318,58 @@ export function GuildMeetingsTable({
 
       <div className="space-y-3">
         {rows.map((row) => {
-          const hasSubmissions = row.submissionCount > 0;
+          const deleteButton = (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={dictionary.deleteButtonAriaLabel}
+              title={dictionary.deleteButtonAriaLabel}
+              onClick={() => {
+                setDeleteError(false);
+                setConfirmingDeleteRowId(row.id);
+              }}
+              disabled={isBusy || row.hasTrackedContributions}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 />
+            </Button>
+          );
 
           return (
             <Card key={row.id} className="border border-border bg-background">
               <CardHeader>
                 <div className="space-y-1">
                   <CardTitle>{formatMeetingTimestamp(row.timestamp)}</CardTitle>
-                  <CardDescription>{dictionary.fixedTimeHint}</CardDescription>
                 </div>
                 <CardAction>
-                  <Popover
-                    open={confirmingDeleteRowId === row.id}
-                    onOpenChange={(open) => setConfirmingDeleteRowId(open ? row.id : null)}
-                  >
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={dictionary.deleteButtonAriaLabel}
-                          title={dictionary.deleteButtonAriaLabel}
-                          onClick={() => {
-                            setDeleteError(false);
-                            setMigrationError(false);
-                            setConfirmingDeleteRowId(row.id);
-                          }}
-                          disabled={isBusy}
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <Trash2 />
-                        </Button>
-                      }
-                    />
-                    <PopoverContent align="end" className="w-80">
-                      <PopoverHeader>
-                        <PopoverTitle>{dictionary.deletePopoverTitle}</PopoverTitle>
-                        <PopoverDescription>
-                          {hasSubmissions
-                            ? dictionary.deleteWithMigrationDescription
-                            : dictionary.deletePopoverDescription}
-                        </PopoverDescription>
-                      </PopoverHeader>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setConfirmingDeleteRowId(null)}
-                          disabled={isBusy}
-                        >
-                          {dictionary.cancelButton}
-                        </Button>
-                        {hasSubmissions ? (
+                  {row.hasTrackedContributions ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger render={<span className="inline-flex" />}>{deleteButton}</TooltipTrigger>
+                        <TooltipContent>{dictionary.deleteDisabledTooltip}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Popover
+                      open={confirmingDeleteRowId === row.id}
+                      onOpenChange={(open) => setConfirmingDeleteRowId(open ? row.id : null)}
+                    >
+                      <PopoverTrigger render={deleteButton} />
+                      <PopoverContent align="end" className="w-80">
+                        <PopoverHeader>
+                          <PopoverTitle>{dictionary.deletePopoverTitle}</PopoverTitle>
+                          <PopoverDescription>{dictionary.deletePopoverDescription}</PopoverDescription>
+                        </PopoverHeader>
+                        <div className="flex justify-end gap-2">
                           <Button
                             type="button"
-                            onClick={() => {
-                              setConfirmingDeleteRowId(null);
-                              setMigrationSourceMeetingId(row.id);
-                              setMigrationTargetMeetingId("");
-                            }}
+                            variant="outline"
+                            onClick={() => setConfirmingDeleteRowId(null)}
                             disabled={isBusy}
                           >
-                            {dictionary.continueButton}
+                            {dictionary.cancelButton}
                           </Button>
-                        ) : (
                           <Button
                             type="button"
                             variant="destructive"
@@ -410,10 +378,10 @@ export function GuildMeetingsTable({
                           >
                             {dictionary.deleteConfirmButton}
                           </Button>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </CardAction>
               </CardHeader>
               <CardContent className="space-y-1">
@@ -422,7 +390,7 @@ export function GuildMeetingsTable({
                   <span className="font-mono text-xs">{row.id}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{dictionary.dateTimeLabel}: </span>
+                  <span className="font-medium text-foreground">{dictionary.dateLabel}: </span>
                   {formatMeetingTimestamp(row.timestamp)}
                 </p>
               </CardContent>
@@ -437,88 +405,7 @@ export function GuildMeetingsTable({
 
       {state.status === "error" ? <p className="text-sm text-destructive">{dictionary.saveError}</p> : null}
       {deleteError ? <p className="text-sm text-destructive">{dictionary.deleteError}</p> : null}
-      {migrationError ? <p className="text-sm text-destructive">{dictionary.migrateAndDeleteError}</p> : null}
-
-      <Dialog
-        open={migrationSourceMeetingId !== null}
-        onOpenChange={(open) => {
-          if (open) {
-            return;
-          }
-
-          setMigrationSourceMeetingId(null);
-          setMigrationTargetMeetingId("");
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{dictionary.migrationDialogTitle}</DialogTitle>
-            <DialogDescription>{dictionary.migrationDialogDescription}</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">{dictionary.migrationTargetLabel}</p>
-
-            {meetingRowsForMigration.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{dictionary.migrationEmptyState}</p>
-            ) : (
-              <RadioGroup
-                value={migrationTargetMeetingId}
-                onValueChange={setMigrationTargetMeetingId}
-                className="max-h-64 overflow-y-auto rounded-lg border border-border p-3"
-              >
-                {meetingRowsForMigration.map((meeting) => {
-                  const optionId = `meeting-${meeting.id}`;
-
-                  return (
-                    <Label
-                      key={meeting.id}
-                      htmlFor={optionId}
-                      className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-background px-3 py-2"
-                    >
-                      <RadioGroupItem id={optionId} value={meeting.id} className="size-5" />
-                      <span className="flex flex-col gap-0.5">
-                        <span className="text-sm text-foreground">{formatMeetingTimestamp(meeting.timestamp)}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{meeting.id}</span>
-                      </span>
-                    </Label>
-                  );
-                })}
-              </RadioGroup>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setMigrationSourceMeetingId(null);
-                setMigrationTargetMeetingId("");
-              }}
-              disabled={isBusy}
-            >
-              {dictionary.cancelButton}
-            </Button>
-            <Button
-              type="button"
-              onClick={handleMigrateAndDelete}
-              disabled={
-                isBusy ||
-                !migrationSourceMeetingId ||
-                migrationTargetMeetingId === "" ||
-                meetingRowsForMigration.length === 0
-              }
-            >
-              {dictionary.migrateAndDeleteButton}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
-
-
-
 

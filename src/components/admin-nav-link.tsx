@@ -55,7 +55,7 @@ export function AdminNavLink({
   const normalizedPath = normalizePath(pathname);
   const adminBasePath = `/${lang}/admin`;
   const featureConfigPath = `${adminBasePath}/feature-config`;
-  const guildMeetingsPath = `${adminBasePath}/guild-meetings`;
+  const guildMeetingsPath = `${adminBasePath}/meetings`;
   const achievementsPath = `${adminBasePath}/achievements`;
   const awardAchievementsPath = `${adminBasePath}/award-achievements`;
   const manualPointsPath = `${adminBasePath}/manual-points`;

@@ -4,8 +4,7 @@ import {
   createGuildMeeting,
   deleteGuildMeeting,
   getGuildMeetingEntries,
-  migrateSubmissionsAndDeleteGuildMeeting,
-} from "@/app/[lang]/admin/guild-meetings/actions";
+} from "@/app/[lang]/admin/meetings/actions";
 import { GuildMeetingsTable } from "@/components/guild-meetings-table";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -13,7 +12,7 @@ import { getPageMetadata } from "@/lib/page-metadata";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/[lang]/admin/guild-meetings">) {
+}: PageProps<"/[lang]/admin/meetings">) {
   const { lang } = await params;
 
   return getPageMetadata(lang, (dictionary) => dictionary.admin.guildMeetings.heading);
@@ -21,7 +20,7 @@ export async function generateMetadata({
 
 export default async function AdminGuildMeetingsPage({
   params,
-}: PageProps<"/[lang]/admin/guild-meetings">) {
+}: PageProps<"/[lang]/admin/meetings">) {
   const { lang } = await params;
 
   if (!hasLocale(lang)) {
@@ -38,7 +37,6 @@ export default async function AdminGuildMeetingsPage({
           rows={entries}
           createAction={createGuildMeeting}
           deleteAction={deleteGuildMeeting}
-          migrateAndDeleteAction={migrateSubmissionsAndDeleteGuildMeeting}
           dictionary={dictionary.admin.guildMeetings}
         />
       </div>

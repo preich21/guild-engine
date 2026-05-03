@@ -1,6 +1,5 @@
 import {
   boolean,
-  check,
   index,
   integer,
   jsonb,
@@ -13,7 +12,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import type { AchievementCriteria } from "@/lib/achievements";
 
 export type FeatureConfigValue = boolean | number | string | number[];
@@ -259,45 +257,5 @@ export const trackedContributions = pgTable(
     index("tracked_contributions_meeting_id_idx").on(table.meetingId),
     index("tracked_contributions_meeting_user_idx").on(table.meetingId, table.userId),
     uniqueIndex("tracked_contributions_user_meeting_idx").on(table.userId, table.meetingId),
-  ],
-);
-
-export const userPointSubmissions = pgTable(
-  "user_point_submissions",
-  {
-    id: uuid("id").defaultRandom().notNull().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull().defaultNow(),
-    guildMeetingId: uuid("guild_meeting_id").notNull().references(() => guildMeetings.id),
-    attendance: smallint("attendance").notNull(),
-    protocol: smallint("protocol").notNull(),
-    moderation: boolean("moderation").notNull(),
-    workingGroup: boolean("working_group").notNull(),
-    twl: smallint("twl").notNull(),
-    presentations: smallint("presentations").notNull(),
-  },
-  (table) => [
-    index("user_point_submissions_user_id_idx").on(table.userId),
-    index("user_point_submissions_guild_meeting_id_idx").on(table.guildMeetingId),
-    index("user_point_submissions_user_guild_meeting_idx").on(table.userId, table.guildMeetingId),
-    index("user_point_submissions_eval_lookup_idx").on(
-      table.userId,
-      table.guildMeetingId,
-      table.attendance,
-      table.protocol,
-      table.moderation,
-      table.workingGroup,
-      table.twl,
-      table.presentations,
-    ),
-    check("user_point_submissions_attendance_range", sql`${table.attendance} between 0 and 2`),
-    check("user_point_submissions_protocol_range", sql`${table.protocol} between 0 and 2`),
-    check("user_point_submissions_twl_range", sql`${table.twl} between 0 and 99`),
-    check(
-      "user_point_submissions_presentations_range",
-      sql`${table.presentations} between 0 and 99`,
-    ),
   ],
 );

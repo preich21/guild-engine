@@ -1,48 +1,59 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, gte, lt, ne } from "drizzle-orm";
+import { and, count, eq, gte, lt } from "drizzle-orm";
 
 import { requireAdminAccess } from "@/app/[lang]/admin/actions";
-import { guildMeetings, userPointSubmissions } from "@/db/schema";
+import { guildMeetings, trackedContributions } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { db } from "@/lib/db";
 
 export type GuildMeetingEntry = {
   id: string;
   timestamp: string;
-  submissionCount: number;
+  hasTrackedContributions: boolean;
 };
 
 export type CreateGuildMeetingActionState = {
   status: "idle" | "success" | "error";
 };
 
-export type DeleteGuildMeetingResult = "success" | "hasSubmissions" | "error";
+export type DeleteGuildMeetingResult = "success" | "hasContributions" | "error";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-const toFixedMeetingTimestamp1430 = (meetingDate: string): Date | null => {
+const toMeetingTimestamp = (meetingDate: string, meetingTime: string): Date | null => {
   if (!datePattern.test(meetingDate)) {
     return null;
   }
 
+  const timeMatch = timePattern.exec(meetingTime);
+
+  if (!timeMatch) {
+    return null;
+  }
+
   const [year, month, day] = meetingDate.split("-").map((part) => Number(part));
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
 
   if (!year || !month || !day) {
     return null;
   }
 
-  const timestamp = new Date(Date.UTC(year, month - 1, day, 14, 30, 0, 0));
+  const timestamp = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
 
   if (
     Number.isNaN(timestamp.getTime()) ||
     timestamp.getUTCFullYear() !== year ||
     timestamp.getUTCMonth() !== month - 1 ||
-    timestamp.getUTCDate() !== day
+    timestamp.getUTCDate() !== day ||
+    timestamp.getUTCHours() !== hour ||
+    timestamp.getUTCMinutes() !== minute
   ) {
     return null;
   }
@@ -53,7 +64,7 @@ const toFixedMeetingTimestamp1430 = (meetingDate: string): Date | null => {
 export const getGuildMeetingEntries = async (): Promise<GuildMeetingEntry[]> => {
   await requireAdminAccess();
 
-  const [meetingRows, submissionRows] = await Promise.all([
+  const [meetingRows, contributionRows] = await Promise.all([
     db
       .select({
         id: guildMeetings.id,
@@ -63,21 +74,21 @@ export const getGuildMeetingEntries = async (): Promise<GuildMeetingEntry[]> => 
       .orderBy(guildMeetings.timestamp),
     db
       .select({
-        guildMeetingId: userPointSubmissions.guildMeetingId,
-        submissionCount: count(userPointSubmissions.id),
+        meetingId: trackedContributions.meetingId,
+        contributionCount: count(trackedContributions.id),
       })
-      .from(userPointSubmissions)
-      .groupBy(userPointSubmissions.guildMeetingId),
+      .from(trackedContributions)
+      .groupBy(trackedContributions.meetingId),
   ]);
 
-  const submissionCountByMeetingId = new Map(
-    submissionRows.map((row) => [row.guildMeetingId, Number(row.submissionCount)]),
+  const contributionCountByMeetingId = new Map(
+    contributionRows.map((row) => [row.meetingId, Number(row.contributionCount)]),
   );
 
   return meetingRows.map((row) => ({
     id: row.id,
     timestamp: row.timestamp.toISOString(),
-    submissionCount: submissionCountByMeetingId.get(row.id) ?? 0,
+    hasTrackedContributions: (contributionCountByMeetingId.get(row.id) ?? 0) > 0,
   }));
 };
 
@@ -89,12 +100,18 @@ export const createGuildMeeting = async (
 
   const lang = formData.get("lang");
   const meetingDate = formData.get("meetingDate");
+  const meetingTime = formData.get("meetingTime");
 
-  if (typeof lang !== "string" || !hasLocale(lang) || typeof meetingDate !== "string") {
+  if (
+    typeof lang !== "string" ||
+    !hasLocale(lang) ||
+    typeof meetingDate !== "string" ||
+    typeof meetingTime !== "string"
+  ) {
     return { status: "error" };
   }
 
-  const timestamp = toFixedMeetingTimestamp1430(meetingDate);
+  const timestamp = toMeetingTimestamp(meetingDate, meetingTime);
 
   if (!timestamp) {
     return { status: "error" };
@@ -103,6 +120,14 @@ export const createGuildMeeting = async (
   const [year, month, day] = meetingDate.split("-").map((part) => Number(part));
   const dayStart = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   const nextDayStart = new Date(Date.UTC(year, month - 1, day + 1, 0, 0, 0, 0));
+  const today = new Date();
+  const todayStart = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0, 0),
+  );
+
+  if (dayStart < todayStart) {
+    return { status: "error" };
+  }
 
   const existingMeeting = await db
     .select({ id: guildMeetings.id })
@@ -118,7 +143,7 @@ export const createGuildMeeting = async (
     timestamp,
   });
 
-  revalidatePath(`/${lang}/admin/guild-meetings`);
+  revalidatePath(`/${lang}/admin/meetings`);
 
   return { status: "success" };
 };
@@ -135,66 +160,19 @@ export const deleteGuildMeeting = async (lang: unknown, id: unknown): Promise<De
     return "error";
   }
 
-  const linkedSubmissions = await db
-    .select({ id: userPointSubmissions.id })
-    .from(userPointSubmissions)
-    .where(eq(userPointSubmissions.guildMeetingId, id))
+  const linkedContributions = await db
+    .select({ id: trackedContributions.id })
+    .from(trackedContributions)
+    .where(eq(trackedContributions.meetingId, id))
     .limit(1);
 
-  if (linkedSubmissions.length > 0) {
-    return "hasSubmissions";
+  if (linkedContributions.length > 0) {
+    return "hasContributions";
   }
 
   await db.delete(guildMeetings).where(eq(guildMeetings.id, id));
 
-  revalidatePath(`/${lang}/admin/guild-meetings`);
+  revalidatePath(`/${lang}/admin/meetings`);
 
   return "success";
 };
-
-export const migrateSubmissionsAndDeleteGuildMeeting = async (
-  lang: unknown,
-  sourceGuildMeetingId: unknown,
-  targetGuildMeetingId: unknown,
-): Promise<boolean> => {
-  await requireAdminAccess();
-
-  if (
-    typeof lang !== "string" ||
-    !hasLocale(lang) ||
-    typeof sourceGuildMeetingId !== "string" ||
-    !uuidPattern.test(sourceGuildMeetingId) ||
-    typeof targetGuildMeetingId !== "string" ||
-    !uuidPattern.test(targetGuildMeetingId) ||
-    sourceGuildMeetingId === targetGuildMeetingId
-  ) {
-    return false;
-  }
-
-  const targetMeetingRows = await db
-    .select({ id: guildMeetings.id })
-    .from(guildMeetings)
-    .where(and(eq(guildMeetings.id, targetGuildMeetingId), ne(guildMeetings.id, sourceGuildMeetingId)))
-    .limit(1);
-
-  if (targetMeetingRows.length === 0) {
-    return false;
-  }
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(userPointSubmissions)
-      .set({ guildMeetingId: targetGuildMeetingId })
-      .where(eq(userPointSubmissions.guildMeetingId, sourceGuildMeetingId));
-
-    await tx
-      .delete(guildMeetings)
-      .where(eq(guildMeetings.id, sourceGuildMeetingId));
-  });
-
-  revalidatePath(`/${lang}/admin/guild-meetings`);
-
-  return true;
-};
-
-
