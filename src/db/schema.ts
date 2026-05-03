@@ -102,8 +102,7 @@ export const featureConfig = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
     modifyingUser: uuid("modifying_user")
-      .default('N/A')
-      .references(() => users.id, { onDelete: "set default" }),
+      .references(() => users.id, { onDelete: "set null" }),
     pointSystemEnabled: boolean("point_system_enabled").notNull().default(false),
     pointSystemConfig: jsonb("point_system_config").$type<FeatureConfigEntry[]>().notNull().default([]),
     individualLeaderboardEnabled: boolean("individual_leaderboard_enabled").notNull().default(false),
