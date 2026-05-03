@@ -1,6 +1,6 @@
 import featureConfiguration from "@/config/feature-configuration.json";
 
-export type FeatureConfigValue = boolean | number | string;
+export type FeatureConfigValue = boolean | number | string | number[];
 
 export type FeatureConfigState = Record<
   string,
@@ -12,7 +12,16 @@ export type FeatureConfigState = Record<
 
 type CatalogSetting = {
   id: string;
-  type: "checkbox" | "date" | "decimal" | "number" | "select" | "string" | "switch";
+  type:
+    | "checkbox"
+    | "date"
+    | "decimal"
+    | "number"
+    | "performance-metric-select"
+    | "select"
+    | "string"
+    | "streak-valid-values"
+    | "switch";
   defaultValue?: FeatureConfigValue;
   min?: number;
   options?: Array<{ value: string }>;
@@ -53,6 +62,10 @@ const getSettingDefaultValue = (setting: CatalogSetting): FeatureConfigValue => 
 
   if (setting.type === "number" || setting.type === "decimal") {
     return setting.min ?? 0;
+  }
+
+  if (setting.type === "streak-valid-values") {
+    return [];
   }
 
   if (setting.type === "select") {

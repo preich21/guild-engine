@@ -16,7 +16,7 @@ import {
 import { sql } from "drizzle-orm";
 import type { AchievementCriteria } from "@/lib/achievements";
 
-export type FeatureConfigValue = boolean | number | string;
+export type FeatureConfigValue = boolean | number | string | number[];
 
 export type FeatureConfigEntry = {
   id: string;

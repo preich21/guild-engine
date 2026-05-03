@@ -341,7 +341,7 @@
       "configuration": [
         {
           "id": "performance-metric",
-          "type": "select",
+          "type": "performance-metric-select",
           "label": {
             "en": "Performance Metric",
             "de": "Leistungsmetrik"
@@ -350,16 +350,22 @@
             "en": "The streak calculation is based on this performance metric.",
             "de": "Die Serien-Berechnung basiert auf dieser Leistungsmetrik."
           },
-          "defaultValue": "attendance",
-          "options": [
-            {
-              "value": "attendance",
-              "label": {
-                "en": "Attendance",
-                "de": "Anwesenheit"
-              }
-            }
-          ]
+          "defaultValue": ""
+        },
+        {
+          "id": "valid-values",
+          "type": "streak-valid-values",
+          "label": {
+            "en": "Valid values",
+            "de": "Gültige Werte"
+          },
+          "description": {
+            "en": "Values of the selected performance metric that extend a user's streak.",
+            "de": "Werte der ausgewählten Leistungsmetrik, die die Serie einer Benutzerin oder eines Benutzers verlängern."
+          },
+          "defaultValue": 0,
+          "min": 0,
+          "dependsOnSettingId": "performance-metric"
         }
       ]
     },

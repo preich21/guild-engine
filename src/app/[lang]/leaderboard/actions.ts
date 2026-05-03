@@ -10,7 +10,7 @@ import {
   userAchievements,
   users,
 } from "@/db/schema";
-import { getUsersGuildMeetingAttendanceStreaks } from "@/lib/attendance-streaks";
+import { getUsersGuildMeetingStreaks } from "@/lib/streaks";
 import {
   loadUserPointTotals,
   parsePointCalculationStartDate,
@@ -117,7 +117,7 @@ export const getLeaderboard = async (
   `);
 
   const rows = result.rows as RawLeaderboardEntry[];
-  const attendanceStreaksByUserId = await getUsersGuildMeetingAttendanceStreaks(
+  const attendanceStreaksByUserId = await getUsersGuildMeetingStreaks(
     rows.map((row) => String(row.userId)),
   );
 

@@ -5,13 +5,18 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 
-import { saveFeatureConfig, type LoadedFeatureConfig } from "@/app/[lang]/admin/feature-config/actions";
+import {
+  saveFeatureConfig,
+  type FeatureConfigPerformanceMetric,
+  type LoadedFeatureConfig,
+} from "@/app/[lang]/admin/feature-config/actions";
 import { useFeatureConfig } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -39,11 +44,20 @@ type Requirement = {
   condition: RequirementCondition;
 };
 
-export type FieldValue = boolean | number | string;
+export type FieldValue = boolean | number | string | number[];
 
 type FeatureSetting = {
   id: string;
-  type: "checkbox" | "date" | "decimal" | "number" | "select" | "string" | "switch";
+  type:
+    | "checkbox"
+    | "date"
+    | "decimal"
+    | "number"
+    | "performance-metric-select"
+    | "select"
+    | "string"
+    | "streak-valid-values"
+    | "switch";
   label: LocalizedText;
   description?: LocalizedText;
   defaultValue?: FieldValue;
@@ -54,6 +68,7 @@ type FeatureSetting = {
     value: string;
     label: LocalizedText;
   }>;
+  dependsOnSettingId?: string;
   prerequisites?: Requirement[];
 };
 
@@ -101,6 +116,7 @@ type FeatureConfigurationFormProps = {
     homePagePlaceholder: string;
   };
   initialLoadedConfig: LoadedFeatureConfig;
+  performanceMetrics: FeatureConfigPerformanceMetric[];
 };
 
 const getSettingDefaultValue = (setting: FeatureSetting): FieldValue => {
@@ -114,6 +130,10 @@ const getSettingDefaultValue = (setting: FeatureSetting): FieldValue => {
 
   if (setting.type === "number" || setting.type === "decimal") {
     return setting.min ?? 0;
+  }
+
+  if (setting.type === "streak-valid-values") {
+    return [];
   }
 
   if (setting.type === "select") {
@@ -184,6 +204,12 @@ const getFirstUnmetRequirement = (requirements: Requirement[] | undefined, state
 
 const localize = (text: LocalizedText, lang: Locale) => text[lang] ?? text.en;
 
+const splitEnumPossibilities = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+
 function DisabledTooltip({
   children,
   content,
@@ -208,6 +234,7 @@ export function FeatureConfigurationForm({
   catalog,
   dictionary,
   initialLoadedConfig,
+  performanceMetrics,
 }: FeatureConfigurationFormProps) {
   const router = useRouter();
   const globalFeatureConfig = useFeatureConfig();
@@ -248,6 +275,11 @@ export function FeatureConfigurationForm({
     }).format(parsed);
   }, [dictionary.never, lang, metadata.timestamp]);
 
+  const performanceMetricsById = useMemo(
+    () => new Map(performanceMetrics.map((metric) => [metric.id, metric])),
+    [performanceMetrics],
+  );
+
   const updateFeatureEnabled = (featureId: string, enabled: boolean) => {
     setFeatureState((current) => ({
       ...current,
@@ -272,6 +304,56 @@ export function FeatureConfigurationForm({
     }));
     setStatus("idle");
   };
+
+  const updateSettingWithDependents = (
+    feature: FeatureDefinition,
+    settingId: string,
+    value: FieldValue,
+  ) => {
+    setFeatureState((current) => {
+      const currentFeature = current[feature.id];
+      const nextSettings = {
+        ...currentFeature.settings,
+        [settingId]: value,
+      };
+
+      for (const dependentSetting of feature.configuration ?? []) {
+        if (dependentSetting.dependsOnSettingId === settingId) {
+          const metric = typeof value === "string" ? performanceMetricsById.get(value) : undefined;
+          nextSettings[dependentSetting.id] = metric?.type === 0 ? [] : getSettingDefaultValue(dependentSetting);
+        }
+      }
+
+      return {
+        ...current,
+        [feature.id]: {
+          ...currentFeature,
+          settings: nextSettings,
+        },
+      };
+    });
+    setStatus("idle");
+  };
+
+  const hasInvalidEnabledSettings = catalog.features.some((feature) => {
+    if (!featureState[feature.id]?.enabled) {
+      return false;
+    }
+
+    return (feature.configuration ?? []).some((setting) => {
+      if (setting.type !== "streak-valid-values") {
+        return false;
+      }
+
+      const metricId = setting.dependsOnSettingId
+        ? featureState[feature.id]?.settings[setting.dependsOnSettingId]
+        : undefined;
+      const metric = typeof metricId === "string" ? performanceMetricsById.get(metricId) : undefined;
+      const value = featureState[feature.id]?.settings[setting.id] ?? getSettingDefaultValue(setting);
+
+      return metric?.type === 0 && (!Array.isArray(value) || value.length === 0);
+    });
+  });
 
   const handleSave = () => {
     setStatus("idle");
@@ -379,7 +461,11 @@ export function FeatureConfigurationForm({
                                 disabled={settingDisabled}
                                 disabledReason={disabledReason}
                                 selectPlaceholder={dictionary.selectPlaceholder}
-                                onValueChange={updateSetting}
+                                performanceMetrics={performanceMetrics}
+                                featureSettings={featureState[feature.id]?.settings ?? {}}
+                                onValueChange={(featureId, settingId, value) =>
+                                  updateSettingWithDependents(feature, settingId, value)
+                                }
                               />
                               {setting.description ? (
                                 <p className="text-sm text-muted-foreground">{localize(setting.description, lang)}</p>
@@ -412,6 +498,8 @@ export function FeatureConfigurationForm({
                                           disabled={childDisabled}
                                           disabledReason={childDisabledReason}
                                           selectPlaceholder={dictionary.selectPlaceholder}
+                                          performanceMetrics={performanceMetrics}
+                                          featureSettings={featureState[feature.id]?.settings ?? {}}
                                           onValueChange={updateSetting}
                                         />
                                         {childSetting.description ? (
@@ -487,7 +575,7 @@ export function FeatureConfigurationForm({
             </Button>
             <Button
               type="button"
-              disabled={!hasChanges || isPending}
+              disabled={!hasChanges || hasInvalidEnabledSettings || isPending}
               onClick={handleSave}
             >
               {dictionary.saveButton}
@@ -509,6 +597,8 @@ function FeatureSettingControl({
   disabled,
   disabledReason,
   selectPlaceholder,
+  performanceMetrics,
+  featureSettings,
   onValueChange,
 }: {
   featureId: string;
@@ -518,6 +608,8 @@ function FeatureSettingControl({
   disabled: boolean;
   disabledReason?: string;
   selectPlaceholder: string;
+  performanceMetrics: FeatureConfigPerformanceMetric[];
+  featureSettings: Record<string, FieldValue>;
   onValueChange: (featureId: string, settingId: string, value: FieldValue) => void;
 }) {
   const id = `${featureId}-${setting.id}`;
@@ -587,6 +679,110 @@ function FeatureSettingControl({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+        </DisabledTooltip>
+      </div>
+    );
+  }
+
+  if (setting.type === "performance-metric-select") {
+    const selectedMetric = performanceMetrics.find((metric) => metric.id === value);
+
+    return (
+      <div className="space-y-2">
+        <Label>{label}</Label>
+        <DisabledTooltip content={disabledReason}>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              disabled={disabled}
+              render={
+                <Button type="button" variant="outline" className="w-full justify-between">
+                  <span>{selectedMetric?.shortName ?? selectPlaceholder}</span>
+                  <ChevronDown aria-hidden="true" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start" className="min-w-(--anchor-width)">
+              <DropdownMenuRadioGroup
+                value={String(value)}
+                onValueChange={(nextValue) => onValueChange(featureId, setting.id, nextValue)}
+              >
+                {performanceMetrics.map((metric) => (
+                  <DropdownMenuRadioItem key={metric.id} value={metric.id}>
+                    {metric.shortName}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </DisabledTooltip>
+      </div>
+    );
+  }
+
+  if (setting.type === "streak-valid-values") {
+    const metricId = setting.dependsOnSettingId ? featureSettings[setting.dependsOnSettingId] : undefined;
+    const metric = typeof metricId === "string"
+      ? performanceMetrics.find((entry) => entry.id === metricId)
+      : undefined;
+
+    if (metric?.type === 0) {
+      const options = splitEnumPossibilities(metric.enumPossibilities);
+      const selectedValues = Array.isArray(value) ? value : [];
+      const selectedLabels = selectedValues
+        .map((entry) => options[entry])
+        .filter((entry): entry is string => Boolean(entry));
+
+      return (
+        <div className="space-y-2">
+          <Label>{label}</Label>
+          <DisabledTooltip content={disabledReason}>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={disabled || options.length === 0}
+                render={
+                  <Button type="button" variant="outline" className="w-full justify-between">
+                    <span className="min-w-0 truncate">
+                      {selectedLabels.length > 0 ? selectedLabels.join(", ") : selectPlaceholder}
+                    </span>
+                    <ChevronDown aria-hidden="true" />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="start" className="min-w-(--anchor-width)">
+                {options.map((option, index) => (
+                  <DropdownMenuCheckboxItem
+                    key={`${option}-${index}`}
+                    checked={selectedValues.includes(index)}
+                    onCheckedChange={(checked) => {
+                      const nextValues = checked
+                        ? [...selectedValues, index]
+                        : selectedValues.filter((entry) => entry !== index);
+                      onValueChange(featureId, setting.id, nextValues.sort((first, second) => first - second));
+                    }}
+                  >
+                    {option}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </DisabledTooltip>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={id}>{label}</Label>
+        <DisabledTooltip content={disabledReason}>
+          <Input
+            id={id}
+            type="number"
+            value={typeof value === "number" ? String(value) : "0"}
+            min={setting.min ?? 0}
+            step={1}
+            disabled={disabled || !metric}
+            onChange={(event) => onValueChange(featureId, setting.id, Number(event.target.value))}
+          />
         </DisabledTooltip>
       </div>
     );

@@ -3,19 +3,19 @@
 import { useState } from "react";
 import { Flame } from "lucide-react";
 
-type AttendanceStreakIndicatorProps = {
+type StreakIndicatorProps = {
   initialCount: number;
   initialHasPendingRecentMeeting: boolean;
   initialLatestMeetingWasStreakFreeze: boolean;
   label: string;
 };
 
-export function AttendanceStreakIndicator({
+export function StreakIndicator({
   initialCount,
   initialHasPendingRecentMeeting,
   initialLatestMeetingWasStreakFreeze,
   label,
-}: AttendanceStreakIndicatorProps) {
+}: StreakIndicatorProps) {
   // Keep the server-provided value stable on the client to avoid recalculating after hydration.
   const [count] = useState(initialCount);
   const [hasPendingRecentMeeting] = useState(initialHasPendingRecentMeeting);

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { CooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
 import { signOut } from "@/auth";
 import { AdminNavLink } from "@/components/admin-nav-link";
-import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
+import { StreakIndicator } from "@/components/streak-indicator";
 import { CooperativeProgressBar } from "@/components/cooperative-progress-bar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -162,7 +162,7 @@ export function Topbar({
             />
           ) : null}
           {areStreaksEnabled ? (
-            <AttendanceStreakIndicator
+            <StreakIndicator
               initialCount={attendanceStreak.count}
               initialHasPendingRecentMeeting={attendanceStreak.hasPendingRecentMeeting}
               initialLatestMeetingWasStreakFreeze={attendanceStreak.latestMeetingWasStreakFreeze}

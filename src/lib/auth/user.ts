@@ -7,9 +7,9 @@ import { auth } from "@/auth";
 import { users } from "@/db/schema";
 import { db } from "@/lib/db";
 export {
-  getUserGuildMeetingAttendanceStreak,
-  type UserAttendanceStreak,
-} from "@/lib/attendance-streaks";
+  getUserGuildMeetingStreak as getUserGuildMeetingAttendanceStreak,
+  type UserStreak as UserAttendanceStreak,
+} from "@/lib/streaks";
 
 const isValidUserName = (value: unknown): value is string =>
   typeof value === "string" && value.trim() !== "" && value.length <= 255;

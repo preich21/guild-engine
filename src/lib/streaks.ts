@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import {
   activatedStreakFreezes,
   guildMeetings,
-  userPointSubmissions,
+  trackedContributions,
   userPowerups,
   users,
 } from "@/db/schema";
@@ -20,24 +20,31 @@ import {
 
 const DEFAULT_STREAK_FREEZE_TIMEOUT_HOURS = 72;
 
-type RawAttendanceStreakRow = {
+type RawStreakRow = {
   userId: string;
   streak: number | string;
   hasPendingRecentMeeting: boolean;
   latestMeetingWasStreakFreeze: boolean;
 };
 
-export type UserAttendanceStreak = {
+export type UserStreak = {
   count: number;
   hasPendingRecentMeeting: boolean;
   latestMeetingWasStreakFreeze: boolean;
 };
 
-const EMPTY_ATTENDANCE_STREAK: UserAttendanceStreak = {
+const EMPTY_STREAK: UserStreak = {
   count: 0,
   hasPendingRecentMeeting: false,
   latestMeetingWasStreakFreeze: false,
 };
+
+type StreakQualificationConfig = {
+  metricId: string;
+  validValues: number | number[];
+};
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const getStreakFreezeAutomaticApplyTimeoutHours = (state: FeatureConfigState) => {
   const value = Number(
@@ -57,15 +64,61 @@ const shouldApplyStreakFreezes = (state: FeatureConfigState) =>
   isFeatureEnabled(state, "powerups") &&
   isFeatureSettingEnabled(state, "powerups", "streak-freeze");
 
-const toAttendanceStreak = (
-  row: RawAttendanceStreakRow | undefined,
-): UserAttendanceStreak => ({
-  count: Number(row?.streak ?? EMPTY_ATTENDANCE_STREAK.count),
+const toStreak = (
+  row: RawStreakRow | undefined,
+): UserStreak => ({
+  count: Number(row?.streak ?? EMPTY_STREAK.count),
   hasPendingRecentMeeting: Boolean(row?.hasPendingRecentMeeting),
   latestMeetingWasStreakFreeze: Boolean(row?.latestMeetingWasStreakFreeze),
 });
 
-const applyEligibleStreakFreezes = async (timeoutHours: number) => {
+const getStreakQualificationConfig = (state: FeatureConfigState): StreakQualificationConfig => {
+  const metricId = String(getFeatureSettingValue(state, "streaks", "performance-metric") ?? "");
+  const validValues = getFeatureSettingValue(state, "streaks", "valid-values");
+
+  return {
+    metricId,
+    validValues: Array.isArray(validValues)
+      ? validValues.filter((value) => Number.isInteger(value))
+      : Number(validValues),
+  };
+};
+
+const isStreakQualificationConfigured = ({
+  metricId,
+  validValues,
+}: StreakQualificationConfig) =>
+  UUID_PATTERN.test(metricId) &&
+  (Array.isArray(validValues)
+    ? validValues.length > 0
+    : Number.isInteger(validValues) && validValues >= 0);
+
+const getQualifyingContributionSql = ({
+  metricId,
+  validValues,
+}: StreakQualificationConfig) => {
+  const valueFilter = Array.isArray(validValues)
+    ? validValues.length === 0
+      ? sql`false`
+      : sql`metric.value::integer in (${sql.join(validValues.map((value) => sql`${value}`), sql`, `)})`
+    : sql`metric.value::integer >= ${validValues}`;
+
+  return sql`
+    exists (
+      select 1
+      from jsonb_to_recordset(tc.data) as metric(id text, value integer)
+      where metric.id = ${metricId}
+        and ${valueFilter}
+    )
+  `;
+};
+
+const applyEligibleStreakFreezes = async (
+  timeoutHours: number,
+  qualificationConfig: StreakQualificationConfig,
+) => {
+  const hasQualifyingContributionSql = getQualifyingContributionSql(qualificationConfig);
+
   await db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('activated_streak_freezes:auto'))`);
 
@@ -75,15 +128,15 @@ const applyEligibleStreakFreezes = async (timeoutHours: number) => {
           up.user_id,
           gm.id as meeting_id,
           gm.timestamp as meeting_time,
-          ups.id as submission_id,
+          tc.id as contribution_id,
           asf.user_id is not null as has_streak_freeze,
-          coalesce(ups.attendance in (1, 2), false) as has_attendance,
-          coalesce(ups.attendance in (1, 2), false) or asf.user_id is not null as attended
+          coalesce(${hasQualifyingContributionSql}, false) as has_qualifying_contribution,
+          coalesce(${hasQualifyingContributionSql}, false) or asf.user_id is not null as attended
         from ${userPowerups} up
         join ${guildMeetings} gm on gm.timestamp <= now()
-        left join ${userPointSubmissions} ups
-          on ups.guild_meeting_id = gm.id
-          and ups.user_id = up.user_id
+        left join ${trackedContributions} tc
+          on tc.meeting_id = gm.id
+          and tc.user_id = up.user_id
         left join ${activatedStreakFreezes} asf
           on asf.meeting_id = gm.id
           and asf.user_id = up.user_id
@@ -103,9 +156,9 @@ const applyEligibleStreakFreezes = async (timeoutHours: number) => {
           mr.user_id,
           mr.meeting_id,
           mr.meeting_time,
-          mr.submission_id,
+          mr.contribution_id,
           mr.has_streak_freeze,
-          mr.has_attendance,
+          mr.has_qualifying_contribution,
           mr.attended
         from meeting_rows mr
         left join latest_meeting lm on lm.user_id = mr.user_id
@@ -131,7 +184,7 @@ const applyEligibleStreakFreezes = async (timeoutHours: number) => {
           and previous_meeting.meeting_rank = 2
         where missed.meeting_rank = 1
           and not missed.attended
-          and not missed.has_attendance
+          and not missed.has_qualifying_contribution
           and not missed.has_streak_freeze
           and previous_meeting.attended
       ),
@@ -161,17 +214,19 @@ const applyEligibleStreakFreezes = async (timeoutHours: number) => {
   });
 };
 
-const loadUserAttendanceStreakRows = async (
+const loadUserStreakRows = async (
   userIds: string[] | undefined,
   timeoutHours: number,
+  qualificationConfig: StreakQualificationConfig,
 ) => {
+  const hasQualifyingContributionSql = getQualifyingContributionSql(qualificationConfig);
   const userFilter = userIds === undefined
     ? sql`true`
     : userIds.length === 0
       ? sql`false`
       : sql`u.id in (${sql.join(userIds.map((userId) => sql`${userId}`), sql`, `)})`;
 
-  const result = await db.execute<RawAttendanceStreakRow>(sql`
+  const result = await db.execute<RawStreakRow>(sql`
     select
       u.id as "userId",
       coalesce(streak.count, 0)::integer as streak,
@@ -183,14 +238,14 @@ const loadUserAttendanceStreakRows = async (
         select
           gm.id as meeting_id,
           gm.timestamp as meeting_time,
-          ups.id as submission_id,
+          tc.id as contribution_id,
           asf.user_id is not null as has_streak_freeze,
-          coalesce(ups.attendance in (1, 2), false) as has_attendance,
-          coalesce(ups.attendance in (1, 2), false) or asf.user_id is not null as attended
+          coalesce(${hasQualifyingContributionSql}, false) as has_qualifying_contribution,
+          coalesce(${hasQualifyingContributionSql}, false) or asf.user_id is not null as attended
         from ${guildMeetings} gm
-        left join ${userPointSubmissions} ups
-          on ups.guild_meeting_id = gm.id
-          and ups.user_id = u.id
+        left join ${trackedContributions} tc
+          on tc.meeting_id = gm.id
+          and tc.user_id = u.id
         left join ${activatedStreakFreezes} asf
           on asf.meeting_id = gm.id
           and asf.user_id = u.id
@@ -200,7 +255,7 @@ const loadUserAttendanceStreakRows = async (
         select
           mr.meeting_id,
           mr.meeting_time,
-          mr.has_attendance,
+          mr.has_qualifying_contribution,
           mr.has_streak_freeze,
           mr.attended
         from meeting_rows mr
@@ -249,7 +304,7 @@ const loadUserAttendanceStreakRows = async (
         (select sil.value from should_ignore_latest sil) as has_pending_recent_meeting,
         coalesce(
           (
-            select not lm.has_attendance and lm.has_streak_freeze
+            select not lm.has_qualifying_contribution and lm.has_streak_freeze
             from latest_meeting lm
           ),
           false
@@ -262,27 +317,32 @@ const loadUserAttendanceStreakRows = async (
   return result.rows;
 };
 
-export const getUsersGuildMeetingAttendanceStreaks = async (
+export const getUsersGuildMeetingStreaks = async (
   userIds?: string[],
-): Promise<Record<string, UserAttendanceStreak>> => {
+): Promise<Record<string, UserStreak>> => {
   const featureConfig = await loadCurrentFeatureConfig();
   const timeoutHours = getStreakFreezeAutomaticApplyTimeoutHours(featureConfig.state);
+  const qualificationConfig = getStreakQualificationConfig(featureConfig.state);
 
-  if (shouldApplyStreakFreezes(featureConfig.state)) {
-    await applyEligibleStreakFreezes(timeoutHours);
+  if (!isStreakQualificationConfigured(qualificationConfig)) {
+    return {};
   }
 
-  const rows = await loadUserAttendanceStreakRows(userIds, timeoutHours);
+  if (shouldApplyStreakFreezes(featureConfig.state)) {
+    await applyEligibleStreakFreezes(timeoutHours, qualificationConfig);
+  }
+
+  const rows = await loadUserStreakRows(userIds, timeoutHours, qualificationConfig);
 
   return Object.fromEntries(
-    rows.map((row) => [String(row.userId), toAttendanceStreak(row)]),
+    rows.map((row) => [String(row.userId), toStreak(row)]),
   );
 };
 
-export const getUserGuildMeetingAttendanceStreak = async (
+export const getUserGuildMeetingStreak = async (
   userId: string,
-): Promise<UserAttendanceStreak> => {
-  const streaksByUserId = await getUsersGuildMeetingAttendanceStreaks([userId]);
+): Promise<UserStreak> => {
+  const streaksByUserId = await getUsersGuildMeetingStreaks([userId]);
 
-  return streaksByUserId[userId] ?? EMPTY_ATTENDANCE_STREAK;
+  return streaksByUserId[userId] ?? EMPTY_STREAK;
 };

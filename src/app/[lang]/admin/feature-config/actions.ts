@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { requireAdminAccess } from "@/app/[lang]/admin/actions";
 import featureConfiguration from "@/config/feature-configuration.json";
-import { featureConfig, type FeatureConfigEntry, type FeatureConfigValue, users } from "@/db/schema";
+import { featureConfig, performanceMetrics, type FeatureConfigEntry, type FeatureConfigValue, users } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
@@ -18,6 +18,13 @@ export type FeatureConfigState = Record<
     settings: Record<string, FeatureConfigValue>;
   }
 >;
+
+export type FeatureConfigPerformanceMetric = {
+  id: string;
+  shortName: string;
+  type: number;
+  enumPossibilities: string | null;
+};
 
 export type LoadedFeatureConfig = {
   state: FeatureConfigState | null;
@@ -37,11 +44,21 @@ export type SaveFeatureConfigResult =
 
 type CatalogSetting = {
   id: string;
-  type: "checkbox" | "date" | "decimal" | "number" | "select" | "string" | "switch";
+  type:
+    | "checkbox"
+    | "date"
+    | "decimal"
+    | "number"
+    | "performance-metric-select"
+    | "select"
+    | "string"
+    | "streak-valid-values"
+    | "switch";
   defaultValue?: FeatureConfigValue;
   min?: number;
   step?: number;
   options?: Array<{ value: string }>;
+  dependsOnSettingId?: string;
 };
 
 type CatalogFeature = {
@@ -116,6 +133,10 @@ const getSettingDefaultValue = (setting: CatalogSetting): FeatureConfigValue => 
     return setting.min ?? 0;
   }
 
+  if (setting.type === "streak-valid-values") {
+    return [];
+  }
+
   if (setting.type === "select") {
     return setting.options?.[0]?.value ?? "";
   }
@@ -125,9 +146,40 @@ const getSettingDefaultValue = (setting: CatalogSetting): FeatureConfigValue => 
 
 const isFeatureId = (featureId: string): featureId is FeatureId => featureId in featureColumns;
 
+const splitEnumPossibilities = (value: string | null | undefined) =>
+  (value ?? "")
+    .split(";")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+
+const loadFeatureConfigPerformanceMetrics = async (
+  ids?: string[],
+): Promise<FeatureConfigPerformanceMetric[]> => {
+  const query = db
+    .select({
+      id: performanceMetrics.id,
+      shortName: performanceMetrics.shortName,
+      type: performanceMetrics.type,
+      enumPossibilities: performanceMetrics.enumPossibilities,
+    })
+    .from(performanceMetrics);
+
+  if (ids !== undefined) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return query.where(inArray(performanceMetrics.id, ids)).orderBy(asc(performanceMetrics.shortName));
+  }
+
+  return query.orderBy(asc(performanceMetrics.shortName));
+};
+
 const normalizeSettingValue = (
   setting: CatalogSetting,
   value: unknown,
+  normalizedSettings: Record<string, FeatureConfigValue>,
+  performanceMetricsById: Map<string, FeatureConfigPerformanceMetric>,
 ): FeatureConfigValue | null => {
   if (setting.type === "checkbox" || setting.type === "switch") {
     return typeof value === "boolean" ? value : null;
@@ -165,6 +217,58 @@ const normalizeSettingValue = (
     return value;
   }
 
+  if (setting.type === "performance-metric-select") {
+    if (typeof value !== "string" || !performanceMetricsById.has(value)) {
+      return null;
+    }
+
+    return value;
+  }
+
+  if (setting.type === "streak-valid-values") {
+    const metricId = setting.dependsOnSettingId
+      ? normalizedSettings[setting.dependsOnSettingId]
+      : undefined;
+    const metric = typeof metricId === "string" ? performanceMetricsById.get(metricId) : undefined;
+
+    if (!metric) {
+      return null;
+    }
+
+    if (metric.type === 1) {
+      const parsed = typeof value === "number" ? value : Number(value);
+
+      if (!Number.isInteger(parsed) || parsed < (setting.min ?? 0)) {
+        return null;
+      }
+
+      return parsed;
+    }
+
+    if (metric.type === 0) {
+      if (!Array.isArray(value)) {
+        return null;
+      }
+
+      const possibilities = splitEnumPossibilities(metric.enumPossibilities);
+      const normalizedValues = value.map((entry) => Number(entry));
+      const uniqueValues = Array.from(new Set(normalizedValues));
+
+      if (
+        uniqueValues.length === 0 ||
+        uniqueValues.some(
+          (entry) => !Number.isInteger(entry) || entry < 0 || entry >= possibilities.length,
+        )
+      ) {
+        return null;
+      }
+
+      return uniqueValues;
+    }
+
+    return null;
+  }
+
   return typeof value === "string" ? value : null;
 };
 
@@ -193,13 +297,33 @@ const buildStateFromRow = (row: FeatureConfigRow): FeatureConfigState =>
     }),
   );
 
-const normalizeFeatureState = (value: unknown): FeatureConfigState | null => {
+const normalizeFeatureState = async (value: unknown): Promise<FeatureConfigState | null> => {
   if (!value || typeof value !== "object") {
     return null;
   }
 
   const payload = value as Record<string, unknown>;
   const normalized: FeatureConfigState = {};
+  const performanceMetricIds = catalog.features.flatMap((feature) => {
+    const payloadFeature = payload[feature.id];
+
+    if (!payloadFeature || typeof payloadFeature !== "object") {
+      return [];
+    }
+
+    const settingsRecord =
+      "settings" in payloadFeature && payloadFeature.settings && typeof payloadFeature.settings === "object"
+        ? (payloadFeature.settings as Record<string, unknown>)
+        : {};
+
+    return (feature.configuration ?? [])
+      .filter((setting) => setting.type === "performance-metric-select")
+      .map((setting) => settingsRecord[setting.id])
+      .filter((settingValue): settingValue is string => typeof settingValue === "string");
+  });
+  const performanceMetricsById = new Map(
+    (await loadFeatureConfigPerformanceMetrics(performanceMetricIds)).map((metric) => [metric.id, metric]),
+  );
 
   for (const feature of catalog.features) {
     if (!isFeatureId(feature.id)) {
@@ -222,22 +346,26 @@ const normalizeFeatureState = (value: unknown): FeatureConfigState | null => {
       return null;
     }
 
+    const normalizedSettings: Record<string, FeatureConfigValue> = {};
+
+    for (const setting of feature.configuration ?? []) {
+      const normalizedValue = normalizeSettingValue(
+        setting,
+        settingsRecord[setting.id] ?? getSettingDefaultValue(setting),
+        normalizedSettings,
+        performanceMetricsById,
+      );
+
+      if (normalizedValue === null) {
+        throw new Error("Invalid feature configuration value");
+      }
+
+      normalizedSettings[setting.id] = normalizedValue;
+    }
+
     normalized[feature.id] = {
       enabled: featureRecord.enabled,
-      settings: Object.fromEntries(
-        (feature.configuration ?? []).map((setting) => {
-          const normalizedValue = normalizeSettingValue(
-            setting,
-            settingsRecord[setting.id] ?? getSettingDefaultValue(setting),
-          );
-
-          if (normalizedValue === null) {
-            throw new Error("Invalid feature configuration value");
-          }
-
-          return [setting.id, normalizedValue];
-        }),
-      ),
+      settings: normalizedSettings,
     };
   }
 
@@ -304,6 +432,12 @@ export const getLatestFeatureConfig = async (): Promise<LoadedFeatureConfig> => 
   };
 };
 
+export const getFeatureConfigPerformanceMetrics = async (): Promise<FeatureConfigPerformanceMetric[]> => {
+  await requireAdminAccess();
+
+  return loadFeatureConfigPerformanceMetrics();
+};
+
 export const saveFeatureConfig = async (
   lang: unknown,
   state: unknown,
@@ -318,7 +452,7 @@ export const saveFeatureConfig = async (
   let normalizedState: FeatureConfigState | null;
 
   try {
-    normalizedState = normalizeFeatureState(state);
+    normalizedState = await normalizeFeatureState(state);
   } catch {
     return { status: "error" };
   }

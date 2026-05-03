@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { getLatestFeatureConfig } from "@/app/[lang]/admin/feature-config/actions";
+import {
+  getFeatureConfigPerformanceMetrics,
+  getLatestFeatureConfig,
+} from "@/app/[lang]/admin/feature-config/actions";
 import { FeatureConfigurationForm, type FeatureCatalog } from "@/components/feature-configuration-form";
 import featureConfiguration from "@/config/feature-configuration.json";
 import { hasLocale } from "@/i18n/config";
@@ -25,7 +28,10 @@ export default async function AdminFeatureConfigPage({
   }
 
   const dictionary = await getDictionary(lang);
-  const latestFeatureConfig = await getLatestFeatureConfig();
+  const [latestFeatureConfig, performanceMetrics] = await Promise.all([
+    getLatestFeatureConfig(),
+    getFeatureConfigPerformanceMetrics(),
+  ]);
 
   return (
     <main className="flex flex-1 justify-center bg-background px-4 py-8 sm:px-6 sm:py-12">
@@ -39,6 +45,7 @@ export default async function AdminFeatureConfigPage({
           catalog={featureConfiguration as FeatureCatalog}
           dictionary={dictionary.admin.featureConfig}
           initialLoadedConfig={latestFeatureConfig}
+          performanceMetrics={performanceMetrics}
         />
       </div>
     </main>

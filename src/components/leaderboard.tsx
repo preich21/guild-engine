@@ -1,7 +1,7 @@
 import type { LeaderboardEntry } from "@/app/[lang]/leaderboard/actions";
 
 import { AchievementStack } from "@/components/achievement-stack";
-import { AttendanceStreakIndicator } from "@/components/attendance-streak-indicator";
+import { StreakIndicator } from "@/components/streak-indicator";
 import { UserProfilePopover } from "@/components/user-profile-popover";
 import type { UserProfileDictionary } from "@/components/user-profile-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -120,7 +120,7 @@ export function Leaderboard({
                       ) : null}
                       {showStreaks ? (
                         <TableCell className="w-28">
-                          <AttendanceStreakIndicator
+                          <StreakIndicator
                             initialCount={entry.attendanceStreak.count}
                             initialHasPendingRecentMeeting={entry.attendanceStreak.hasPendingRecentMeeting}
                             initialLatestMeetingWasStreakFreeze={
