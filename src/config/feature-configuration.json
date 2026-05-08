@@ -59,19 +59,6 @@
             "de": "Punkte vor diesem Datum werden nicht berücksichtigt. Leer lassen für keine Einschränkung."
           },
           "defaultValue": ""
-        },
-        {
-          "id": "show-dashboard",
-          "type": "switch",
-          "label": {
-            "en": "Show Dashboard",
-            "de": "Dashboard anzeigen"
-          },
-          "description": {
-            "en": "When enabled, the performance metric data that was used to calculate the score of each user is depicted in the leaderboard.",
-            "de": "Wenn diese Option aktiviert ist, werden die Leistungsdaten, aus denen die Punktzahl jedes Nutzers berechnet wurde, in der Rangliste angezeigt."
-          },
-          "defaultValue": true
         }
       ]
     },
