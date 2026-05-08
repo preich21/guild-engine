@@ -58,6 +58,7 @@ export type PowerupItem = {
 export type UserProfilePowerupsDictionary = {
   cancelPowerupDialogButton: string;
   usePowerupNowButton: string;
+  openLootboxNowButton: string;
   usePowerupButton: string;
   lootboxOpenError: string;
   powerupUseError: string;
@@ -774,7 +775,6 @@ export function UserProfilePowerups({
                     <div
                       className={cn(
                         "relative flex size-48 items-center justify-center rounded-lg border border-border bg-muted/30 p-8 shadow-sm sm:size-64",
-                        isOpening && selectedDisplayPowerup.imageId === "lootbox" && "animate-bounce",
                         (selectedDisplayPowerup.count === 0 || awardedPowerup) && "opacity-45 grayscale",
                       )}
                       aria-label={selectedDisplayPowerup.label}
@@ -797,16 +797,12 @@ export function UserProfilePowerups({
                       </span>
                     </div>
 
-                    {isOpening && selectedDisplayPowerup.imageId === "lootbox" ? (
-                      <div className="pointer-events-none absolute inset-8 rounded-full bg-primary/20 animate-ping" />
-                    ) : null}
-
                     {awardedPowerup ? (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                              <div className="relative size-36 animate-in zoom-in-95 sm:size-44">
+                              <div className="relative size-36 sm:size-44">
                                 <Image
                                   src={`/powerups/${awardedPowerup.imageId}.png`}
                                   alt=""
@@ -873,6 +869,8 @@ export function UserProfilePowerups({
                         ) : null}
                         {isUsablePowerupId(selectedDisplayPowerup.imageId)
                           ? dictionary.usePowerupButton
+                          : selectedDisplayPowerup.imageId === "lootbox"
+                            ? dictionary.openLootboxNowButton
                           : dictionary.usePowerupNowButton}
                       </Button>
                     }

@@ -80,6 +80,7 @@ const en = {
     powerupsDialog: {
       cancelPowerupDialogButton: "Close",
       usePowerupNowButton: "Use Now",
+      openLootboxNowButton: "Open Now",
       usePowerupButton: "Use",
       lootboxOpenError: "Could not open this lootbox.",
       powerupUseError: "Could not use this powerup.",

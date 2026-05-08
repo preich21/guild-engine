@@ -81,6 +81,7 @@ const de = {
     powerupsDialog: {
       cancelPowerupDialogButton: "Schließen",
       usePowerupNowButton: "Jetzt nutzen",
+      openLootboxNowButton: "Jetzt öffnen",
       usePowerupButton: "Nutzen",
       lootboxOpenError: "Diese Lootbox konnte nicht geöffnet werden.",
       powerupUseError: "Dieses Powerup konnte nicht genutzt werden.",
