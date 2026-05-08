@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ChevronDown, Upload } from "lucide-react";
-import { useActionState, useId, useMemo, useState } from "react";
+import { useActionState, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ProfileEditTeam } from "@/app/[lang]/user/[uuid]/actions";
@@ -124,6 +124,7 @@ export function UserProfileForm({
 }: UserProfileFormProps) {
   const formId = useId();
   const router = useRouter();
+  const profilePictureInputRef = useRef<HTMLInputElement | null>(null);
   const [imageError, setImageError] = useState(false);
   const [draft, setDraft] = useState<ProfileEditDraft>(() => toDraft(initialValues));
   const [state, formAction, pending] = useActionState(
@@ -181,7 +182,15 @@ export function UserProfileForm({
       <div className="space-y-2">
         <Label htmlFor={`${formId}-profile-picture`}>{dictionary.profilePictureLabel}</Label>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="relative flex size-21 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isDisabled}
+            aria-label={dictionary.profilePictureUploadButton}
+            title={dictionary.profilePictureUploadButton}
+            className="relative size-21 shrink-0 overflow-hidden bg-muted p-0 hover:bg-muted"
+            onClick={() => profilePictureInputRef.current?.click()}
+          >
             {draft.profilePicture ? (
               <Image
                 src={draft.profilePicture}
@@ -194,16 +203,18 @@ export function UserProfileForm({
             ) : (
               <Upload className="size-5 text-muted-foreground" aria-hidden="true" />
             )}
-          </div>
+          </Button>
 
           <div className="flex-1 space-y-2">
             <Input
+              ref={profilePictureInputRef}
               id={`${formId}-profile-picture`}
               type="file"
               accept="image/*"
               aria-label={dictionary.profilePictureUploadButton}
               title={dictionary.profilePictureUploadButton}
               disabled={isDisabled}
+              className="cursor-pointer file:cursor-pointer disabled:cursor-not-allowed"
               onChange={(event) => {
                 const file = event.target.files?.[0] ?? null;
                 void handleImageChange(file);
@@ -315,4 +326,3 @@ export function UserProfileForm({
     </form>
   );
 }
-
