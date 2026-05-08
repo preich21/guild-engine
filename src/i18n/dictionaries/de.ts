@@ -54,6 +54,9 @@ const de = {
     cooperativeProgressOverGoalTooltip:
       "Kooperativer Fortschritt: {current} Punkte über dem Ziel von {goal}",
     profileButton: "Profil",
+    expandSidebarButton: "Sidebar ausklappen",
+    collapseSidebarButton: "Sidebar einklappen",
+    moreNavigationButton: "Weitere Navigation",
     logoutButton: "Abmelden",
   },
   profile: {

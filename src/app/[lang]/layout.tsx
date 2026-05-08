@@ -6,6 +6,8 @@ import { getCooperativeProgress } from "@/app/[lang]/cooperative-progress/action
 import { defaultLocale, hasLocale, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { FeatureConfigProvider } from "@/components/feature-config-provider";
+import { SidebarNavigation } from "@/components/sidebar-navigation";
+import { SidebarStateProvider } from "@/components/sidebar-state-provider";
 import { Topbar } from "@/components/topbar";
 import { evaluateAchievementsForUser } from "@/lib/achievement-evaluation";
 import { getCurrentUserRecord, getUserGuildMeetingAttendanceStreak } from "@/lib/auth/user";
@@ -104,26 +106,36 @@ export default async function RootLayout({
 
   return (
     <FeatureConfigProvider initialState={featureConfig.state}>
-      <Topbar
-        lang={lang}
-        dictionary={dictionary.topbar}
-        showAdminLink={Boolean(currentUser?.admin)}
-        attendanceStreak={attendanceStreak}
-        featureConfig={featureConfig.state}
-        levelProgress={levelProgress}
-        cooperativeProgress={cooperativeProgress}
-        homeHref={homeHref}
-        currentUser={
-          currentUser
-            ? {
-                id: currentUser.id,
-                username: currentUser.username,
-                profilePicture: currentUser.profilePicture,
-              }
-            : undefined
-        }
-      />
-      {children}
+      <SidebarStateProvider>
+        <Topbar
+          lang={lang}
+          dictionary={dictionary.topbar}
+          showAdminLink={Boolean(currentUser?.admin)}
+          attendanceStreak={attendanceStreak}
+          featureConfig={featureConfig.state}
+          levelProgress={levelProgress}
+          cooperativeProgress={cooperativeProgress}
+          homeHref={homeHref}
+          currentUser={
+            currentUser
+              ? {
+                  id: currentUser.id,
+                  username: currentUser.username,
+                  profilePicture: currentUser.profilePicture,
+                }
+              : undefined
+          }
+        />
+        <div className="flex min-h-[calc(100dvh-3.5rem)]">
+          <SidebarNavigation
+            lang={lang}
+            dictionary={dictionary.topbar}
+            showAdminLink={Boolean(currentUser?.admin)}
+            currentUser={currentUser ? { id: currentUser.id } : undefined}
+          />
+          <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+        </div>
+      </SidebarStateProvider>
     </FeatureConfigProvider>
   );
 }

@@ -1,26 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import type { CooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
 import { signOut } from "@/auth";
-import { AdminNavLink } from "@/components/admin-nav-link";
 import { StreakIndicator } from "@/components/streak-indicator";
 import { CooperativeProgressBar } from "@/components/cooperative-progress-bar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { LeaderboardNavLink } from "@/components/leaderboard-nav-link";
 import { LevelBar } from "@/components/level-bar";
-import { TopbarNavLink } from "@/components/topbar-nav-link";
+import { SidebarToggleButton } from "@/components/sidebar-toggle-button";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/i18n/config";
-import {
-  isFeatureEnabled,
-  isRoleRaffleEnabled,
-  type FeatureConfigState,
-} from "@/lib/feature-flags";
+import { isFeatureEnabled, type FeatureConfigState } from "@/lib/feature-flags";
 import type { UserLevelProgress } from "@/lib/level-system";
-import { CircleHelp, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 type TopbarProps = {
   lang: Locale;
@@ -52,6 +47,8 @@ type TopbarProps = {
     cooperativeProgressOverGoalTooltip: string;
     logoutButton: string;
     profileButton: string;
+    expandSidebarButton: string;
+    collapseSidebarButton: string;
   };
   showAdminLink?: boolean;
   attendanceStreak: {
@@ -73,7 +70,6 @@ type TopbarProps = {
 export function Topbar({
   lang,
   dictionary,
-  showAdminLink = false,
   attendanceStreak,
   featureConfig,
   levelProgress,
@@ -87,55 +83,34 @@ export function Topbar({
   };
 
   const profileHref = currentUser ? `/${lang}/user/${currentUser.id}` : undefined;
-  const isPointSystemEnabled = isFeatureEnabled(featureConfig, "point-system");
-  const isIndividualLeaderboardEnabled = isFeatureEnabled(featureConfig, "individual-leaderboard");
-  const isTeamLeaderboardEnabled = isFeatureEnabled(featureConfig, "team-leaderboard");
-  const areBadgesEnabled = isFeatureEnabled(featureConfig, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig, "streaks");
-  const shouldShowRoleRaffle = isRoleRaffleEnabled(featureConfig);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur">
-      <div className="flex w-full flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-          <Link href={homeHref} className="text-lg font-semibold tracking-tight">
-            {dictionary.brand}
+      <div className="flex h-14 w-full items-center gap-2 overflow-hidden px-3 sm:px-4.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <SidebarToggleButton
+            expandLabel={dictionary.expandSidebarButton}
+            collapseLabel={dictionary.collapseSidebarButton}
+          />
+          <Link
+            href={homeHref}
+            className="inline-flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-lg font-semibold tracking-tight transition-colors hover:bg-muted"
+          >
+            <Image
+              src="/favicon.ico"
+              alt=""
+              aria-hidden="true"
+              width={24}
+              height={24}
+              className="size-6 shrink-0"
+              unoptimized
+            />
+            <span className="min-w-0 truncate">{dictionary.brand}</span>
           </Link>
-          {isIndividualLeaderboardEnabled || isTeamLeaderboardEnabled ? (
-            <LeaderboardNavLink
-              lang={lang}
-              label={dictionary.leaderboardLink}
-              individualLabel={dictionary.individualLeaderboardLink}
-              teamLabel={dictionary.teamLeaderboardLink}
-              showIndividual={isIndividualLeaderboardEnabled}
-              showTeam={isTeamLeaderboardEnabled}
-            />
-          ) : null}
-          {isPointSystemEnabled ? (
-            <TopbarNavLink href={`/${lang}/track-contributions`} label={dictionary.trackContributionsLink} />
-          ) : null}
-          {shouldShowRoleRaffle ? (
-            <TopbarNavLink href={`/${lang}/role-raffle`} label={dictionary.roleRaffleLink} />
-          ) : null}
-          {showAdminLink ? (
-            <AdminNavLink
-              lang={lang}
-              label={dictionary.adminLink}
-              featureConfigLabel={dictionary.featureConfigLink}
-              guildMeetingsLabel={dictionary.guildMeetingsLink}
-              achievementsLabel={dictionary.achievementsLink}
-              awardAchievementsLabel={dictionary.awardAchievementsLink}
-              manualPointsLabel={dictionary.manualPointsLink}
-              performanceMetricConfigLabel={dictionary.performanceMetricConfigLink}
-              rulesConfigLabel={dictionary.rulesConfigLink}
-              showAchievements={areBadgesEnabled}
-              showAwardAchievements={areBadgesEnabled}
-              showManualPoints={isPointSystemEnabled}
-            />
-          ) : null}
         </div>
         {cooperativeProgress ? (
-          <div className="order-last flex w-full min-w-20 justify-center sm:order-0 sm:w-auto sm:flex-[0_1_12.5rem]">
+          <div className="flex min-w-10 flex-[0_1_8rem] justify-center sm:flex-[0_1_12.5rem]">
             <CooperativeProgressBar
               lang={lang}
               progress={cooperativeProgress}
@@ -148,7 +123,7 @@ export function Topbar({
             />
           </div>
         ) : null}
-        <div className="ml-auto flex flex-1 items-center justify-end gap-2">
+        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
           {levelProgress ? (
             <LevelBar
               lang={lang}
@@ -158,7 +133,7 @@ export function Topbar({
                 levelLabel: dictionary.levelLabel,
                 progressTooltip: dictionary.levelProgressTooltip,
               }}
-              className="hidden sm:flex"
+              className="hidden lg:flex"
             />
           ) : null}
           {areStreaksEnabled ? (
@@ -209,17 +184,6 @@ export function Topbar({
                   <span>{dictionary.profileButton}</span>
                 </Button>
               )}
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                nativeButton={false}
-                render={<Link href={`/${lang}/rules`} />}
-              >
-                <CircleHelp aria-hidden="true" />
-                <span>{dictionary.rulesLink}</span>
-              </Button>
 
               <div className="my-1 border-t border-border" />
 

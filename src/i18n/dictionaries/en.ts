@@ -53,6 +53,9 @@ const en = {
     cooperativeProgressInProgressTooltip: "Cooperative progress: {current} of {goal} points",
     cooperativeProgressOverGoalTooltip: "Cooperative progress: {current} points over the goal of {goal}",
     profileButton: "Profile",
+    expandSidebarButton: "Expand sidebar",
+    collapseSidebarButton: "Collapse sidebar",
+    moreNavigationButton: "More navigation",
     logoutButton: "Log out",
   },
   profile: {
