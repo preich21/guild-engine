@@ -1,10 +1,12 @@
 FROM node:25-alpine AS base
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@11.0.8
 
 FROM base AS deps
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm --version
+RUN pnpm config list
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
