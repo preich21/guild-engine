@@ -412,19 +412,6 @@
             "de": "Aktiviert ein Glücksrad, mit dem einem Benutzer zufällig eine Rolle zugewiesen werden kann. Kann zusammen mit \"Rollen-Schild\" Powerups verwendet werden."
           },
           "defaultValue": true
-        },
-        {
-          "id": "one-time-doing-raffle",
-          "type": "switch",
-          "label": {
-            "en": "One-Time Doing Raffle",
-            "de": "Einmalige-Aufgabe-Verlosung"
-          },
-          "description": {
-            "en": "Enables a wheel of fortune which can be used to randomly assign a user a one-time doing. Can be used together with \"One-time Doing Shield\" powerups.",
-            "de": "Aktiviert ein Glücksrad, mit dem einem Benutzer zufällig eine einmalige Aufgabe zugewiesen werden kann. Kann zusammen mit \"Einmalige-Aufgabe-Schild\" Powerups verwendet werden."
-          },
-          "defaultValue": true
         }
       ]
     },
