@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
+import {QuizDataValidationIssue, validateQuizData} from "@/lib/quiz-data-validation";
 
 type QuizDraft = {
   title: string;
@@ -64,11 +65,13 @@ type QuizManagementProps = {
     editButtonAriaLabel: string;
     deletePopoverTitle: string;
     deletePopoverDescription: string;
+    deleteDisabledTooltip: string;
     deleteConfirmButton: string;
     deleteCancelButton: string;
     deleteError: string;
     showDataButton: string;
     hideDataButton: string;
+    dataValidation: Record<QuizDataValidationIssue["code"] | "invalidJson", string>;
   };
 };
 
@@ -165,6 +168,39 @@ const inputFromDraft = (draft: QuizDraft): QuizInput | null => {
   };
 };
 
+const formatDataValidationError = (
+  issue: QuizDataValidationIssue,
+  messages: QuizManagementProps["dictionary"]["dataValidation"],
+) => {
+  const message = messages[issue.code];
+
+  return "path" in issue ? message.replace("{path}", issue.path) : message;
+};
+
+const validateDraftData = (
+  data: string,
+  messages: QuizManagementProps["dictionary"]["dataValidation"],
+) => {
+  let parsedData: unknown;
+
+  try {
+    parsedData = JSON.parse(data);
+  } catch (error) {
+    return messages.invalidJson.replace(
+      "{message}",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  const result = validateQuizData(parsedData);
+
+  if (!result.success) {
+    return formatDataValidationError(result.issue, messages);
+  }
+
+  return null;
+};
+
 export function QuizManagement({
   lang,
   rows,
@@ -176,8 +212,10 @@ export function QuizManagement({
   const router = useRouter();
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newDraft, setNewDraft] = useState(defaultDraft);
+  const [newDataValidationError, setNewDataValidationError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<QuizDraft | null>(null);
+  const [editDataValidationError, setEditDataValidationError] = useState<string | null>(null);
   const [expandedDataIds, setExpandedDataIds] = useState<Set<string>>(() => new Set());
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saveSuccess" | "saveError" | "updateSuccess" | "updateError" | "deleteError">("idle");
@@ -206,6 +244,14 @@ export function QuizManagement({
   );
 
   const handleCreate = () => {
+    const dataValidationError = validateDraftData(newDraft.data, dictionary.dataValidation);
+
+    if (dataValidationError) {
+      setStatus("idle");
+      setNewDataValidationError(dataValidationError);
+      return;
+    }
+
     const input = inputFromDraft(newDraft);
 
     if (!input) {
@@ -218,6 +264,7 @@ export function QuizManagement({
 
       if (result === "success") {
         setNewDraft(defaultDraft());
+        setNewDataValidationError(null);
         setIsAddingNew(false);
         setStatus("saveSuccess");
         router.refresh();
@@ -230,6 +277,14 @@ export function QuizManagement({
 
   const handleUpdate = (id: string) => {
     if (!editDraft) {
+      return;
+    }
+
+    const dataValidationError = validateDraftData(editDraft.data, dictionary.dataValidation);
+
+    if (dataValidationError) {
+      setStatus("idle");
+      setEditDataValidationError(dataValidationError);
       return;
     }
 
@@ -246,6 +301,7 @@ export function QuizManagement({
       if (result === "success") {
         setEditingId(null);
         setEditDraft(null);
+        setEditDataValidationError(null);
         setStatus("updateSuccess");
         router.refresh();
         return;
@@ -300,6 +356,7 @@ export function QuizManagement({
                   aria-label={dictionary.createTooltip}
                   onClick={() => {
                     setStatus("idle");
+                    setNewDataValidationError(null);
                     setNewDraft(defaultDraft());
                     setIsAddingNew(true);
                   }}
@@ -317,10 +374,15 @@ export function QuizManagement({
           <QuizFormCard
             title={dictionary.newCardTitle}
             draft={newDraft}
-            onDraftChange={setNewDraft}
+            dataValidationError={newDataValidationError}
+            onDraftChange={(draft) => {
+              setNewDraft(draft);
+              setNewDataValidationError(null);
+            }}
             onCancel={() => {
               setIsAddingNew(false);
               setNewDraft(defaultDraft());
+              setNewDataValidationError(null);
             }}
             onSave={handleCreate}
             isPending={isPending}
@@ -333,22 +395,45 @@ export function QuizManagement({
         ) : null}
 
         <div className="space-y-3">
-          {sortedRows.map((row) =>
-            editingId === row.id && editDraft ? (
-              <QuizFormCard
-                key={row.id}
-                title={dictionary.editCardTitle}
-                draft={editDraft}
-                onDraftChange={setEditDraft}
-                onCancel={() => {
-                  setEditingId(null);
-                  setEditDraft(null);
-                }}
-                onSave={() => handleUpdate(row.id)}
-                isPending={isPending}
-                dictionary={dictionary}
-              />
-            ) : (
+          {sortedRows.map((row) => {
+            if (editingId === row.id && editDraft) {
+              return (
+                <QuizFormCard
+                  key={row.id}
+                  title={dictionary.editCardTitle}
+                  draft={editDraft}
+                  dataValidationError={editDataValidationError}
+                  onDraftChange={(draft) => {
+                    setEditDraft(draft);
+                    setEditDataValidationError(null);
+                  }}
+                  onCancel={() => {
+                    setEditingId(null);
+                    setEditDraft(null);
+                    setEditDataValidationError(null);
+                  }}
+                  onSave={() => handleUpdate(row.id)}
+                  isPending={isPending}
+                  dictionary={dictionary}
+                />
+              );
+            }
+
+            const deleteButton = (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={dictionary.deleteButtonAriaLabel}
+                title={dictionary.deleteButtonAriaLabel}
+                disabled={isPending || row.hasQuizSubmissions}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 />
+              </Button>
+            );
+
+            return (
               <Card key={row.id} className="border border-border bg-background">
                 <CardHeader>
                   <CardTitle>{row.title}</CardTitle>
@@ -366,6 +451,7 @@ export function QuizManagement({
                               setStatus("idle");
                               setEditingId(row.id);
                               setEditDraft(draftFromEntry(row));
+                              setEditDataValidationError(null);
                             }}
                             disabled={isPending}
                           >
@@ -375,59 +461,50 @@ export function QuizManagement({
                       />
                       <TooltipContent>{dictionary.editButtonAriaLabel}</TooltipContent>
                     </Tooltip>
-                    <Popover
-                      open={confirmingDeleteId === row.id}
-                      onOpenChange={(open) => setConfirmingDeleteId(open ? row.id : null)}
-                    >
+                    {row.hasQuizSubmissions ? (
                       <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <PopoverTrigger
-                              render={
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={dictionary.deleteButtonAriaLabel}
-                                  title={dictionary.deleteButtonAriaLabel}
-                                  disabled={isPending}
-                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                  <Trash2 />
-                                </Button>
-                              }
-                            />
-                          }
-                        />
-                        <TooltipContent>{dictionary.deleteButtonAriaLabel}</TooltipContent>
+                        <TooltipTrigger render={<span className="inline-flex" />}>
+                          {deleteButton}
+                        </TooltipTrigger>
+                        <TooltipContent>{dictionary.deleteDisabledTooltip}</TooltipContent>
                       </Tooltip>
-                      <PopoverContent align="end" className="w-80">
-                        <PopoverHeader>
-                          <PopoverTitle>{dictionary.deletePopoverTitle}</PopoverTitle>
-                          <PopoverDescription>
-                            {dictionary.deletePopoverDescription.replace("{title}", row.title)}
-                          </PopoverDescription>
-                        </PopoverHeader>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setConfirmingDeleteId(null)}
-                            disabled={isPending}
-                          >
-                            {dictionary.deleteCancelButton}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={() => handleDelete(row.id)}
-                            disabled={isPending}
-                          >
-                            {dictionary.deleteConfirmButton}
-                          </Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                    ) : (
+                      <Popover
+                        open={confirmingDeleteId === row.id}
+                        onOpenChange={(open) => setConfirmingDeleteId(open ? row.id : null)}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger render={<PopoverTrigger render={deleteButton} />} />
+                          <TooltipContent>{dictionary.deleteButtonAriaLabel}</TooltipContent>
+                        </Tooltip>
+                        <PopoverContent align="end" className="w-80">
+                          <PopoverHeader>
+                            <PopoverTitle>{dictionary.deletePopoverTitle}</PopoverTitle>
+                            <PopoverDescription>
+                              {dictionary.deletePopoverDescription.replace("{title}", row.title)}
+                            </PopoverDescription>
+                          </PopoverHeader>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setConfirmingDeleteId(null)}
+                              disabled={isPending}
+                            >
+                              {dictionary.deleteCancelButton}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={() => handleDelete(row.id)}
+                              disabled={isPending}
+                            >
+                              {dictionary.deleteConfirmButton}
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </CardAction>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -466,8 +543,8 @@ export function QuizManagement({
                   </p>
                 </CardContent>
               </Card>
-            ),
-          )}
+            );
+          })}
         </div>
 
         {status === "saveSuccess" ? (
@@ -496,6 +573,7 @@ function QuizMeta({ label, value, monospace = false }: { label: string; value: s
 function QuizFormCard({
   title,
   draft,
+  dataValidationError,
   onDraftChange,
   onCancel,
   onSave,
@@ -504,6 +582,7 @@ function QuizFormCard({
 }: {
   title: string;
   draft: QuizDraft;
+  dataValidationError: string | null;
   onDraftChange: (draft: QuizDraft) => void;
   onCancel: () => void;
   onSave: () => void;
@@ -610,6 +689,12 @@ function QuizFormCard({
             ariaLabel={dictionary.dataLabel}
           />
         </div>
+
+        {dataValidationError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {dataValidationError}
+          </p>
+        ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isPending} className="w-full sm:w-auto">

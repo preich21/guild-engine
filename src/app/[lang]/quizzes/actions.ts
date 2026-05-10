@@ -11,6 +11,7 @@ import { quizSubmissions, quizzes } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
+import {validateQuizData} from "@/lib/quiz-data-validation";
 
 export type PublicQuizEntry = {
   id: string;
@@ -46,39 +47,6 @@ const toPublicQuizEntry = (row: {
   validTo: row.validTo?.toISOString() ?? null,
   points: row.points,
 });
-
-const isQuizData = (value: unknown): value is QuizData => {
-  if (!Array.isArray(value) || value.length === 0) {
-    return false;
-  }
-
-  return value.every((entry) => {
-    if (!entry || typeof entry !== "object") {
-      return false;
-    }
-
-    const question = entry as Partial<QuizData[number]>;
-
-    if (typeof question.question !== "string" || question.question.trim() === "") {
-      return false;
-    }
-
-    if (question.type === "number") {
-      return typeof question.correctAnswer === "number";
-    }
-
-    if (question.type === "enum") {
-      return (
-        Array.isArray(question.answerPossibilities) &&
-        question.answerPossibilities.length > 0 &&
-        question.answerPossibilities.every((possibility) => typeof possibility === "string") &&
-        Number.isInteger(question.correctAnswerIndex)
-      );
-    }
-
-    return false;
-  });
-};
 
 export const getPublicQuizzes = async (): Promise<PublicQuizEntry[]> => {
   const rows = await db
@@ -128,7 +96,7 @@ export const getPublicQuizById = async (id: string): Promise<PublicQuizDetail | 
   return row
     ? {
         ...toPublicQuizEntry(row),
-        data: isQuizData(row.data) ? row.data : null,
+        data: validateQuizData(row.data).success ? (row.data as QuizData) : null,
         submissionTimestamp: submissionRows[0]?.timestamp.toISOString() ?? null,
       }
     : null;

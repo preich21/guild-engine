@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { asc, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 
 import { requireAdminAccess } from "@/app/[lang]/admin/actions";
-import { quizzes, users } from "@/db/schema";
+import { quizSubmissions, quizzes, users } from "@/db/schema";
 import { hasLocale } from "@/i18n/config";
 import { getCurrentUserRecord } from "@/lib/auth/user";
 import { db } from "@/lib/db";
+import {validateQuizData} from "@/lib/quiz-data-validation";
 
 export type QuizEntry = {
   id: string;
@@ -19,6 +20,8 @@ export type QuizEntry = {
   validTo: string | null;
   points: number;
   data: unknown;
+  quizSubmissionCount: number;
+  hasQuizSubmissions: boolean;
 };
 
 export type QuizInput = {
@@ -78,45 +81,70 @@ const normalizeQuizInput = (input: unknown) => {
     return null;
   }
 
+  const quizDataResult = validateQuizData(data);
+
+  if (!quizDataResult.success) {
+    return null;
+  }
+
   return {
     title,
     validFrom,
     validTo,
     points,
-    data,
+    data: quizDataResult.data,
   };
 };
 
 export const getQuizzes = async (): Promise<QuizEntry[]> => {
   await requireAdminAccess();
 
-  const rows = await db
-    .select({
-      id: quizzes.id,
-      modifiedBy: quizzes.modifiedBy,
-      modifiedByUsername: users.username,
-      modifiedAt: quizzes.modifiedAt,
-      title: quizzes.title,
-      validFrom: quizzes.validFrom,
-      validTo: quizzes.validTo,
-      points: quizzes.points,
-      data: quizzes.data,
-    })
-    .from(quizzes)
-    .leftJoin(users, eq(quizzes.modifiedBy, users.id))
-    .orderBy(asc(quizzes.validFrom), asc(quizzes.title), asc(quizzes.id));
+  const [rows, submissionRows] = await Promise.all([
+    db
+      .select({
+        id: quizzes.id,
+        modifiedBy: quizzes.modifiedBy,
+        modifiedByUsername: users.username,
+        modifiedAt: quizzes.modifiedAt,
+        title: quizzes.title,
+        validFrom: quizzes.validFrom,
+        validTo: quizzes.validTo,
+        points: quizzes.points,
+        data: quizzes.data,
+      })
+      .from(quizzes)
+      .leftJoin(users, eq(quizzes.modifiedBy, users.id))
+      .orderBy(asc(quizzes.validFrom), asc(quizzes.title), asc(quizzes.id)),
+    db
+      .select({
+        quizId: quizSubmissions.quizId,
+        submissionCount: count(quizSubmissions.id),
+      })
+      .from(quizSubmissions)
+      .groupBy(quizSubmissions.quizId),
+  ]);
 
-  return rows.map((row) => ({
-    id: row.id,
-    modifiedBy: row.modifiedBy,
-    modifiedByUsername: row.modifiedByUsername,
-    modifiedAt: row.modifiedAt.toISOString(),
-    title: row.title,
-    validFrom: row.validFrom.toISOString(),
-    validTo: row.validTo?.toISOString() ?? null,
-    points: row.points,
-    data: row.data,
-  }));
+  const submissionCountByQuizId = new Map(
+    submissionRows.map((row) => [row.quizId, Number(row.submissionCount)]),
+  );
+
+  return rows.map((row) => {
+    const quizSubmissionCount = submissionCountByQuizId.get(row.id) ?? 0;
+
+    return {
+      id: row.id,
+      modifiedBy: row.modifiedBy,
+      modifiedByUsername: row.modifiedByUsername,
+      modifiedAt: row.modifiedAt.toISOString(),
+      title: row.title,
+      validFrom: row.validFrom.toISOString(),
+      validTo: row.validTo?.toISOString() ?? null,
+      points: row.points,
+      data: row.data,
+      quizSubmissionCount,
+      hasQuizSubmissions: quizSubmissionCount > 0,
+    };
+  });
 };
 
 export const createQuiz = async (
@@ -204,6 +232,16 @@ export const deleteQuiz = async (lang: unknown, id: unknown): Promise<SaveQuizRe
     typeof id !== "string" ||
     !uuidPattern.test(id)
   ) {
+    return "error";
+  }
+
+  const linkedSubmissions = await db
+    .select({ id: quizSubmissions.id })
+    .from(quizSubmissions)
+    .where(eq(quizSubmissions.quizId, id))
+    .limit(1);
+
+  if (linkedSubmissions.length > 0) {
     return "error";
   }
 
