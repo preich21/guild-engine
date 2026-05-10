@@ -27,7 +27,7 @@ const de = {
     pointsColumn: "Punkte",
   },
   quizzes: {
-    heading: "Quiz",
+    heading: "Quizze",
     empty: "Noch kein Quiz verfügbar.",
     pointsLabel: "Punkte",
     validTimeframe: "Dieses Quiz kann zwischen {validFrom} und {validTo} abgeschlossen werden.",

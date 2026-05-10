@@ -7,6 +7,8 @@ import {
   manualPoints,
   performanceMetrics,
   powerupUtilization,
+  quizzes,
+  quizSubmissions,
   trackedContributions,
   users,
 } from "@/db/schema";
@@ -191,6 +193,10 @@ export const loadUserPointTotals = async ({
     startDate === null ? sql`` : sql`and mp.timestamp::date >= ${startDate}::date`;
   const manualPointEndDateCondition =
     endDate === null ? sql`` : sql`and mp.timestamp::date <= ${endDate}::date`;
+  const quizSubmissionStartDateCondition =
+    startDate === null ? sql`` : sql`and qs.timestamp::date >= ${startDate}::date`;
+  const quizSubmissionEndDateCondition =
+    endDate === null ? sql`` : sql`and qs.timestamp::date <= ${endDate}::date`;
 
   const result = await db.execute(sql<RawUserPointTotal>`
     with selected_users as (
@@ -283,16 +289,31 @@ export const loadUserPointTotals = async ({
         ${manualPointStartDateCondition}
         ${manualPointEndDateCondition}
       group by su.id
+    ),
+    quiz_points_totals as (
+      select
+        su.id as user_id,
+        coalesce(sum(q.points), 0)::integer as total_points
+      from selected_users su
+      left join (
+        ${quizSubmissions} qs
+        inner join ${quizzes} q on q.id = qs.quiz_id
+      ) on qs.user_id = su.id
+        ${quizSubmissionStartDateCondition}
+        ${quizSubmissionEndDateCondition}
+      group by su.id
     )
     select
       su.id as "userId",
       (
         coalesce(tcp.total_points, 0)
         + coalesce(mpt.total_points, 0)
+        + coalesce(qpt.total_points, 0)
       )::integer as "totalPoints"
     from selected_users su
     left join tracked_contribution_points tcp on tcp.user_id = su.id
     left join manual_points_totals mpt on mpt.user_id = su.id
+    left join quiz_points_totals qpt on qpt.user_id = su.id
   `);
 
   return (result.rows as RawUserPointTotal[]).map((row) => ({
