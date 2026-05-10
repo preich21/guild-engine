@@ -147,6 +147,7 @@ export const createQuiz = async (
   });
 
   revalidatePath(`/${lang}/admin/quiz-management`);
+  revalidatePath(`/${lang}/quizzes`);
 
   return "success";
 };
@@ -188,6 +189,8 @@ export const updateQuiz = async (
     .where(eq(quizzes.id, id));
 
   revalidatePath(`/${lang}/admin/quiz-management`);
+  revalidatePath(`/${lang}/quizzes`);
+  revalidatePath(`/${lang}/quizzes/${id}`);
 
   return "success";
 };
@@ -206,6 +209,8 @@ export const deleteQuiz = async (lang: unknown, id: unknown): Promise<SaveQuizRe
 
   await db.delete(quizzes).where(eq(quizzes.id, id));
   revalidatePath(`/${lang}/admin/quiz-management`);
+  revalidatePath(`/${lang}/quizzes`);
+  revalidatePath(`/${lang}/quizzes/${id}`);
 
   return "success";
 };

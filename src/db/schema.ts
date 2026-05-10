@@ -99,6 +99,25 @@ export const quizzes = pgTable(
   ],
 );
 
+export const quizSubmissions = pgTable(
+  "quiz_submissions",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    quizId: uuid("quiz_id")
+      .notNull()
+      .references(() => quizzes.id, { onDelete: "restrict" }),
+    timestamp: timestamp("timestamp", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("quiz_submissions_user_id_idx").on(table.userId),
+    index("quiz_submissions_quiz_id_idx").on(table.quizId),
+    uniqueIndex("quiz_submissions_user_quiz_idx").on(table.userId, table.quizId),
+  ],
+);
+
 export const performanceMetrics = pgTable("performance_metrics", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),
   shortName: varchar("short_name", { length: 255 }).notNull(),

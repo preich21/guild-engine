@@ -374,6 +374,10 @@ export const isRouteEnabled = (
     return isRoleRaffleEnabled(state);
   }
 
+  if (isPathOrChild(pathname, `/${lang}/quizzes`)) {
+    return isQuizzesEnabled(state);
+  }
+
   if (isPathOrChild(pathname, `/${lang}/cooperative-progress`)) {
     return isFeatureEnabled(state, "cooperative-progress-bar");
   }

@@ -3,21 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Calendar,
-    CircleQuestionMark,
-    Cog,
-    Crown,
-    FerrisWheel,
-    FilePenLine,
-    FileQuestionMark,
-    Menu,
-    SlidersHorizontal,
-    Star,
-    UserRound,
-    UserRoundPlus,
-    UsersRound,
-    UserStar,
-    type LucideIcon, Brain,
+  Brain,
+  Calendar,
+  CircleQuestionMark,
+  Cog,
+  Crown,
+  FerrisWheel,
+  FilePenLine,
+  FileQuestionMark,
+  Menu,
+  SlidersHorizontal,
+  Star,
+  UserRound,
+  UserRoundPlus,
+  UsersRound,
+  UserStar,
+  type LucideIcon,
 } from "lucide-react";
 
 import { useFeatureConfig } from "@/components/feature-config-provider";
@@ -27,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
-import { isFeatureEnabled, isFeatureSettingEnabled, isRoleRaffleEnabled } from "@/lib/feature-flags";
+import { isFeatureEnabled, isQuizzesEnabled, isRoleRaffleEnabled } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 type SidebarNavigationProps = {
@@ -36,6 +37,7 @@ type SidebarNavigationProps = {
     individualLeaderboardLink: string;
     teamLeaderboardLink: string;
     trackContributionsLink: string;
+    quizzesLink: string;
     roleRaffleLink: string;
     rulesLink: string;
     featureConfigLink: string;
@@ -212,9 +214,7 @@ export function SidebarNavigation({
   const isIndividualLeaderboardEnabled = isFeatureEnabled(featureConfig, "individual-leaderboard");
   const isTeamLeaderboardEnabled = isFeatureEnabled(featureConfig, "team-leaderboard");
   const areBadgesEnabled = isFeatureEnabled(featureConfig, "badges");
-  const areQuizzesEnabled =
-    isFeatureEnabled(featureConfig, "minigames") &&
-    isFeatureSettingEnabled(featureConfig, "minigames", "quizzes");
+  const areQuizzesEnabled = isQuizzesEnabled(featureConfig);
   const shouldShowRoleRaffle = isRoleRaffleEnabled(featureConfig);
 
   const primaryItems: SidebarNavItem[] = [
@@ -263,6 +263,16 @@ export function SidebarNavigation({
             href: `/${lang}/role-raffle`,
             label: dictionary.roleRaffleLink,
             icon: FerrisWheel,
+          },
+        ]
+      : []),
+    ...(areQuizzesEnabled
+      ? [
+          {
+            id: "quizzes",
+            href: `/${lang}/quizzes`,
+            label: dictionary.quizzesLink,
+            icon: Brain,
           },
         ]
       : []),
@@ -327,7 +337,7 @@ export function SidebarNavigation({
                 href: `${adminBasePath}/quiz-management`,
                 label: dictionary.quizManagementLink,
                 icon: Brain,
-                layeredIcon: Cog
+                layeredIcon: Cog,
               },
             ]
           : []),
