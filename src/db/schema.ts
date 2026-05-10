@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -12,6 +13,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AchievementCriteria } from "@/lib/achievements";
 
 export type FeatureConfigValue = boolean | number | string | number[];
@@ -75,6 +77,27 @@ export const achievements = pgTable("achievements", {
   image: varchar("image", { length: 65535 }).notNull(),
   criteria: jsonb("criteria").$type<AchievementCriteria>().notNull(),
 });
+
+export const quizzes = pgTable(
+  "quizzes",
+  {
+    id: uuid("id").defaultRandom().notNull().primaryKey(),
+    modifiedBy: uuid("modified_by").references(() => users.id, { onDelete: "set null" }),
+    modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull().defaultNow(),
+    title: varchar("title", { length: 255 }).notNull(),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull().defaultNow(),
+    validTo: timestamp("valid_to", { withTimezone: true }).default(sql`now() + interval '4 weeks'`),
+    points: smallint("points").notNull().default(0),
+    data: jsonb("data").$type<unknown>().notNull().default([]),
+  },
+  (table) => [
+    index("quizzes_valid_from_idx").on(table.validFrom),
+    index("quizzes_valid_to_idx").on(table.validTo),
+    index("quizzes_modified_by_idx").on(table.modifiedBy),
+    check("quizzes_points_non_negative", sql`${table.points} >= 0`),
+    check("quizzes_valid_range", sql`${table.validTo} is null or ${table.validTo} > ${table.validFrom}`),
+  ],
+);
 
 export const performanceMetrics = pgTable("performance_metrics", {
   id: uuid("id").defaultRandom().notNull().primaryKey(),

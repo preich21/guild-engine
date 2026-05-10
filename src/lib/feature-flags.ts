@@ -291,6 +291,10 @@ export const isRoleRaffleEnabled = (state: FeatureConfigState) =>
   (isFeatureSettingEnabled(state, "minigames", "role-raffle") ||
     isFeatureSettingEnabled(state, "minigames", "one-time-doing-raffle"));
 
+export const isQuizzesEnabled = (state: FeatureConfigState) =>
+  isFeatureEnabled(state, "minigames") &&
+  isFeatureSettingEnabled(state, "minigames", "quizzes");
+
 export const normalizeHomePagePath = (value: unknown): string | null => {
   if (typeof value !== "string") {
     return null;
@@ -376,6 +380,10 @@ export const isRouteEnabled = (
 
   if (isPathOrChild(pathname, `/${lang}/admin/manual-points`)) {
     return isFeatureEnabled(state, "point-system");
+  }
+
+  if (isPathOrChild(pathname, `/${lang}/admin/quiz-management`)) {
+    return isQuizzesEnabled(state);
   }
 
   if (

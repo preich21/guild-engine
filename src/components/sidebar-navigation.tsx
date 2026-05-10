@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Calendar,
-  CircleQuestionMark,
-  Cog,
-  Crown,
-  FerrisWheel,
-  FilePenLine,
-  FileQuestionMark,
-  Menu,
-  SlidersHorizontal,
-  Star,
-  UserRound,
-  UserRoundPlus,
-  UsersRound,
-  UserStar,
-  type LucideIcon,
+    Calendar,
+    CircleQuestionMark,
+    Cog,
+    Crown,
+    FerrisWheel,
+    FilePenLine,
+    FileQuestionMark,
+    Menu,
+    SlidersHorizontal,
+    Star,
+    UserRound,
+    UserRoundPlus,
+    UsersRound,
+    UserStar,
+    type LucideIcon, Brain,
 } from "lucide-react";
 
 import { useFeatureConfig } from "@/components/feature-config-provider";
@@ -27,7 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Locale } from "@/i18n/config";
-import { isFeatureEnabled, isRoleRaffleEnabled } from "@/lib/feature-flags";
+import { isFeatureEnabled, isFeatureSettingEnabled, isRoleRaffleEnabled } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
 type SidebarNavigationProps = {
@@ -43,6 +43,7 @@ type SidebarNavigationProps = {
     achievementsLink: string;
     awardAchievementsLink: string;
     manualPointsLink: string;
+    quizManagementLink: string;
     performanceMetricConfigLink: string;
     rulesConfigLink: string;
     profileButton: string;
@@ -211,6 +212,9 @@ export function SidebarNavigation({
   const isIndividualLeaderboardEnabled = isFeatureEnabled(featureConfig, "individual-leaderboard");
   const isTeamLeaderboardEnabled = isFeatureEnabled(featureConfig, "team-leaderboard");
   const areBadgesEnabled = isFeatureEnabled(featureConfig, "badges");
+  const areQuizzesEnabled =
+    isFeatureEnabled(featureConfig, "minigames") &&
+    isFeatureSettingEnabled(featureConfig, "minigames", "quizzes");
   const shouldShowRoleRaffle = isRoleRaffleEnabled(featureConfig);
 
   const primaryItems: SidebarNavItem[] = [
@@ -313,6 +317,17 @@ export function SidebarNavigation({
                 href: `${adminBasePath}/manual-points`,
                 label: dictionary.manualPointsLink,
                 icon: UserRoundPlus,
+              },
+            ]
+          : []),
+        ...(areQuizzesEnabled
+          ? [
+              {
+                id: "quiz-management",
+                href: `${adminBasePath}/quiz-management`,
+                label: dictionary.quizManagementLink,
+                icon: Brain,
+                layeredIcon: Cog
               },
             ]
           : []),
