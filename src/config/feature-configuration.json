@@ -411,7 +411,8 @@
             "en": "A helper implementation to hold quizzes inside the app. Such quizzes must be prepared manually in a specific json format, and can be configured on their own admin page. Users can take part in such quizzes to gain some extra points. Quizzes could, e.g., be based on prepared-contributions that were made during a meeting to strengthen the learnings of the prepared contribution in the participants minds.",
             "de": "Eine Hilfsimplementierung, um Quizze in der App zu verwalten. Solche Quizze müssen manuell in einem bestimmten JSON-Format vorbereitet werden und können auf ihrer eigenen Admin-Seite konfiguriert werden. Benutzerinnen und Benutzer können an solchen Quizzen teilnehmen, um zusätzliche Punkte zu erhalten. Quizze könnten beispielsweise auf vorbereiteten Beiträgen basieren, die während eines Meetings gehalten wurden, um die Erkenntnisse aus dem vorbereiteten Beitrag im Gedächtnis der Teilnehmenden zu festigen."
           },
-          "defaultValue": true
+          "defaultValue": true,
+          "achievementable": true
         }
       ]
     },

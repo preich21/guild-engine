@@ -14,6 +14,7 @@ import {
   guildMeetings,
   performanceMetrics,
   powerupUtilization,
+  quizSubmissions,
   trackedContributions,
   userAchievements,
 } from "@/db/schema";
@@ -289,6 +290,26 @@ const loadPowerupUsageForFeatureAchievement = async (
   return Number(result.rows[0]?.count ?? 0);
 };
 
+const loadQuizSubmissionsForFeatureAchievement = async (
+  userId: string,
+  criteria: Extract<AchievementCriteria, { mode: "feature" }>,
+) => {
+  const { startDate, endDate } = getFeatureTimeFrameOptions(criteria);
+  const startCondition =
+    startDate === null ? sql`` : sql`and ${quizSubmissions.timestamp}::date >= ${startDate}::date`;
+  const endCondition =
+    endDate === null ? sql`` : sql`and ${quizSubmissions.timestamp}::date <= ${endDate}::date`;
+  const result = await db.execute<{ count: number | string }>(sql`
+    select count(*)::integer as count
+    from ${quizSubmissions}
+    where ${quizSubmissions.userId} = ${userId}
+      ${startCondition}
+      ${endCondition}
+  `);
+
+  return Number(result.rows[0]?.count ?? 0);
+};
+
 const loadFeatureAchievementValue = async (
   user: CurrentUserForAchievementEvaluation,
   criteria: Extract<AchievementCriteria, { mode: "feature" }>,
@@ -306,6 +327,8 @@ const loadFeatureAchievementValue = async (
       return loadAchievementCountForFeatureAchievement(user.id, criteria);
     case "powerup-usage":
       return loadPowerupUsageForFeatureAchievement(user.id, criteria);
+    case "quizzes":
+      return loadQuizSubmissionsForFeatureAchievement(user.id, criteria);
   }
 };
 

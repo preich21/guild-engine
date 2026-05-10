@@ -16,7 +16,8 @@ export type AchievementableFeatureId =
   | "team-leaderboard-position"
   | "level"
   | "achievements-count"
-  | "powerup-usage";
+  | "powerup-usage"
+  | "quizzes";
 
 type CatalogSetting = {
   id: string;
@@ -239,7 +240,7 @@ export const isFeatureSettingAvailable = (
 export const getAchievementableFeatures = (state: FeatureConfigState) => {
   const powerups = catalog.features.find((feature) => feature.id === "powerups");
 
-  return catalog.features.flatMap((feature) => {
+  const featureAchievements = catalog.features.flatMap((feature) => {
     if (!feature.achievementable || !isFeatureAvailable(state, feature.id)) {
       return [];
     }
@@ -260,6 +261,27 @@ export const getAchievementableFeatures = (state: FeatureConfigState) => {
       },
     ];
   });
+
+  const settingAchievements = catalog.features.flatMap((feature) =>
+    (feature.configuration ?? []).flatMap((setting) => {
+      if (
+        setting.id !== "quizzes" ||
+        !setting.achievementable ||
+        !isFeatureSettingAvailable(state, feature.id, setting.id)
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          featureId: feature.id,
+          type: "quizzes" as const,
+        },
+      ];
+    }),
+  );
+
+  return [...featureAchievements, ...settingAchievements];
 };
 
 export const getAchievementablePowerups = (state: FeatureConfigState) => {

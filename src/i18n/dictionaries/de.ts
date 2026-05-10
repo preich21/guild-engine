@@ -386,6 +386,7 @@ const de = {
       featureLevel: "Level ([Wert] oder höher)",
       featureAchievementsCount: "Erfolgsanzahl ([Wert] oder mehr)",
       featurePowerupUsage: "Powerup-Nutzung ([Wert] oder mehr von [Powerup])",
+      featureQuizzes: "Quiz-Teilnahme ([Wert] oder mehr)",
       valueLabel: "Wert",
       powerupLabel: "Powerup",
       metricLabel: "Metrik",

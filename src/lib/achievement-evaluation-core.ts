@@ -60,6 +60,7 @@ export const qualifiesForFeatureAchievementValue = (
     case "level":
     case "achievements-count":
     case "powerup-usage":
+    case "quizzes":
       return value >= criteria.value;
   }
 };

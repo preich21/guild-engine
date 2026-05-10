@@ -101,6 +101,7 @@ type AchievementsTableProps = {
     featureLevel: string;
     featureAchievementsCount: string;
     featurePowerupUsage: string;
+    featureQuizzes: string;
     valueLabel: string;
     powerupLabel: string;
     metricLabel: string;
@@ -293,6 +294,7 @@ export function AchievementsTable({
     level: dictionary.featureLevel,
     "achievements-count": dictionary.featureAchievementsCount,
     "powerup-usage": dictionary.featurePowerupUsage,
+    quizzes: dictionary.featureQuizzes,
   };
   const leaderboardLabels: Record<AchievementLeaderboard, string> = {
     individual: dictionary.leaderboardIndividual,
