@@ -142,7 +142,7 @@ export default async function RootLayout({
             showAdminLink={Boolean(currentUser?.admin)}
             currentUser={currentUser ? { id: currentUser.id } : undefined}
           />
-          <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+          <main className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">{children}</main>
         </div>
       </SidebarStateProvider>
     </FeatureConfigProvider>
