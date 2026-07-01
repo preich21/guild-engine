@@ -52,6 +52,15 @@ export default async function RootLayout({
     getCurrentFeatureConfig(),
   ]);
 
+  // render login/register pages without navigation overlay
+  if (!currentUser) {
+    return (
+      <FeatureConfigProvider initialState={featureConfig.state}>
+        {children}
+      </FeatureConfigProvider>
+    );
+  }
+
   const areBadgesEnabled = isFeatureEnabled(featureConfig.state, "badges");
   const areStreaksEnabled = isFeatureEnabled(featureConfig.state, "streaks");
   const areLevelsEnabled = isFeatureEnabled(featureConfig.state, "level-system");
