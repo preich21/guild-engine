@@ -1,0 +1,91 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: guild-engine-showcase-app
+    restart: unless-stopped
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://showcase_user:showcase_password@db:5432/guild_engine_showcase
+      AUTH_SECRET: 5343bef29a666888a8c5b6b5057fed16432e04d54df614c3bd8d9681d35d786e
+      AUTH_USER_1_USERNAME: testuser
+      AUTH_USER_1_PASSWORD: Start123
+      AUTH_USER_2_USERNAME: admin
+      AUTH_USER_2_PASSWORD: Start123
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+
+  db:
+    image: postgres:17
+    container_name: guild-engine-showcase-postgres
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_DB: guild_engine_showcase
+      POSTGRES_USER: showcase_user
+      POSTGRES_PASSWORD: showcase_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - showcase_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U showcase_user -d guild_engine_showcase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Idempotent application of the current src/db/schema.ts to the (empty) database.
+  schema:
+    build:
+      context: ..
+      dockerfile_inline: |
+        FROM node:25-alpine
+        WORKDIR /app
+        RUN npm install -g pnpm@11.0.8
+        COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+        RUN pnpm install --frozen-lockfile
+        COPY . .
+    command: ["pnpm", "exec", "drizzle-kit", "push", "--force"]
+    environment:
+      DATABASE_URL: postgresql://showcase_user:showcase_password@db:5432/guild_engine_showcase
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Idempotent loading of the showcase-data.sql.
+  seed:
+    image: postgres:17
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: showcase_user
+      PGPASSWORD: showcase_password
+      PGDATABASE: guild_engine_showcase
+    volumes:
+      - ./showcase-data.sql:/showcase-data.sql:ro
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        psql -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA public;"
+        USER_COUNT=$$(psql -tAc "SELECT COUNT(*) FROM users")
+        if [ "$$USER_COUNT" = "0" ]; then
+          psql -v ON_ERROR_STOP=1 -f /showcase-data.sql
+        else
+          echo "showcase data already present, skipping seed"
+        fi
+    depends_on:
+      schema:
+        condition: service_completed_successfully
+    restart: "no"
+
+volumes:
+  showcase_postgres_data:

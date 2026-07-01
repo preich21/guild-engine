@@ -4,6 +4,11 @@ A gamification tool for voluntary workplace meetings.
 Built with Next.js and PostgreSQL.
 
 
+## Showcase
+
+For a showcase of the Guild Engine, please check out the repository and refert to [the showcase README](showcase/README.md).
+
+
 ## Local Development
 
 ### Prerequisites

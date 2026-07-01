@@ -43,6 +43,7 @@ next-env.d.ts
 
 # ide
 .idea
+/db-dumps
 
 # agents
 .playwright-mcp
