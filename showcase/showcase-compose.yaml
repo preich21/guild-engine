@@ -25,7 +25,7 @@ services:
     image: postgres:17
     container_name: guild-engine-showcase-postgres
     restart: unless-stopped
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "jit=off"]
     environment:
       POSTGRES_DB: guild_engine_showcase
       POSTGRES_USER: showcase_user
@@ -82,6 +82,11 @@ services:
         else
           echo "showcase data already present, skipping seed"
         fi
+        # Populate planner statistics. Autovacuum never analyzes these small tables
+        # (its threshold is ~50 + 10% of rows), and without stats the planner grossly
+        # overestimates cost and JIT-compiles trivial queries. Run unconditionally so
+        # this also self-heals already-seeded volumes on the next `up`.
+        psql -v ON_ERROR_STOP=1 -c "ANALYZE;"
     depends_on:
       schema:
         condition: service_completed_successfully

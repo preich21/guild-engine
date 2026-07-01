@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { getLeaderboard, getTeamLeaderboard } from "@/app/[lang]/leaderboard/actions";
+import { getTeamLeaderboard } from "@/app/[lang]/leaderboard/actions";
+import { getLeaderboard } from "@/lib/leaderboard";
 import { TeamLeaderboard } from "@/components/team-leaderboard";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";

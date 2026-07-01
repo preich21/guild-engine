@@ -2,16 +2,9 @@ import "server-only";
 
 import { asc, eq, inArray } from "drizzle-orm";
 
-import {
-  getLeaderboard,
-  getIndividualLeaderboardPlacement,
-  type LeaderboardEntry,
-} from "@/app/[lang]/leaderboard/actions";
+import { getLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard";
 import { achievements, userPowerups } from "@/db/schema";
-import {
-  getUserGuildMeetingAttendanceStreak,
-  type UserAttendanceStreak,
-} from "@/lib/auth/user";
+import { type UserAttendanceStreak } from "@/lib/auth/user";
 import { db } from "@/lib/db";
 import { rankLeaderboardEntries } from "@/lib/leaderboard-ranking";
 import { getUserLevelProgress, type UserLevelProgress } from "@/lib/level-system";
@@ -166,32 +159,29 @@ export const getUserProfileData = async (
   userId: string,
   options: { includeLevelProgress?: boolean; includePowerups?: boolean } = {},
 ): Promise<UserProfileData | null> => {
-  const [entries, allAchievements, attendanceStreak, placement, levelProgress, powerups] = await Promise.all([
+  const [entries, allAchievements, levelProgress, powerups] = await Promise.all([
     getLeaderboard(),
     getUserProfileAchievementCatalog(),
-    getUserGuildMeetingAttendanceStreak(userId),
-    getIndividualLeaderboardPlacement(userId),
     options.includeLevelProgress ? getUserLevelProgress(userId) : Promise.resolve(null),
     options.includePowerups ? getUserPowerups(userId) : Promise.resolve(EMPTY_USER_POWERUPS),
   ]);
 
-  if (placement == null) {
-    return null;
-  }
+  // The leaderboard already contains this user's rank and attendance streak, so derive
+  // both from it instead of recomputing via getIndividualLeaderboardPlacement /
+  // getUserGuildMeetingAttendanceStreak (which each re-run the whole leaderboard/streak
+  // pipeline under the streak-freeze advisory lock).
+  const rankedEntry = rankLeaderboardEntries(entries).find(
+    (candidate) => candidate.userId === userId,
+  );
 
-  const entry = entries.find((candidate) => candidate.userId === userId);
-
-  if (!entry) {
+  if (!rankedEntry) {
     return null;
   }
 
   return toUserProfileData(
-    {
-      ...entry,
-      rank: placement,
-    },
+    rankedEntry,
     allAchievements,
-    attendanceStreak,
+    rankedEntry.attendanceStreak,
     levelProgress,
     powerups,
   );

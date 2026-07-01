@@ -17,7 +17,7 @@ services:
     image: postgres:17
     container_name: guild-engine-postgres
     restart: unless-stopped
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "jit=off"]
     env_file:
       - .env
     environment:

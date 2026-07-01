@@ -1,6 +1,6 @@
 "use server";
 
-import { getLeaderboard } from "@/app/[lang]/leaderboard/actions";
+import { getLeaderboard } from "@/lib/leaderboard";
 
 export type CooperativeProgressConfig = {
   "start-date"?: unknown;

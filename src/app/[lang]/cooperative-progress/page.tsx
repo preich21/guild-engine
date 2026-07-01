@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getCooperativeProgress } from "@/app/[lang]/cooperative-progress/actions";
-import { getLeaderboard } from "@/app/[lang]/leaderboard/actions";
+import { getLeaderboard } from "@/lib/leaderboard";
 import { CooperativeProgressPage } from "@/components/cooperative-progress-page";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";

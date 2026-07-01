@@ -20,6 +20,13 @@ import {
 
 const DEFAULT_STREAK_FREEZE_TIMEOUT_HOURS = 72;
 
+// Auto-applying streak freezes is a write that runs opportunistically during streak
+// reads. Throttle it to at most once per process per interval so ordinary page views
+// don't repeatedly kick off the mutation. The non-blocking advisory lock in
+// applyEligibleStreakFreezes keeps this correct across concurrent requests/instances.
+const STREAK_FREEZE_APPLY_THROTTLE_MS = 10_000; // ~10 sec
+let lastStreakFreezeApplyAt = 0;
+
 type RawStreakRow = {
   userId: string;
   streak: number | string;
@@ -120,7 +127,17 @@ const applyEligibleStreakFreezes = async (
   const hasQualifyingContributionSql = getQualifyingContributionSql(qualificationConfig);
 
   await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('activated_streak_freezes:auto'))`);
+    // Non-blocking lock: if another request is already applying, skip instead of
+    // queueing. Reads must never block waiting for this write to finish.
+    const [lock] = (
+      await tx.execute<{ locked: boolean }>(
+        sql`select pg_try_advisory_xact_lock(hashtext('activated_streak_freezes:auto')) as locked`,
+      )
+    ).rows;
+
+    if (!lock?.locked) {
+      return;
+    }
 
     const insertedRows = await tx.execute<{ userId: string }>(sql`
       with meeting_rows as (
@@ -328,8 +345,19 @@ export const getUsersGuildMeetingStreaks = async (
     return {};
   }
 
-  if (shouldApplyStreakFreezes(featureConfig.state)) {
-    await applyEligibleStreakFreezes(timeoutHours, qualificationConfig);
+  if (
+    shouldApplyStreakFreezes(featureConfig.state) &&
+    Date.now() - lastStreakFreezeApplyAt >= STREAK_FREEZE_APPLY_THROTTLE_MS
+  ) {
+    // Set before running to prevent a stampede of concurrent requests all applying.
+    lastStreakFreezeApplyAt = Date.now();
+
+    // Best-effort: a failed auto-apply must not break streak reads.
+    try {
+      await applyEligibleStreakFreezes(timeoutHours, qualificationConfig);
+    } catch (error) {
+      console.error("Failed to auto-apply streak freezes", error);
+    }
   }
 
   const rows = await loadUserStreakRows(userIds, timeoutHours, qualificationConfig);

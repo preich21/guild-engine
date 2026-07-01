@@ -3,11 +3,10 @@ import "server-only";
 import { and, asc, desc, eq, isNull, lte, sql } from "drizzle-orm";
 
 import {
-  getLeaderboard,
   getTeamLeaderboard,
-  type LeaderboardEntry,
   type TeamLeaderboardEntry,
 } from "@/app/[lang]/leaderboard/actions";
+import { getLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard";
 import {
   activatedStreakFreezes,
   achievements,
