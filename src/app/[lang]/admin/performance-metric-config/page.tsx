@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import {
   createPerformanceMetric,
   getPerformanceMetrics,
+  setPerformanceMetricDisabled,
+  updatePerformanceMetric,
+  updatePerformanceMetricOrder,
 } from "@/app/[lang]/admin/performance-metric-config/actions";
 import { PerformanceMetricConfigList } from "@/components/performance-metric-config-list";
 import { hasLocale } from "@/i18n/config";
@@ -39,6 +42,9 @@ export default async function AdminPerformanceMetricConfigPage({
           lang={lang}
           rows={entries}
           createAction={createPerformanceMetric}
+          reorderAction={updatePerformanceMetricOrder}
+          updateAction={updatePerformanceMetric}
+          disableAction={setPerformanceMetricDisabled}
           dictionary={dictionary.admin.performanceMetricConfig}
         />
       </div>

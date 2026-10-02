@@ -193,6 +193,7 @@ export const loadUserPointTotals = async ({
         ) parsed_contribution on true
         left join ${performanceMetrics} pm
           on pm.id::text = parsed_contribution.metric_id
+          and (pm.disable_timestamp is null or gm.timestamp < pm.disable_timestamp)
       ) tcp on true
       left join lateral (
         select

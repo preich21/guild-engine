@@ -120,6 +120,20 @@
       "when": 1778431149982,
       "tag": "0016_unknown_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790930326497,
+      "tag": "0017_blushing_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790933169107,
+      "tag": "0018_brainy_the_executioner",
+      "breakpoints": true
     }
   ]
 }
