@@ -19,6 +19,7 @@ export type PerformanceMetricEntry = {
   points: string | null;
   timestampAdded: string;
   sortOrder: number;
+  disableTimestamp: string | null;
 };
 
 export type CreatePerformanceMetricActionState = {
@@ -27,6 +28,14 @@ export type CreatePerformanceMetricActionState = {
 
 export type UpdatePerformanceMetricOrderActionState = {
   status: "idle" | "success" | "error";
+};
+
+export type UpdatePerformanceMetricActionState = {
+  status: "idle" | "success" | "error";
+};
+
+export type SetPerformanceMetricDisableTimestampActionState = {
+  status: "idle" | "disabled" | "enabled" | "error";
 };
 
 const PERFORMANCE_METRIC_SHORT_NAME_MAX_LENGTH = 30;
@@ -61,6 +70,10 @@ const normalizeOptionalString = (value: FormDataEntryValue | null, maxLength: nu
 
   return normalized;
 };
+
+const isUuid = (value: FormDataEntryValue | null): value is string =>
+  typeof value === "string" &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 const splitSemicolonValues = (value: string) =>
   value
@@ -138,6 +151,7 @@ export const getPerformanceMetrics = async (): Promise<PerformanceMetricEntry[]>
       points: performanceMetrics.points,
       timestampAdded: performanceMetrics.timestampAdded,
       sortOrder: performanceMetrics.sortOrder,
+      disableTimestamp: performanceMetrics.disableTimestamp,
     })
     .from(performanceMetrics)
     .orderBy(
@@ -149,6 +163,7 @@ export const getPerformanceMetrics = async (): Promise<PerformanceMetricEntry[]>
   return rows.map((row) => ({
     ...row,
     timestampAdded: row.timestampAdded.toISOString(),
+    disableTimestamp: row.disableTimestamp?.toISOString() ?? null,
   }));
 };
 
@@ -203,6 +218,14 @@ export const createPerformanceMetric = async (
     return { status: "error" };
   }
 
+  const duplicateOfId = formData.get("duplicateOfId");
+  const [duplicateSource] = isUuid(duplicateOfId)
+    ? await db
+        .select({ sortOrder: performanceMetrics.sortOrder })
+        .from(performanceMetrics)
+        .where(eq(performanceMetrics.id, duplicateOfId))
+        .limit(1)
+    : [];
   const [{ maxSortOrder }] = await db
     .select({ maxSortOrder: max(performanceMetrics.sortOrder) })
     .from(performanceMetrics);
@@ -213,7 +236,7 @@ export const createPerformanceMetric = async (
     type,
     enumPossibilities: type === 0 ? enumPossibilities : null,
     points,
-    sortOrder: (maxSortOrder ?? -1) + 1,
+    sortOrder: duplicateSource?.sortOrder ?? (maxSortOrder ?? -1) + 1,
   });
 
   revalidatePath(`/${lang}/admin/performance-metric-config`);
@@ -277,4 +300,108 @@ export const updatePerformanceMetricOrder = async (
   revalidatePath(`/${lang}/track-contributions`);
 
   return { status: "success" };
+};
+
+export const updatePerformanceMetric = async (
+  _previousState: UpdatePerformanceMetricActionState,
+  formData: FormData,
+): Promise<UpdatePerformanceMetricActionState> => {
+  await requireAdminAccess();
+
+  const lang = formData.get("lang");
+  const id = formData.get("id");
+  const shortName = normalizeRequiredString(
+    formData.get("shortName"),
+    PERFORMANCE_METRIC_SHORT_NAME_MAX_LENGTH,
+  );
+  const question = normalizeRequiredString(
+    formData.get("question"),
+    PERFORMANCE_METRIC_QUESTION_MAX_LENGTH,
+  );
+
+  if (
+    typeof lang !== "string" ||
+    !hasLocale(lang) ||
+    !isUuid(id) ||
+    shortName === null ||
+    question === null
+  ) {
+    return { status: "error" };
+  }
+
+  const [existingMetric] = await db
+    .select({
+      type: performanceMetrics.type,
+      enumPossibilities: performanceMetrics.enumPossibilities,
+      points: performanceMetrics.points,
+    })
+    .from(performanceMetrics)
+    .where(eq(performanceMetrics.id, id))
+    .limit(1);
+
+  if (!existingMetric) {
+    return { status: "error" };
+  }
+
+  const featureConfig = await getCurrentFeatureConfig();
+  const pointSystemEnabled = Boolean(isFeatureEnabled(featureConfig.state, "point-system"));
+  const points = pointSystemEnabled
+    ? normalizePointsInput({
+        points: formData.get("points"),
+        enumPossibilities: existingMetric.enumPossibilities,
+        pointSystemEnabled,
+        type: existingMetric.type,
+      })
+    : existingMetric.points;
+
+  if (points === undefined) {
+    return { status: "error" };
+  }
+
+  await db
+    .update(performanceMetrics)
+    .set({ shortName, question, points })
+    .where(eq(performanceMetrics.id, id));
+
+  revalidatePath(`/${lang}/admin/performance-metric-config`);
+  revalidatePath(`/${lang}/track-contributions`);
+
+  return { status: "success" };
+};
+
+export const setPerformanceMetricDisabled = async (
+  _previousState: SetPerformanceMetricDisableTimestampActionState,
+  formData: FormData,
+): Promise<SetPerformanceMetricDisableTimestampActionState> => {
+  await requireAdminAccess();
+
+  const lang = formData.get("lang");
+  const id = formData.get("id");
+  const disabled = formData.get("disabled");
+
+  if (
+    typeof lang !== "string" ||
+    !hasLocale(lang) ||
+    !isUuid(id) ||
+    (disabled !== "true" && disabled !== "false")
+  ) {
+    return { status: "error" };
+  }
+
+  const disableTimestamp = disabled === "true" ? new Date() : null;
+
+  const updatedRows = await db
+    .update(performanceMetrics)
+    .set({ disableTimestamp })
+    .where(eq(performanceMetrics.id, id))
+    .returning({ id: performanceMetrics.id });
+
+  if (updatedRows.length === 0) {
+    return { status: "error" };
+  }
+
+  revalidatePath(`/${lang}/admin/performance-metric-config`);
+  revalidatePath(`/${lang}/track-contributions`);
+
+  return { status: disableTimestamp === null ? "enabled" : "disabled" };
 };

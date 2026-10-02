@@ -1,0 +1,1 @@
+ALTER TABLE "performance_metrics" ADD COLUMN "disable_timestamp" timestamp with time zone;

@@ -127,6 +127,7 @@ export const performanceMetrics = pgTable("performance_metrics", {
   points: varchar("points", { length: 255 }),
   timestampAdded: timestamp("timestamp_added", { withTimezone: true }).notNull().defaultNow(),
   sortOrder: integer("sort_order").notNull().default(0),
+  disableTimestamp: timestamp("disable_timestamp", { withTimezone: true }),
 });
 
 export const rules = pgTable(

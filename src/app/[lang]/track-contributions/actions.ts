@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, desc, eq, like, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, like, lte, or } from "drizzle-orm";
 
 import {
   guildMeetings,
@@ -119,7 +119,14 @@ const getPerformanceMetrics = async (meetingTimestamp: Date | null): Promise<Con
       enumPossibilities: performanceMetrics.enumPossibilities,
     })
     .from(performanceMetrics)
-    .where(meetingTimestamp ? lte(performanceMetrics.timestampAdded, meetingTimestamp) : undefined)
+    .where(
+      meetingTimestamp
+        ? and(
+            lte(performanceMetrics.timestampAdded, meetingTimestamp),
+            or(isNull(performanceMetrics.disableTimestamp), gt(performanceMetrics.disableTimestamp, meetingTimestamp)),
+          )
+        : undefined,
+    )
     .orderBy(
       asc(performanceMetrics.sortOrder),
       asc(performanceMetrics.timestampAdded),
