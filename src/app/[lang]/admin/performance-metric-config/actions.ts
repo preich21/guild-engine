@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { desc } from "drizzle-orm";
+import { asc, eq, max } from "drizzle-orm";
 
 import { requireAdminAccess } from "@/app/[lang]/admin/actions";
 import { performanceMetrics } from "@/db/schema";
@@ -18,9 +18,14 @@ export type PerformanceMetricEntry = {
   enumPossibilities: string | null;
   points: string | null;
   timestampAdded: string;
+  sortOrder: number;
 };
 
 export type CreatePerformanceMetricActionState = {
+  status: "idle" | "success" | "error";
+};
+
+export type UpdatePerformanceMetricOrderActionState = {
   status: "idle" | "success" | "error";
 };
 
@@ -132,9 +137,14 @@ export const getPerformanceMetrics = async (): Promise<PerformanceMetricEntry[]>
       enumPossibilities: performanceMetrics.enumPossibilities,
       points: performanceMetrics.points,
       timestampAdded: performanceMetrics.timestampAdded,
+      sortOrder: performanceMetrics.sortOrder,
     })
     .from(performanceMetrics)
-    .orderBy(desc(performanceMetrics.timestampAdded), desc(performanceMetrics.id));
+    .orderBy(
+      asc(performanceMetrics.sortOrder),
+      asc(performanceMetrics.timestampAdded),
+      asc(performanceMetrics.id),
+    );
 
   return rows.map((row) => ({
     ...row,
@@ -193,15 +203,78 @@ export const createPerformanceMetric = async (
     return { status: "error" };
   }
 
+  const [{ maxSortOrder }] = await db
+    .select({ maxSortOrder: max(performanceMetrics.sortOrder) })
+    .from(performanceMetrics);
+
   await db.insert(performanceMetrics).values({
     shortName,
     question,
     type,
     enumPossibilities: type === 0 ? enumPossibilities : null,
     points,
+    sortOrder: (maxSortOrder ?? -1) + 1,
   });
 
   revalidatePath(`/${lang}/admin/performance-metric-config`);
+
+  return { status: "success" };
+};
+
+const parseOrderedIds = (value: FormDataEntryValue | null): string[] | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (!Array.isArray(parsed) || !parsed.every((entry) => typeof entry === "string")) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+export const updatePerformanceMetricOrder = async (
+  _previousState: UpdatePerformanceMetricOrderActionState,
+  formData: FormData,
+): Promise<UpdatePerformanceMetricOrderActionState> => {
+  await requireAdminAccess();
+
+  const lang = formData.get("lang");
+  const orderedIds = parseOrderedIds(formData.get("orderedIds"));
+
+  if (typeof lang !== "string" || !hasLocale(lang) || orderedIds === null) {
+    return { status: "error" };
+  }
+
+  const existingRows = await db.select({ id: performanceMetrics.id }).from(performanceMetrics);
+  const existingIds = new Set(existingRows.map((row) => row.id));
+  const uniqueOrderedIds = new Set(orderedIds);
+
+  if (
+    uniqueOrderedIds.size !== orderedIds.length ||
+    orderedIds.length !== existingIds.size ||
+    orderedIds.some((id) => !existingIds.has(id))
+  ) {
+    return { status: "error" };
+  }
+
+  await db.transaction(async (tx) => {
+    for (const [index, id] of orderedIds.entries()) {
+      await tx
+        .update(performanceMetrics)
+        .set({ sortOrder: index })
+        .where(eq(performanceMetrics.id, id));
+    }
+  });
+
+  revalidatePath(`/${lang}/admin/performance-metric-config`);
+  revalidatePath(`/${lang}/track-contributions`);
 
   return { status: "success" };
 };

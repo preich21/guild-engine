@@ -49,3 +49,6 @@ next-env.d.ts
 .playwright-mcp
 .codex
 .agents
+
+# implementation plans
+/plans

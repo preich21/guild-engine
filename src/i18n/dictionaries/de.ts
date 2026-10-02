@@ -496,6 +496,12 @@ const de = {
       saveButton: "Speichern",
       saveSuccess: "Performance-Metrik gespeichert.",
       saveError: "Performance-Metrik konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.",
+      reorderButton: "Performance-Metriken neu anordnen",
+      dragHandleLabel: "{name} zum Verschieben ziehen",
+      reorderCancelButton: "Abbrechen",
+      reorderSaveButton: "Speichern",
+      reorderSaveSuccess: "Reihenfolge gespeichert.",
+      reorderSaveError: "Reihenfolge konnte nicht gespeichert werden. Bitte lade die Seite neu und versuche es erneut.",
     },
   },
 } as const;

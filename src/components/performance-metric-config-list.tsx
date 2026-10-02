@@ -1,12 +1,31 @@
 "use client";
 
-import { ChevronDown, Plus } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { ArrowUpDown, ChevronDown, GripVertical, Plus } from "lucide-react";
 import { useActionState, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
   CreatePerformanceMetricActionState,
   PerformanceMetricEntry,
+  UpdatePerformanceMetricOrderActionState,
 } from "@/app/[lang]/admin/performance-metric-config/actions";
 import { useFeatureEnabled } from "@/components/feature-config-provider";
 import { Button } from "@/components/ui/button";
@@ -30,6 +49,10 @@ type PerformanceMetricConfigListProps = {
     state: CreatePerformanceMetricActionState,
     formData: FormData,
   ) => Promise<CreatePerformanceMetricActionState>;
+  reorderAction: (
+    state: UpdatePerformanceMetricOrderActionState,
+    formData: FormData,
+  ) => Promise<UpdatePerformanceMetricOrderActionState>;
   dictionary: {
     heading: string;
     addNewButton: string;
@@ -54,6 +77,12 @@ type PerformanceMetricConfigListProps = {
     saveButton: string;
     saveSuccess: string;
     saveError: string;
+    reorderButton: string;
+    dragHandleLabel: string;
+    reorderCancelButton: string;
+    reorderSaveButton: string;
+    reorderSaveSuccess: string;
+    reorderSaveError: string;
   };
 };
 
@@ -66,6 +95,7 @@ type DraftPerformanceMetric = {
 };
 
 const initialState: CreatePerformanceMetricActionState = { status: "idle" };
+const initialReorderState: UpdatePerformanceMetricOrderActionState = { status: "idle" };
 
 const defaultDraft = (): DraftPerformanceMetric => ({
   shortName: "",
@@ -106,10 +136,94 @@ const isNonNegativeIntegerString = (value: string) => {
   return Number.isSafeInteger(parsed) && parsed >= 0;
 };
 
+type Dictionary = PerformanceMetricConfigListProps["dictionary"];
+
+function PerformanceMetricDetails({
+  row,
+  dictionary,
+}: {
+  row: PerformanceMetricEntry;
+  dictionary: Dictionary;
+}) {
+  return (
+    <dl className="space-y-2 text-sm">
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.questionLabel}:</dt>
+        <dd className="break-words text-muted-foreground">{row.question}</dd>
+      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.idLabel}:</dt>
+        <dd className="break-all text-muted-foreground">{row.id}</dd>
+      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.enumPossibilitiesLabel}:</dt>
+        <dd className="break-words text-muted-foreground">{row.enumPossibilities ?? "--"}</dd>
+      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.integerPointsLabel}:</dt>
+        <dd className="break-words text-muted-foreground">{row.points ?? "--"}</dd>
+      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.timestampAddedLabel}:</dt>
+        <dd className="break-words text-muted-foreground">{row.timestampAdded}</dd>
+      </div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+        <dt className="font-medium text-foreground">{dictionary.typeLabel}:</dt>
+        <dd className="text-muted-foreground">{getTypeLabel(row.type, dictionary)}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function SortablePerformanceMetricCard({
+  row,
+  dictionary,
+  disabled,
+}: {
+  row: PerformanceMetricEntry;
+  dictionary: Dictionary;
+  disabled: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: row.id, disabled });
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={isDragging ? "relative z-10 opacity-60 ring-2 ring-ring" : undefined}
+    >
+      <CardHeader>
+        <CardTitle>{row.shortName}</CardTitle>
+        <CardAction>
+          <Button
+            ref={setActivatorNodeRef}
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="cursor-grab touch-none active:cursor-grabbing"
+            aria-label={dictionary.dragHandleLabel.replace("{name}", row.shortName)}
+            title={dictionary.dragHandleLabel.replace("{name}", row.shortName)}
+            disabled={disabled}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <PerformanceMetricDetails row={row} dictionary={dictionary} />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PerformanceMetricConfigList({
   lang,
   rows,
   createAction,
+  reorderAction,
   dictionary,
 }: PerformanceMetricConfigListProps) {
   const formId = useId();
@@ -130,6 +244,27 @@ export function PerformanceMetricConfigList({
       return nextState;
     },
     initialState,
+  );
+
+  const [isReordering, setIsReordering] = useState(false);
+  const [orderedRows, setOrderedRows] = useState<PerformanceMetricEntry[]>(rows);
+  const [reorderState, reorderFormAction, reorderPending] = useActionState(
+    async (previousState: UpdatePerformanceMetricOrderActionState, formData: FormData) => {
+      const nextState = await reorderAction(previousState, formData);
+
+      if (nextState.status === "success") {
+        setIsReordering(false);
+        router.refresh();
+      }
+
+      return nextState;
+    },
+    initialReorderState,
+  );
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const isEnumType = draft.type === "0";
@@ -161,21 +296,57 @@ export function PerformanceMetricConfigList({
     setIsAddingNew(false);
   };
 
+  const handleStartReorder = () => {
+    setOrderedRows(rows);
+    setIsReordering(true);
+  };
+
+  const handleCancelReorder = () => {
+    setOrderedRows(rows);
+    setIsReordering(false);
+  };
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    setOrderedRows((current) => {
+      const oldIndex = current.findIndex((row) => row.id === active.id);
+      const newIndex = current.findIndex((row) => row.id === over.id);
+
+      return oldIndex < 0 || newIndex < 0 ? current : arrayMove(current, oldIndex, newIndex);
+    });
+  };
+
   return (
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">{dictionary.heading}</h1>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={handleStartCreate}
-          disabled={isAddingNew || pending}
-          aria-label={dictionary.addNewButton}
-          title={dictionary.addNewButton}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={handleStartReorder}
+            disabled={isReordering || isAddingNew || pending || rows.length < 2}
+            aria-label={dictionary.reorderButton}
+            title={dictionary.reorderButton}
+          >
+            <ArrowUpDown className="size-4" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={handleStartCreate}
+            disabled={isAddingNew || isReordering || pending}
+            aria-label={dictionary.addNewButton}
+            title={dictionary.addNewButton}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -356,6 +527,12 @@ export function PerformanceMetricConfigList({
         {state.status === "error" ? (
           <p className="text-sm text-destructive">{dictionary.saveError}</p>
         ) : null}
+        {reorderState.status === "success" && !isReordering ? (
+          <p className="text-sm text-muted-foreground">{dictionary.reorderSaveSuccess}</p>
+        ) : null}
+        {reorderState.status === "error" ? (
+          <p className="text-sm text-destructive">{dictionary.reorderSaveError}</p>
+        ) : null}
 
         {rows.length === 0 && !isAddingNew ? (
           <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
@@ -363,42 +540,50 @@ export function PerformanceMetricConfigList({
           </p>
         ) : null}
 
-        {rows.map((row) => (
-          <Card key={row.id}>
-            <CardHeader>
-              <CardTitle>{row.shortName}</CardTitle>
-              <CardAction />
-            </CardHeader>
-            <CardContent>
-              <dl className="space-y-2 text-sm">
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.questionLabel}:</dt>
-                  <dd className="break-words text-muted-foreground">{row.question}</dd>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.idLabel}:</dt>
-                  <dd className="break-all text-muted-foreground">{row.id}</dd>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.enumPossibilitiesLabel}:</dt>
-                  <dd className="break-words text-muted-foreground">{row.enumPossibilities ?? "--"}</dd>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.integerPointsLabel}:</dt>
-                  <dd className="break-words text-muted-foreground">{row.points ?? "--"}</dd>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.timestampAddedLabel}:</dt>
-                  <dd className="break-words text-muted-foreground">{row.timestampAdded}</dd>
-                </div>
-                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                  <dt className="font-medium text-foreground">{dictionary.typeLabel}:</dt>
-                  <dd className="text-muted-foreground">{getTypeLabel(row.type, dictionary)}</dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
-        ))}
+        {isReordering ? (
+          <form action={reorderFormAction} className="space-y-4">
+            <input type="hidden" name="lang" value={lang} />
+            <input type="hidden" name="orderedIds" value={JSON.stringify(orderedRows.map((row) => row.id))} />
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={orderedRows.map((row) => row.id)} strategy={verticalListSortingStrategy}>
+                {orderedRows.map((row) => (
+                  <SortablePerformanceMetricCard
+                    key={row.id}
+                    row={row}
+                    dictionary={dictionary}
+                    disabled={reorderPending}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={handleCancelReorder}
+                disabled={reorderPending}
+              >
+                {dictionary.reorderCancelButton}
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto" disabled={reorderPending}>
+                {dictionary.reorderSaveButton}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          rows.map((row) => (
+            <Card key={row.id}>
+              <CardHeader>
+                <CardTitle>{row.shortName}</CardTitle>
+                <CardAction />
+              </CardHeader>
+              <CardContent>
+                <PerformanceMetricDetails row={row} dictionary={dictionary} />
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </section>
   );

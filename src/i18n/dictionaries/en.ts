@@ -490,6 +490,12 @@ const en = {
       saveButton: "Save",
       saveSuccess: "Performance metric saved.",
       saveError: "Could not save performance metric. Please check your inputs.",
+      reorderButton: "Reorder performance metrics",
+      dragHandleLabel: "Drag to reorder {name}",
+      reorderCancelButton: "Cancel",
+      reorderSaveButton: "Save",
+      reorderSaveSuccess: "Order saved.",
+      reorderSaveError: "Could not save the order. Please reload the page and try again.",
     },
   },
 } as const;

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, desc, eq, like } from "drizzle-orm";
+import { and, asc, desc, eq, like, lte } from "drizzle-orm";
 
 import {
   guildMeetings,
@@ -109,7 +109,7 @@ const getAllMeetings = async (): Promise<MeetingEntry[]> => {
   }));
 };
 
-const getPerformanceMetrics = async (): Promise<ContributionMetricEntry[]> =>
+const getPerformanceMetrics = async (meetingTimestamp: Date | null): Promise<ContributionMetricEntry[]> =>
   db
     .select({
       id: performanceMetrics.id,
@@ -119,7 +119,12 @@ const getPerformanceMetrics = async (): Promise<ContributionMetricEntry[]> =>
       enumPossibilities: performanceMetrics.enumPossibilities,
     })
     .from(performanceMetrics)
-    .orderBy(asc(performanceMetrics.timestampAdded), asc(performanceMetrics.shortName), asc(performanceMetrics.id));
+    .where(meetingTimestamp ? lte(performanceMetrics.timestampAdded, meetingTimestamp) : undefined)
+    .orderBy(
+      asc(performanceMetrics.sortOrder),
+      asc(performanceMetrics.timestampAdded),
+      asc(performanceMetrics.id),
+    );
 
 const getDefaultMeeting = (meetings: MeetingEntry[]): MeetingEntry | null => {
   const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000);
@@ -144,7 +149,7 @@ const getSelectedMeeting = (
 
 const getMeetingById = async (meetingId: string) => {
   const meetingRows = await db
-    .select({ id: guildMeetings.id })
+    .select({ id: guildMeetings.id, timestamp: guildMeetings.timestamp })
     .from(guildMeetings)
     .where(eq(guildMeetings.id, meetingId))
     .limit(1);
@@ -197,8 +202,9 @@ const getInitialValues = (
 export const getTrackContributionsPageData = async (
   selectedMeetingDate: string | null,
 ): Promise<TrackContributionsPageData> => {
-  const [meetings, metrics] = await Promise.all([getAllMeetings(), getPerformanceMetrics()]);
+  const meetings = await getAllMeetings();
   const meeting = getSelectedMeeting(meetings, selectedMeetingDate);
+  const metrics = await getPerformanceMetrics(meeting?.timestamp ?? null);
   const availableMeetingDates = meetings.map((entry) => entry.dateKey);
 
   if (!meeting) {
@@ -318,11 +324,13 @@ export const saveTrackContributions = async (
     return { status: "error" };
   }
 
-  const [selectedMeeting, metrics] = await Promise.all([getMeetingById(meetingId), getPerformanceMetrics()]);
+  const selectedMeeting = await getMeetingById(meetingId);
 
   if (!selectedMeeting) {
     return { status: "error" };
   }
+
+  const metrics = await getPerformanceMetrics(selectedMeeting.timestamp);
 
   const data: TrackedContributionDataEntry[] = [];
 

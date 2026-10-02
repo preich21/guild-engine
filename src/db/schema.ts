@@ -126,6 +126,7 @@ export const performanceMetrics = pgTable("performance_metrics", {
   enumPossibilities: varchar("enum_possibilities", { length: 511 }),
   points: varchar("points", { length: 255 }),
   timestampAdded: timestamp("timestamp_added", { withTimezone: true }).notNull().defaultNow(),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const rules = pgTable(
