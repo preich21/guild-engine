@@ -6,3 +6,6 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+minimumReleaseAgeExclude:
+  - drizzle-orm@0.45.4
+  - lucide-react@1.54.0
